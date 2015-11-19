@@ -1,0 +1,6 @@
+archive/
+*.png
+.depend
+.ycm*
+font_atlas
+metadata_atlas
