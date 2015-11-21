@@ -8,7 +8,10 @@
 #include <vector>
 #include <iterator>
 #include <utility>
+#include <iostream>
 
+enum Axis { X, Y };
+enum Direction { FORTH, BACK };
 class SubPolygon;
 
 typedef std::pair<glm::vec2, glm::vec2> LineSegment;
@@ -46,7 +49,7 @@ public:
     class Vertex
     {
     public:
-        Vertex(int index, Polygon &parent);
+        Vertex(int index, Polygon *parent);
         int getIndex() { return index; }
         void setIndex(int val) { index = val; }
         
@@ -60,7 +63,7 @@ public:
 
     private:
         int index;
-        Polygon &parent;
+        Polygon *parent;
     };
 
     ///////////////////////
@@ -69,7 +72,7 @@ public:
     class Edge
     {
     public:
-        Edge(int index, Polygon &parent);
+        Edge(int index, Polygon *parent);
         // bool operator< (Edge other);
         bool operator== (Edge other);
         int operator() (int x) const; // Gives y value at the given x value
@@ -80,7 +83,7 @@ public:
         Edge& operator= (Edge rhs) { parent=rhs.parent; index=rhs.index; return *this;}
     private:
         int index;
-        Polygon &parent;
+        Polygon *parent;
     };
 
     /////////////////////////
@@ -89,16 +92,16 @@ public:
     class Diagonal
     {
     public:
-        Diagonal(int vertex1, int vertex2, Polygon &parent)
-            :start_index(vertex1), end_index(vertex2), parent(parent) {};
-        glm::vec2& start() const { return parent.vertices[start_index];}
-        glm::vec2& end() const   { return parent.vertices[end_index];}
+        Diagonal(int vertex1, int vertex2, Polygon *parent)
+            :parent(parent), start_index(vertex1), end_index(vertex2) {};
+        glm::vec2& start() const { return parent->vertices[start_index];}
+        glm::vec2& end() const   { return parent->vertices[end_index];}
         int startIndex()        { return start_index;}
         int endIndex()          { return end_index;}
 
         Diagonal& operator= (Diagonal rhs) { parent=rhs.parent; start_index=rhs.start_index; end_index=rhs.end_index; return *this;}
     private:
-        Polygon &parent;
+        Polygon *parent;
         int start_index;
         int end_index;
     };
@@ -118,15 +121,17 @@ class SubPolygon
 {
 public:
 
-    SubPolygon(Polygon &mother):mother(mother) {};
+    SubPolygon():mother(0) {};
+    SubPolygon(Polygon *mother):mother(mother) {};
     std::vector<int> indices; // Indices in polygon vertex buffer
-    Polygon& mother;
+    Polygon* mother;
 
+	float signedArea();
     void fill(); // Let subpolygon be the full polygon
     bool containsDiagonal(int a, int b); // Returns true if vertices a and b are contained
     void split(int a, int b, SubPolygon& out1, SubPolygon& out2); // Split into two polygons at edge (a, b)
-    // Rule of three
-    SubPolygon& operator= (SubPolygon p);
+    template <Axis axis>
+    void monotonize(std::vector<Polygon::Diagonal> &diagonals, bool reverse);
 
     ///////////////////////
     // Vertex smart-pointer
@@ -135,8 +140,9 @@ public:
     {
     public:
         // index: This is the index into the indices array of the subpolygon
-        Vertex(int index, SubPolygon &parent);
-        int getIndex() { return parent.indices[index]; }
+        Vertex() :index(0), parent(0) {}
+        Vertex(int index, SubPolygon *parent);
+        int getIndex() { return parent->indices[index]; }
         int getIndexIndex() { return index; }
         void setIndex(int val) { index = val; }
         
@@ -144,11 +150,31 @@ public:
         glm::vec2 * operator-> ();
         glm::vec2 & preceding();
         glm::vec2 & successive();
-
-        Vertex& operator= (Vertex rhs) { parent=rhs.parent; index=rhs.index; return *this;}
     private:
         int index;
-        SubPolygon &parent;
+        SubPolygon *parent;
+    };
+
+    ///////////////////////
+    // Edge smart-pointer
+    ///////////////////////
+    class Edge
+    {
+    public:
+        Edge() :index(0), parent(0) {}
+        Edge(int index, SubPolygon *parent);
+        // bool operator< (Edge other);
+        bool operator== (Edge other) const;
+        int y(int x) const;
+        int x(int y) const;
+        glm::vec2 & start() const;
+        glm::vec2 & end() const;
+        int getIndex() const;
+        int getIndexIndex() const { return index; }
+        SubPolygon& getParent() const { return *parent; }
+    private:
+        int index;
+        SubPolygon *parent;
     };
 };
 std::ostream& operator<< (std::ostream& lhs, SubPolygon& p);

@@ -12,7 +12,7 @@ SHADER_OBJ = $(shell ~/scripts/make/getshaderobjects src)
 PROGRAM = bin/program
 DEFINE = -DFREETYPE_GL_USE_VAO -DUSE_GLFW
 # We have to add the include directory because freetype uses relative (to freetype2 dir) include file names
-FLAGS = -ggdb -I/usr/include/freetype2
+FLAGS = -ggdb -I/usr/include/freetype2 -Wall
 LDFLAGS = -lglfw -lGL -lGLEW -lfreetype
 CXX = g++
 

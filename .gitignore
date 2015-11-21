@@ -4,3 +4,5 @@ archive/
 .ycm*
 font_atlas
 metadata_atlas
+bin/
+.obj/
