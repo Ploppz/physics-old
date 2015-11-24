@@ -8,51 +8,51 @@
 
 
 // Uses Polygon p as reference coordinate system
-unsigned int addToBuffer(LineSegment e, Body &b, float *buffer, int offset)
+unsigned int addToBuffer(LineSegment e, float *buffer, int offset)
 {
-	buffer[offset] = e.first.x + b.position().x; ++ offset;
-	buffer[offset] = e.first.y + b.position().y; ++ offset;
+	buffer[offset] = e.first.x; ++ offset;
+	buffer[offset] = e.first.y; ++ offset;
 	buffer[offset] = 1; ++ offset;
 	buffer[offset] = 1; ++ offset;
 	buffer[offset] = 0; ++ offset;
 
-	buffer[offset] = e.second.x + b.position().x; ++ offset;
-	buffer[offset] = e.second.y + b.position().y; ++ offset;
+	buffer[offset] = e.second.x; ++ offset;
+	buffer[offset] = e.second.y; ++ offset;
 	buffer[offset] = 1; ++ offset;
 	buffer[offset] = 1; ++ offset;
 	buffer[offset] = 0; ++ offset;
 	return offset;
 }
 
-void addToBuffer(LineSegment e, Body &b, std::vector<float> &buffer)
+void addToBuffer(LineSegment e, std::vector<float> &buffer)
 {
-	buffer.push_back(e.first.x + b.position().x);
-	buffer.push_back(e.first.y + b.position().y);
+	buffer.push_back(e.first.x);
+	buffer.push_back(e.first.y);
 	buffer.push_back(1);
 	buffer.push_back(1);
 	buffer.push_back(0);
 
-	buffer.push_back(e.second.x + b.position().x);
-	buffer.push_back(e.second.y + b.position().y);
+	buffer.push_back(e.second.x);
+	buffer.push_back(e.second.y);
 	buffer.push_back(1);
 	buffer.push_back(1);
 	buffer.push_back(0);
 }
-void addToBuffer(LineSegment e, Body &b, BufferWriter<float> & buffer)
+void addToBuffer(LineSegment e, BufferWriter<float> & buffer, float r, float g, float b)
 {
-	buffer.write(e.first.x + b.position().x, e.first.y + b.position().y);
-    buffer.write(1, 1, 0);
+	buffer.write(e.first.x, e.first.y);
+    buffer.write(r, g, b);
 
-	buffer.write(e.second.x + b.position().x, e.second.y + b.position().y);
-    buffer.write(1, 1, 0);
+	buffer.write(e.second.x, e.second.y);
+    buffer.write(r, g, b);
 }
 
 float randFloat() {
-    return rand() / float(RAND_MAX) / 2;
+    return rand() / float(RAND_MAX);
 }
 
 glm::vec3 randomColor()
 {
-    return glm::vec3(randFloat(), randFloat(), randFloat());
+    return glm::vec3(randFloat(), randFloat(), randFloat()) * 0.5f;
 }
 

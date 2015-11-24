@@ -10,8 +10,8 @@
 #include <utility>
 #include <iostream>
 
-enum Axis { X, Y };
-enum Direction { FORTH, BACK };
+enum Axis { X=0, Y=1 };
+enum Direction { FORTH=0, BACK=1 };
 class SubPolygon;
 
 typedef std::pair<glm::vec2, glm::vec2> LineSegment;
@@ -35,8 +35,8 @@ public:
 	glm::vec2 centroid();
 	float radius();
 
-	// Monotonize, Triangulate, decompose into convex pieces
-	std::vector<LineSegment> decompose(std::vector<Triangle> &triangles);
+	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
+	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines);
 
 
 	// Iterating
@@ -49,6 +49,7 @@ public:
     class Vertex
     {
     public:
+        Vertex(): index(0), parent(0) {};
         Vertex(int index, Polygon *parent);
         int getIndex() { return index; }
         void setIndex(int val) { index = val; }
@@ -57,9 +58,6 @@ public:
         glm::vec2 * operator-> ();
         glm::vec2 & preceding();
         glm::vec2 & successive();
-
-        Vertex& operator= (Vertex rhs) { parent=rhs.parent; index=rhs.index; return *this;}
-
 
     private:
         int index;
@@ -72,6 +70,7 @@ public:
     class Edge
     {
     public:
+        Edge():index(0), parent(0) {};
         Edge(int index, Polygon *parent);
         // bool operator< (Edge other);
         bool operator== (Edge other);
@@ -80,7 +79,6 @@ public:
         glm::vec2 & end() const;
         int getIndex() const { return index; }
 
-        Edge& operator= (Edge rhs) { parent=rhs.parent; index=rhs.index; return *this;}
     private:
         int index;
         Polygon *parent;
@@ -131,7 +129,7 @@ public:
     bool containsDiagonal(int a, int b); // Returns true if vertices a and b are contained
     void split(int a, int b, SubPolygon& out1, SubPolygon& out2); // Split into two polygons at edge (a, b)
     template <Axis axis>
-    void monotonize(std::vector<Polygon::Diagonal> &diagonals, bool reverse);
+    void monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction dir);
 
     ///////////////////////
     // Vertex smart-pointer

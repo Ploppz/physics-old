@@ -86,6 +86,9 @@ FontRenderer *fontRenderer;
 
 float scale = 1;
 float limit = 0;
+
+bool left_down, right_down, up_down, down_down;
+
 int main()
 {
     // srand (time(NULL));
@@ -112,20 +115,14 @@ int main()
 	float a;
     for (int i = 0; i < numEdges; i ++) {
         a = rand() / static_cast<float>(INT_MAX) * 400;
-        p.vertices.push_back(glm::vec2(cos(i*2.0f/numEdges * M_PI) * a, sin(i*2.0f/numEdges * M_PI) * a));
+        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
     }
-    
 
-    
-
-
-    // p.vertices.push_back(glm::vec2(-300, 100));
-    // p.vertices.push_back(glm::vec2(200, 100));
-    // p.vertices.push_back(glm::vec2(50, 0));
-    // p.vertices.push_back(glm::vec2(300, -100));
     // p.vertices.push_back(glm::vec2(-200, -100));
-    // p.vertices.push_back(glm::vec2(-50, 0));
-
+    // p.vertices.push_back(glm::vec2(200, -100));
+    // p.vertices.push_back(glm::vec2(200, 100));
+    // // p.vertices.push_back(glm::vec2(-200, 200));
+    // p.vertices.push_back(glm::vec2(-200, 100));
 
 	numEdges = 10;
 	for (int i = 0; i < numEdges; i ++) {
@@ -137,7 +134,8 @@ int main()
 
     std::vector<Triangle> triangles;
 
-	std::vector<LineSegment> edges = p.decompose(triangles);
+	std::vector<LineSegment> edges;
+    int num_diagonals_1 = p.decompose(triangles, edges);
 	
 	BodySystem bodies {};
 	World world;
@@ -153,7 +151,7 @@ int main()
 
 	for (int i = 0; i < edges.size(); i ++)
 	{
-		addToBuffer(edges[i], b1, polygonBuffer);
+		addToBuffer(edges[i], polygonBuffer);
 	}
 
 	// Compile shader
@@ -213,10 +211,14 @@ int main()
 		glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
 		BufferWriter<float> buffer(polygonBuffer.size());
 		b1.addToBuffer(buffer);
-		// b2.addToBuffer(buffer);
-		for (int i = 0; i < edges.size(); i ++)
+        b2.addToBuffer(buffer);
+		for (int i = edges.size() - 1; i >= 0; i --)
 		{
-            addToBuffer(edges[i], b1, buffer);
+            if (i < num_diagonals_1) {
+                addToBuffer(edges[i], buffer, 1.f, 1.f, 0.f);
+            } else {
+                addToBuffer(edges[i], buffer, 1.f, 0.f, 1.f);
+            }
 		}
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 		//
@@ -228,6 +230,10 @@ int main()
 		// b1.velocity().x += (xTarget - b1.position().x) / 100;
 		// b1.velocity().y += (yTarget - b1.position().y) / 100;
 		// b1.velocity() *= 0.9;
+        if (up_down) b1.position().y += 10;
+        if (down_down) b1.position().y -= 10;
+        if (right_down) b1.position().x += 10;
+        if (left_down) b1.position().x -= 10;
 
 		world.timestep(30);
         b2.shape().color = glm::vec3(0, 0, 0);
@@ -245,11 +251,10 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
-
 		glUseProgram(shaderProgram);
 			proj = ortho2D(width, height, 0, 1);
 			view = viewMatrix2D(0, 0, 1, 1);
-			model = glm::mat4{};
+			// model = glm::translate(glm::mat4{}, glm::vec3(b1.position(), 0));
 			glUniformMatrix4fv(uni_proj, 1, GL_FALSE, glm::value_ptr(proj));
 			glUniformMatrix4fv(uni_view, 1, GL_FALSE, glm::value_ptr(view));
 			glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
@@ -257,6 +262,7 @@ int main()
             glBindVertexArray(triangle_vao);
             glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
             glDrawArrays(GL_TRIANGLES, 0, triangle_buffer.size());
+
 			glBindVertexArray(VAO);
             glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
             glDrawArrays(GL_LINES, 0, polygonBuffer.size()/2);
@@ -280,19 +286,46 @@ void error_callback(int error, const char* description)
 }
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	switch(key)
-	{
-		case GLFW_KEY_UP:
-			b1.position().y += 10;
-			break;
-		case GLFW_KEY_DOWN:
-			b1.position().y -= 10;
-			break;
-		case GLFW_KEY_LEFT:
-			b1.position().x -= 10;
-			break;
-		case GLFW_KEY_RIGHT:
-			b1.position().x += 10;
-			break;
-	}
+    if (action == GLFW_PRESS) {
+        switch(key)
+        {
+            case GLFW_KEY_UP:
+            case GLFW_KEY_K:
+                up_down = true;
+                break;
+            case GLFW_KEY_DOWN:
+            case GLFW_KEY_J:
+                down_down = true;
+                break;
+            case GLFW_KEY_LEFT:
+            case GLFW_KEY_H:
+                left_down = true;
+                break;
+            case GLFW_KEY_RIGHT:
+            case GLFW_KEY_L:
+                right_down = true;
+                break;
+        }
+    }
+    if (action == GLFW_RELEASE) {
+        switch(key)
+        {
+            case GLFW_KEY_UP:
+            case GLFW_KEY_K:
+                up_down = false;
+                break;
+            case GLFW_KEY_DOWN:
+            case GLFW_KEY_J:
+                down_down = false;
+                break;
+            case GLFW_KEY_LEFT:
+            case GLFW_KEY_H:
+                left_down = false;
+                break;
+            case GLFW_KEY_RIGHT:
+            case GLFW_KEY_L:
+                right_down = false;
+                break;
+        }
+    }
 }
