@@ -2,8 +2,6 @@
 
 // class POLYGON
 
-#include "Geometry.h"
-
 #include <glm/glm.hpp>
 #include <vector>
 #include <iterator>

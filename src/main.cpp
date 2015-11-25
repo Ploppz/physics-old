@@ -111,7 +111,7 @@ int main()
     fontRenderer->setup();
 
 	// 
-	int numEdges = 14;
+	int numEdges = 5;
 	float a;
     for (int i = 0; i < numEdges; i ++) {
         a = rand() / static_cast<float>(INT_MAX) * 400;
@@ -124,7 +124,7 @@ int main()
     // // p.vertices.push_back(glm::vec2(-200, 200));
     // p.vertices.push_back(glm::vec2(-200, 100));
 
-	numEdges = 10;
+	numEdges = 5;
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
 		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
@@ -147,8 +147,11 @@ int main()
 	
 	std::vector<float> polygonBuffer;
 	b1.addToBuffer(polygonBuffer);
-	// b2.addToBuffer(polygonBuffer);
+    std::cout << polygonBuffer.size() << std::endl;
+    int b2_offset = polygonBuffer.size();
+    b2.addToBuffer(polygonBuffer);
 
+    std::cout << polygonBuffer.size() << std::endl;
 	for (int i = 0; i < edges.size(); i ++)
 	{
 		addToBuffer(edges[i], polygonBuffer);
@@ -236,7 +239,7 @@ int main()
         if (left_down) b1.position().x -= 10;
 
 		world.timestep(30);
-        b2.shape().color = glm::vec3(0, 0, 0);
+        b2.shape().color = glm::vec3(0, 0.6f, 0);
 		// Check if 'almost' colliding
 		if (bodies.overlaps(b1, b2)) {
 			// b1.shape().color.r = 1; b1.shape().color.g = 0; b1.shape().color.b = 0;
@@ -254,7 +257,7 @@ int main()
 		glUseProgram(shaderProgram);
 			proj = ortho2D(width, height, 0, 1);
 			view = viewMatrix2D(0, 0, 1, 1);
-			// model = glm::translate(glm::mat4{}, glm::vec3(b1.position(), 0));
+            model = glm::translate(glm::mat4{}, glm::vec3(b1.position(), 0));
 			glUniformMatrix4fv(uni_proj, 1, GL_FALSE, glm::value_ptr(proj));
 			glUniformMatrix4fv(uni_view, 1, GL_FALSE, glm::value_ptr(view));
 			glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
@@ -265,7 +268,11 @@ int main()
 
 			glBindVertexArray(VAO);
             glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
-            glDrawArrays(GL_LINES, 0, polygonBuffer.size()/2);
+            glDrawArrays(GL_LINES, 0, b2_offset / 5);
+
+            model = glm::mat4{};
+			glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
+            glDrawArrays(GL_LINES, b2_offset / 5, (polygonBuffer.size() - b2_offset) / 5);
 
 		fontRenderer->render(width, height);
         fontRenderer->clearBuffer();

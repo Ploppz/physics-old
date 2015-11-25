@@ -263,13 +263,9 @@ int Polygon::decompose(std::vector<Triangle> &triangles, std::vector<LineSegment
                 }
             }
         }
-        // for (auto part = parts.begin(); part != parts.end(); part ++)
         auto part = parts.begin();
         {
             std::cout << *part << std::endl;
-            // part->monotonize<Y>(diagonals, FORTH);
-            // part->monotonize<Y>(diagonals, BACK);
-            // TODO Here
             triangulate(parts, diagonals, triangles);
         }
 

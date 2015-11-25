@@ -66,3 +66,31 @@ std::ostream &operator << (std::ostream &lhs, vec3 &rhs)
 	lhs << "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ")";
 	return lhs;
 }
+
+int sign(float x)
+{
+    return (x < 0) ? -1 : 1;
+}
+
+bool inside(vec2 point, Body &body)
+{
+    LineSegment edge;
+    int counter = 0;
+    glm::vec2 delta;
+    float t;
+    for (int i = 0; i < body.shape().numEdges(); i ++)
+    {
+        edge = body.shape().getEdge(i);
+        edge.first += body.position() - point;
+        edge.second += body.position() - point;
+        if (sign(edge.first.y) != sign(edge.second.y)) { // The edge crosses the x-axis
+            // Find out where it intersects the x-axis
+            delta = edge.second - edge.first;
+            t = - edge.first.y / delta.y;
+            if ((edge.first + delta * t).x > 0) {
+                counter ++;
+            }
+        }
+    }
+    return counter % 2 == 1;
+}

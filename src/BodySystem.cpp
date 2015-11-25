@@ -9,6 +9,7 @@
 #include "BodySystem.h"
 #include "glutils.h"
 #include "typewriter/FontRenderer.h"
+#include "Geometry.h"
 
 extern FontRenderer *fontRenderer;
 
@@ -53,6 +54,7 @@ Body BodySystem::getBody(int index)
 
 typedef std::pair<glm::vec2, glm::vec2> LineSegment;
 
+bool inside(vec2 point, Polygon polygon);
 
 // For now this is copy-pasta code from Polygon: we just have to add the Body's pos.
 bool BodySystem::overlaps(Body a, Body b)
@@ -64,6 +66,11 @@ bool BodySystem::overlaps(Body a, Body b)
 	float radius_b = b.shape().radius();
 	// First, loop through edges (u, v) of a, and create a triangle with the centroid, from which we
 	// calculate the barycentric coordinate space
+    
+
+    if (inside(b.shape().vertices[0] + b.position(), a)) {
+        return true;
+    }
 
 	float distFromEdge;
 	float slope, minVal, deltaVal;
@@ -74,7 +81,6 @@ bool BodySystem::overlaps(Body a, Body b)
 	{
 		edge_a = a.shape().getEdge(i);
 		edge_a.first += a.position(); edge_a.second += a.position();
-		// Edge is now given from *s to *t
 		// Get barycentric coordinates with respect to centroid_a
 		glm::vec3 lala = barycentric(centroid_a, edge_a.first, edge_a.second, centroid_b);
 		distFromEdge = distance(centroid_b, edge_a.first, edge_a.second);
@@ -99,7 +105,6 @@ bool BodySystem::overlaps(Body a, Body b)
 			//TODO: eliminate edges where both vertices are outside (using the bary-space of the centroid-triangle)
 			//TODO: ... we already know which edges may collide and which not
 			// For now: exhaustive. Loop through all edges of b.
-			std::vector<glm::vec2>::iterator u, v;
 			for (int j = 0; j < b.shape().numEdges(); j ++)
 			{
 				edge_b = b.shape().getEdge(j);
@@ -107,9 +112,6 @@ bool BodySystem::overlaps(Body a, Body b)
 				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second)) {
 					return true;
 				}
-				
-				++ v;
-				if (v == a.shape().vertices.end()) v = a.shape().vertices.begin();
 			}
 		}
 	}
@@ -147,19 +149,19 @@ void Body::addToBuffer(std::vector<float> &buffer)
 	for (auto it = first; it != shape().vertices.end(); it ++)
     {
 		next = it; next ++;
-		buffer.push_back(it->x + position().x);
-		buffer.push_back(it->y + position().y);
+		buffer.push_back(it->x);
+		buffer.push_back(it->y);
 		buffer.push_back(shape().color.r);
 		buffer.push_back(shape().color.g);
 		buffer.push_back(shape().color.b);
 		// Draw to next point
 		if (next != shape().vertices.end()) {
-			buffer.push_back(next->x + position().x);
-			buffer.push_back(next->y + position().y);
+			buffer.push_back(next->x);
+			buffer.push_back(next->y);
 		} else {
 			// End the shape.
-			buffer.push_back(first->x + position().x);
-			buffer.push_back(first->y + position().y);
+			buffer.push_back(first->x);
+			buffer.push_back(first->y);
 		}
 		buffer.push_back(shape().color.r);
 		buffer.push_back(shape().color.g);
@@ -197,14 +199,14 @@ void Body::addToBuffer(BufferWriter<float> &buffer)
 	for (auto it = first; it != shape().vertices.end(); it ++)
     {
 		next = it; next ++;
-		buffer.write(it->x + position().x, it->y + position().y);
+		buffer.write(it->x, it->y);
 		buffer.write(shape().color.r, shape().color.g, shape().color.b);
 		// Draw to next point
 		if (next != shape().vertices.end()) {
-            buffer.write(next->x + position().x, next->y + position().y);
+            buffer.write(next->x, next->y);
 		} else {
 			// End the shape.
-			buffer.write(first->x + position().x, first->y + position().y);
+			buffer.write(first->x, first->y);
 		}
 		buffer.write(shape().color.r, shape().color.g, shape().color.b);
 

@@ -90,9 +90,9 @@ addText	typewriter/FontRenderer.cpp	/^void FontRenderer::addText(std::string tex
 addToBuffer	BodySystem.cpp	/^unsigned int Body::addToBuffer(float *buffer, int offset)$/;"	f	class:Body
 addToBuffer	BodySystem.cpp	/^void Body::addToBuffer(BufferWriter<float> &buffer)$/;"	f	class:Body
 addToBuffer	BodySystem.cpp	/^void Body::addToBuffer(std::vector<float> &buffer)$/;"	f	class:Body
-addToBuffer	tmp.cpp	/^unsigned int addToBuffer(LineSegment e, Body &b, float *buffer, int offset)$/;"	f
-addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, Body &b, std::vector<float> &buffer)$/;"	f
-addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, Body &body, BufferWriter<float> & buffer, float r, float g, float b)$/;"	f
+addToBuffer	tmp.cpp	/^unsigned int addToBuffer(LineSegment e, float *buffer, int offset)$/;"	f
+addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, BufferWriter<float> & buffer, float r, float g, float b)$/;"	f
+addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, std::vector<float> &buffer)$/;"	f
 a	Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
 angle	Geometry.cpp	/^float angle(vec2 a, vec2 b, vec2 c)$/;"	f
 angularSpeed	BodySystem.h	/^		float& angularSpeed() { return system->angularSpeed[index]; }$/;"	f	class:Body
@@ -179,6 +179,7 @@ index	Polygon.h	/^        int index;$/;"	m	class:SubPolygon::Vertex
 indices	Polygon.h	/^    std::vector<int> indices; \/\/ Indices in polygon vertex buffer$/;"	m	class:SubPolygon
 insertImage	typewriter/FontTexture.cpp	/^void insertImage(unsigned char *dest, int destW, int destH, unsigned char* src, int srcW, int srcH, int destX, int destY)$/;"	f
 insert	typewriter/skyline-bl.h	/^		void insert(Size<T> rect, skyline_ptr where, std::vector<Area<T>> &atlas)$/;"	f	class:SBL::SkylineBL_alg
+inside	Geometry.cpp	/^bool inside(vec2 point, Body &body)$/;"	f
 intersect	Geometry.cpp	/^bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b)$/;"	f
 invertImage	typewriter/FontTexture.cpp	/^unsigned char *invertImage(unsigned char *image, int width, int height)$/;"	f
 kerning	typewriter/FontTexture.h	/^	float kerning[255];$/;"	m	struct:Glyph
@@ -273,6 +274,7 @@ shape	BodySystem.h	/^	vector<Polygon> shape;$/;"	m	class:BodySystem
 signedArea	Geometry.cpp	/^float signedArea(vec2 a, vec2 b, vec2 c)$/;"	f
 signedArea	Polygon.cpp	/^float Polygon::signedArea()$/;"	f	class:Polygon
 signedArea	Polygon.cpp	/^float SubPolygon::signedArea()$/;"	f	class:SubPolygon
+sign	Geometry.cpp	/^int sign(float x)$/;"	f
 size	typewriter/FontRenderer.h	/^	int size;$/;"	m	class:FontRenderer
 skyline_ptr	typewriter/skyline-bl.h	/^	typedef std::set<Point>::iterator skyline_ptr;$/;"	t	namespace:SBL
 skyline	typewriter/skyline-bl.h	/^		Skyline skyline;$/;"	m	class:SBL::SkylineBL_alg
