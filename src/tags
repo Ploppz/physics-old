@@ -50,6 +50,8 @@ Point	typewriter/skyline-bl.h	/^		Point(double x, double y) {$/;"	f	struct:SBL::
 Point	typewriter/skyline-bl.h	/^	struct Point$/;"	s	namespace:SBL
 Polygon	Polygon.h	/^class Polygon$/;"	c
 Polygon	Polygon.cpp	/^Polygon::Polygon()$/;"	f	class:Polygon
+Renderer	Renderer.h	/^class Renderer$/;"	c
+Renderer	Renderer.cpp	/^Renderer::Renderer(BodySystem& system)$/;"	f	class:Renderer
 SBL	typewriter/skyline-bl.cpp	/^namespace SBL {$/;"	n	file:
 SBL	typewriter/skyline-bl.h	/^namespace SBL {$/;"	n
 SDF	typewriter/FontTexture.h	/^	SDF, NORMAL$/;"	e	enum:AtlasType
@@ -199,6 +201,7 @@ mother	Polygon.h	/^    Polygon* mother;$/;"	m	class:SubPolygon
 name	glutils.cpp	/^	char name[30];$/;"	m	struct:SingleFormat	file:
 neighbors	tmp.h	/^        std::vector<int> neighbors; \/\/ indices into graph$/;"	m	class:Graph::Node
 nodes	tmp.h	/^    std::vector<Node> nodes;$/;"	m	class:Graph
+numBodies	BodySystem.h	/^    int numBodies() const { return count; }$/;"	f	class:BodySystem
 numComponents	glutils.cpp	/^	int numComponents;$/;"	m	struct:SingleFormat	file:
 numEdges	Polygon.cpp	/^int Polygon::numEdges()$/;"	f	class:Polygon
 offset	glutils.cpp	/^	int offset;$/;"	m	struct:SingleFormat	file:
@@ -233,6 +236,7 @@ parent	Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Edge
 parent	Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Vertex
 parent	Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Edge
 parent	Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Vertex
+pos2col3_program	Renderer.h	/^    GLuint pos2col3_program, red_program;$/;"	m	class:Renderer
 position	BodySystem.h	/^		vec2& position() { return system->position[index]; }$/;"	f	class:Body
 position	BodySystem.h	/^	vector<vec2> position;$/;"	m	class:BodySystem
 preceding	Polygon.cpp	/^glm::vec2& Polygon::Vertex::preceding()$/;"	f	class:Polygon::Vertex
@@ -242,6 +246,7 @@ project	Geometry.cpp	/^vec2 project(vec2 p, vec2 line_a, vec2 line_b)$/;"	f
 project	typewriter/skyline-bl.h	/^		double project(double x, skyline_ptr iterationBegin, skyline_ptr iterationEnd)$/;"	f	class:SBL::SkylineBL_alg
 ptr	glutils.h	/^    T* ptr;$/;"	m	class:BufferWriter
 p	main.cpp	/^Polygon p, q;$/;"	v
+quad	Renderer.cpp	/^GLfloat quad[] = {$/;"	v
 q	main.cpp	/^Polygon p, q;$/;"	v
 radius	Polygon.cpp	/^float Polygon::radius()$/;"	f	class:Polygon
 randFloat	tmp.cpp	/^float randFloat() {$/;"	f
@@ -256,7 +261,11 @@ rect_greaterThan	typewriter/skyline-bl.h	/^	bool rect_greaterThan(Size<T> rect1,
 rectangle1	typewriter/FontRenderer.cpp	/^GLfloat rectangle1[] = {$/;"	v
 rectangles	typewriter/skyline-bl.h	/^		std::vector<Size<T>> rectangles;$/;"	m	class:SBL::SkylineBL_alg
 rectangle	main.cpp	/^GLfloat rectangle[] = {$/;"	v
+red_program	Renderer.h	/^    GLuint pos2col3_program, red_program;$/;"	m	class:Renderer
+red_vao	Renderer.h	/^    GLuint triangles_vao, red_vao;$/;"	m	class:Renderer
+red_vbo	Renderer.h	/^    GLuint triangles_vbo, red_vbo;$/;"	m	class:Renderer
 renderBitmap	typewriter/FontTexture.cpp	/^FT_Bitmap renderBitmap(FT_Bitmap bitmap)$/;"	f
+render	Renderer.cpp	/^void Renderer::render(int width, int height)$/;"	f	class:Renderer
 render	typewriter/FontRenderer.cpp	/^void FontRenderer::render(float width, float height)$/;"	f	class:FontRenderer
 resolution	typewriter/FontTexture.h	/^	int resolution = 16;$/;"	m	class:FontTexture
 right_down	main.cpp	/^bool left_down, right_down, up_down, down_down;$/;"	v
@@ -282,6 +291,7 @@ sortByHeight	typewriter/skyline-bl.h	/^		void sortByHeight(std::vector<Size<T>> 
 split	Polygon.cpp	/^void SubPolygon::split(int a, int b, SubPolygon& out1, SubPolygon& out2)$/;"	f	class:SubPolygon
 startIndex	Polygon.h	/^        int startIndex()        { return start_index;}$/;"	f	class:Polygon::Diagonal
 start_index	Polygon.h	/^        int start_index;$/;"	m	class:Polygon::Diagonal
+start_indices	Renderer.h	/^    std::vector<int> start_indices;$/;"	m	class:Renderer
 start	Polygon.cpp	/^glm::vec2& Polygon::Edge::start() const$/;"	f	class:Polygon::Edge
 start	Polygon.cpp	/^glm::vec2& SubPolygon::Edge::start() const$/;"	f	class:SubPolygon::Edge
 start	Polygon.h	/^        glm::vec2& start() const { return parent->vertices[start_index];}$/;"	f	class:Polygon::Diagonal
@@ -331,6 +341,7 @@ stbiw_uint32	typewriter/stb_image_write.h	/^typedef unsigned int stbiw_uint32;$/
 successive	Polygon.cpp	/^glm::vec2& Polygon::Vertex::successive()$/;"	f	class:Polygon::Vertex
 successive	Polygon.cpp	/^glm::vec2& SubPolygon::Vertex::successive()$/;"	f	class:SubPolygon::Vertex
 system	BodySystem.h	/^	BodySystem *system;$/;"	m	class:Body
+system	Renderer.h	/^    BodySystem& system;$/;"	m	class:Renderer
 textureRef	typewriter/FontRenderer.h	/^	GLuint textureRef;$/;"	m	class:FontRenderer
 texture	typewriter/FontRenderer.h	/^	FontTexture &texture;$/;"	m	class:FontRenderer
 theight	typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
@@ -340,12 +351,17 @@ toFloat	typewriter/FontTexture.cpp	/^float *toFloat(double *image, int size)$/;"
 torque	BodySystem.h	/^		float& torque() { return system->torque[index]; }$/;"	f	class:Body
 torque	BodySystem.h	/^	vector<float> torque;$/;"	m	class:BodySystem
 totalHeightIfInserted	typewriter/skyline-bl.h	/^		double totalHeightIfInserted(Size<T> rect, skyline_ptr where)$/;"	f	class:SBL::SkylineBL_alg
+triangles_vao	Renderer.h	/^    GLuint triangles_vao, red_vao;$/;"	m	class:Renderer
+triangles_vbo	Renderer.h	/^    GLuint triangles_vbo, red_vbo;$/;"	m	class:Renderer
 triangulate	Polygon.cpp	/^void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles)$/;"	f	class:Polygon
 twidth	typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
 type	typewriter/FontTexture.h	/^	AtlasType type;$/;"	m	class:FontTexture
 uint	glutils.cpp	/^typedef unsigned int uint;$/;"	t	file:
 u	typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
 u	typewriter/FontTexture.h	/^	int u, v;$/;"	m	struct:Glyph
+uni_model	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
+uni_proj	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
+uni_view	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
 up_down	main.cpp	/^bool left_down, right_down, up_down, down_down;$/;"	v
 uploadElements	glutils.cpp	/^GLuint uploadElements(GLuint elements[], unsigned int size)$/;"	f
 uploadVertices	glutils.h	/^GLuint uploadVertices(T data[], unsigned int size)$/;"	f

@@ -33,6 +33,7 @@
 
 /* files */
 #include "tmp.h"
+#include "Renderer.h"
 #include "shaders.h"
 #include "glutils.h"
 #include "Polygon.h"
@@ -117,90 +118,42 @@ int main()
         a = rand() / static_cast<float>(INT_MAX) * 400;
         p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
     }
-
-    // p.vertices.push_back(glm::vec2(-200, -100));
-    // p.vertices.push_back(glm::vec2(200, -100));
-    // p.vertices.push_back(glm::vec2(200, 100));
-    // // p.vertices.push_back(glm::vec2(-200, 200));
-    // p.vertices.push_back(glm::vec2(-200, 100));
-
 	numEdges = 5;
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
 		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
 	} 
 
-
-
-    std::vector<Triangle> triangles;
-
-	std::vector<LineSegment> edges;
-    int num_diagonals_1 = p.decompose(triangles, edges);
-	
-	BodySystem bodies {};
 	World world;
 
 	b1 = world.bodies.addBody();
 	b1.shape() = p;
 	b2 = world.bodies.addBody();
 	b2.shape() = q;
+    b2.shape().color = glm::vec3(0, 0.6f, 0);
 	
 	std::vector<float> polygonBuffer;
 	b1.addToBuffer(polygonBuffer);
-    std::cout << polygonBuffer.size() << std::endl;
     int b2_offset = polygonBuffer.size();
     b2.addToBuffer(polygonBuffer);
 
-    std::cout << polygonBuffer.size() << std::endl;
-	for (int i = 0; i < edges.size(); i ++)
-	{
-		addToBuffer(edges[i], polygonBuffer);
-	}
+	// for (int i = 0; i < edges.size(); i ++)
+	// {
+		// addToBuffer(edges[i], polygonBuffer);
+	// }
 
-	// Compile shader
-	GLuint vertexShader, fragmentShader; // unused
-	GLuint shaderProgram  = createShaderProgram(shaders::shaders_vert, shaders::shaders_frag, vertexShader, fragmentShader);
 
-	GLuint uni_proj = glGetUniformLocation(shaderProgram, "proj");
-	GLuint uni_view = glGetUniformLocation(shaderProgram, "view");
-	GLuint uni_model = glGetUniformLocation(shaderProgram, "model");
-	
+	// // Upload rect
+	// GLuint polygonBufferRef= uploadVertices(polygonBuffer.data(), polygonBuffer.size() * sizeof(float));
+	// // Attribute pointers
+	// GLuint VAO = createVertexArrayObject();
+	// glBindVertexArray(VAO);
+	// glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
+	// setFormat("position 2f color 3f", shaderProgram);
 
-	// Upload rect
-	GLuint polygonBufferRef= uploadVertices(polygonBuffer.data(), polygonBuffer.size() * sizeof(float));
-	// Attribute pointers
-	GLuint VAO = createVertexArrayObject();
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
-	setFormat("position 2f color 3f", shaderProgram);
-
-    // Triangle buffer
     
-    std::vector<float> triangle_buffer;
-    for (Triangle t : triangles) {
-        triangle_buffer.push_back(t.a.x);
-        triangle_buffer.push_back(t.a.y);
-        triangle_buffer.push_back(t.color.r);
-        triangle_buffer.push_back(t.color.g);
-        triangle_buffer.push_back(t.color.b);
-        triangle_buffer.push_back(t.b.x);
-        triangle_buffer.push_back(t.b.y);
-        triangle_buffer.push_back(t.color.r);
-        triangle_buffer.push_back(t.color.g);
-        triangle_buffer.push_back(t.color.b);
-        triangle_buffer.push_back(t.c.x);
-        triangle_buffer.push_back(t.c.y);
-        triangle_buffer.push_back(t.color.r);
-        triangle_buffer.push_back(t.color.g);
-        triangle_buffer.push_back(t.color.b);
-    }
-    GLuint triangles_vbo = uploadVertices(triangle_buffer.data(), triangle_buffer.size() * sizeof(float));
-    // Attrib pointers
-    GLuint triangle_vao = createVertexArrayObject();
-    glBindVertexArray(triangle_vao);
-    setFormat("position 2f color 3f", shaderProgram);
+    Renderer renderer(world.bodies);
 
-	glm::mat4 proj, view, model;
 	int width, height;
 	double ratio, timer;
 
@@ -211,19 +164,11 @@ int main()
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 		// Reupload vertices
-		glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
-		BufferWriter<float> buffer(polygonBuffer.size());
-		b1.addToBuffer(buffer);
-        b2.addToBuffer(buffer);
-		for (int i = edges.size() - 1; i >= 0; i --)
-		{
-            if (i < num_diagonals_1) {
-                addToBuffer(edges[i], buffer, 1.f, 1.f, 0.f);
-            } else {
-                addToBuffer(edges[i], buffer, 1.f, 0.f, 1.f);
-            }
-		}
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+		// glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
+		// BufferWriter<float> buffer(polygonBuffer.size());
+		// b1.addToBuffer(buffer);
+        // b2.addToBuffer(buffer);
+		// glUnmapBuffer(GL_ARRAY_BUFFER);
 		//
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -239,9 +184,8 @@ int main()
         if (left_down) b1.position().x -= 10;
 
 		world.timestep(30);
-        b2.shape().color = glm::vec3(0, 0.6f, 0);
 		// Check if 'almost' colliding
-		if (bodies.overlaps(b1, b2)) {
+		if (world.bodies.overlaps(b1, b2)) {
 			// b1.shape().color.r = 1; b1.shape().color.g = 0; b1.shape().color.b = 0;
             b1.shape().color = glm::vec3(1, 0, 0);
 		} else {
@@ -254,25 +198,9 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
-		glUseProgram(shaderProgram);
-			proj = ortho2D(width, height, 0, 1);
-			view = viewMatrix2D(0, 0, 1, 1);
-            model = glm::translate(glm::mat4{}, glm::vec3(b1.position(), 0));
-			glUniformMatrix4fv(uni_proj, 1, GL_FALSE, glm::value_ptr(proj));
-			glUniformMatrix4fv(uni_view, 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
 
-            glBindVertexArray(triangle_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
-            glDrawArrays(GL_TRIANGLES, 0, triangle_buffer.size());
+        renderer.render(width, height);
 
-			glBindVertexArray(VAO);
-            glBindBuffer(GL_ARRAY_BUFFER, polygonBufferRef);
-            glDrawArrays(GL_LINES, 0, b2_offset / 5);
-
-            model = glm::mat4{};
-			glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
-            glDrawArrays(GL_LINES, b2_offset / 5, (polygonBuffer.size() - b2_offset) / 5);
 
 		fontRenderer->render(width, height);
         fontRenderer->clearBuffer();

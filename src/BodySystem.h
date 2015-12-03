@@ -20,6 +20,7 @@ public:
 
 	void timestep(float delta);
 	Body addBody(); // Returns index of new body
+    int numBodies() const { return count; }
 	Body getBody(int index);
 	Polygon& getPolygon(int body);
 

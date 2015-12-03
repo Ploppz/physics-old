@@ -265,11 +265,8 @@ int Polygon::decompose(std::vector<Triangle> &triangles, std::vector<LineSegment
         }
         auto part = parts.begin();
         {
-            std::cout << *part << std::endl;
             triangulate(parts, diagonals, triangles);
         }
-
-        std::cout << "\n\n\n" << std::endl;
 
     // Lines for drawing, pretty much
     for (auto it = diagonals.begin(); it != diagonals.end(); it ++)
@@ -318,15 +315,9 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 	bool concave; // is the current vertex concave or convex?
 	glm::vec2 precRotated; // preceding vector, rotated 90 degrees.
 	float dotProduct;
-    std::cout << "EVENTS" << std::endl;
-    for (auto it = events.begin(); it != events.end(); it ++) {
-        std::cout << it->getIndex() << ", ";
-    }
-    std::cout << std::endl;
 
 	for (int i = 0; i < events.size() - 1; i ++) // Each 'event[i]' is a vertex.
 	{
-        std::cout << "Vertex " << events[i].getIndex() << " .. " << events[i]->x << ", " << events[i]->y << std::endl;
 
 		// True means that the preceding/successive vertex is BEHIND the scanline (Direction.BACK)
         if (axis == X) {
@@ -351,12 +342,9 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 		dotProduct = glm::dot(precRotated, events[i].successive() - *events[i]);
 		concave  = (dotProduct < 0) ^ CCW;
 		
-        std::cout << std::boolalpha << "\t(" << bool(precSide) << ", " << bool(succSide) << std::endl;
-        std::cout << "\t";
         if (precSide == succSide  &&  dir != precSide) // Both adjacent vertices are BEHIND the scanline
 		{
 			if (concave) { /* MERGE POINT */
-                std::cout << "merge" << std::endl;
 				// Remove the top-most edge from status
 				index = events[i].getIndex() - (logic);
 				if (index == -1) index = indices.size() - 1;
@@ -365,7 +353,6 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
                 Edge justBelow = getEdgeJustBelow<axis>(status, events[i]);
 				helpers[justBelow.getIndex()] = events[i];
 			} else { /* END POINT */
-                std::cout << "end" << std::endl;
 				// Remove the bottom-most edge from status
 				index = events[i].getIndex() - (logic);
 				if (index == -1) index = indices.size() - 1;
@@ -374,7 +361,6 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 		} else if (precSide == succSide  &&  dir == precSide) // Both adjacent vertices are IN FRON OF the scanline
 		{
 			if (concave) { /* SPLIT POINT */
-                std::cout << "split" << std::endl;
 				// Find the first edge on the line projected down from this vertex
                 Edge justBelow = getEdgeJustBelow<axis>(status, events[i]);
 				// Make a diagonal to that edge's helper
@@ -388,7 +374,6 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 				status.insert( Edge(index, this) );
 				helpers[index] = events[i];
 			} else { /* START POINT */
-                std::cout << "start" << std::endl;
 				// Insert the bottom-most incident edge to 'status'
 				index = events[i].getIndex() - !(logic);
 				if (index == -1) index = indices.size() - 1;
@@ -397,7 +382,6 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 				helpers[index] = events[i]; // with this vertex as helper
 			}
 		} else { /* NORMAL VERTEX */
-            std::cout << "normal" << std::endl;
 			// CW: If the incident edge (any of the two) goes to the right, then this vertex is in the _ceiling_
 			bool ceiling;
             ceiling = (precSide == BACK && succSide == FORTH) ^ CCW;
@@ -408,12 +392,10 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
             }
 
 			if (ceiling) {
-                std::cout << "-> ceiling" << std::endl;
 				// Replace helper of the edge just below
                 Edge justBelow = getEdgeJustBelow<axis>(status, events[i]);
 				helpers[justBelow.getIndex()] = events[i];
 			} else {
-                std::cout << "-> floor" << std::endl;
 				// Remove edge frjm the status
 				index = events[i].getIndex() - (logic);
 				if (index == -1) index = indices.size() - 1;
@@ -425,12 +407,6 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 				helpers[index] = events[i];
 			}
 		}
-        std::cout << "Status: ";
-        for (auto it = status.begin(); it != status.end(); it ++)
-        {
-            std::cout << it->getIndex() << ", ";
-        }
-        std::cout << std::endl;
 	}
     
 }
@@ -463,14 +439,12 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
             if (i >= part->indices.size()) i = 0;
             if (i == max_index) break;
             side[part->indices[i]] = current_side;
-            std::cout << "\tfalse " << part->indices[i] << std::endl;
         }
         current_side = !current_side;
         for (int i = max_index; ; i ++) {
             if (i >= part->indices.size()) i = 0;
             if (i == min_index) break;
             side[part->indices[i]] = current_side;
-            std::cout << "\ttrue " << part->indices[i] << std::endl;
         }
     // Sort vertices (x axis)
         for (int i = 0; i < part->indices.size(); i ++)
@@ -484,8 +458,6 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
         L.push_back(events[0]); L.push_back(events[1]);
         for (auto vertex = events.begin() + 2; vertex != events.end(); vertex ++)
         {
-            std::cout << "-* " << vertex->getIndex() << "*-" << std::endl;
-
             if (side[vertex->getIndex()] == side[L.back().getIndex()])
             {
                 // As long as angle between vertex and two last vertices in list is convex..
@@ -496,8 +468,8 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     second_last = *(++ L.rbegin());
                     // Add triangle (last, next-to-last, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second_last.getIndex(), this));
-                    float f = randFloat();
-                    triangles.push_back( Triangle(**vertex, *second_last, *L.back(), f * color));
+                    float intensity = 0.5 + randFloat()*0.5;
+                    triangles.push_back( Triangle(**vertex, *second_last, *L.back(), intensity * color));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second_last.getIndex() << ", " << L.back().getIndex() << ")" << std::endl;
                     L.pop_back();
                 }
@@ -511,7 +483,8 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     second = *(++L.begin());
                     // Add triangle (first, second, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second.getIndex(), this));
-                    triangles.push_back( Triangle(**vertex, *second, *L.front(), randFloat() * color));
+                    float intensity = 0.5 + randFloat()*0.5;
+                    triangles.push_back( Triangle(**vertex, *second, *L.front(), intensity * color));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second.getIndex() << ", " << L.front().getIndex() << ")" << std::endl;
                     L.pop_front();
                 }

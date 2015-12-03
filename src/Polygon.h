@@ -28,6 +28,7 @@ public:
 	glm::vec3 color;
 	std::vector<glm::vec2> vertices;
 
+
 	// SHAPE
 	float signedArea();
 	glm::vec2 centroid();

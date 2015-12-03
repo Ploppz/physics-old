@@ -37,6 +37,7 @@ void setVertexAttribPointer(GLuint shaderProgram, const char* name, GLint numCom
 void setFormat(const char *format, GLuint shaderProgram);
 
 // Helps write to a mapped buffer:
+// TODO Doesn't unmap...
 template <typename T>
 class BufferWriter
 {
