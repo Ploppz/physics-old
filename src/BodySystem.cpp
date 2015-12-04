@@ -30,6 +30,7 @@ void BodySystem::timestep(float delta)
 
 Body BodySystem::addBody()
 {
+    position_type.push_back(RELATIVE);
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
@@ -40,6 +41,32 @@ Body BodySystem::addBody()
 	angularSpeed.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
+
+    children.push_back(std::vector<Body> {});
+    parent.push_back(Body(this, -1)); // Invalid body
+
+	++ count;
+	return Body(this, count - 1);
+}
+Body BodySystem::addBody(Body parent)
+{
+
+    position_type.push_back(RELATIVE);
+	mass.push_back( 0 );
+
+	position.push_back( vec2(0, 0) );
+	velocity.push_back( vec2(0, 0) );
+	force.push_back( vec2(0, 0) );
+
+	orientation.push_back( 0 );
+	angularSpeed.push_back( 0 );
+	torque.push_back( 0 );
+	shape.push_back( Polygon () );
+
+    assert(parent.index <= int(children.size() - 1));
+    children[parent.index].push_back(Body(this, count));
+    children.push_back(std::vector<Body> {});
+    this->parent.push_back(parent);
 
 	++ count;
 	return Body(this, count - 1);
@@ -131,8 +158,14 @@ Body::Body(BodySystem *system, int index)
 	// std::cout << "Body .. " << index << std::endl;
 }
 
-
-
+vec2 Body::real_position()
+{
+    if (position_type() == ABSOLUTE || parent().index == -1) {
+        return position();
+    } else { // RELATIVE
+        return position() + parent().real_position();
+    }
+}
 
 
 
@@ -151,9 +184,9 @@ void Body::addToBuffer(std::vector<float> &buffer)
 		next = it; next ++;
 		buffer.push_back(it->x);
 		buffer.push_back(it->y);
-		buffer.push_back(shape().color.r);
-		buffer.push_back(shape().color.g);
-		buffer.push_back(shape().color.b);
+		// buffer.push_back(shape().color.r);
+		// buffer.push_back(shape().color.g);
+		// buffer.push_back(shape().color.b);
 		// Draw to next point
 		if (next != shape().vertices.end()) {
 			buffer.push_back(next->x);
@@ -163,9 +196,9 @@ void Body::addToBuffer(std::vector<float> &buffer)
 			buffer.push_back(first->x);
 			buffer.push_back(first->y);
 		}
-		buffer.push_back(shape().color.r);
-		buffer.push_back(shape().color.g);
-		buffer.push_back(shape().color.b);
+		// buffer.push_back(shape().color.r);
+		// buffer.push_back(shape().color.g);
+		// buffer.push_back(shape().color.b);
         // Add text
         fontRenderer->addText(static_cast<ostringstream*>( &(ostringstream() << i) )->str(), position().x + it->x, position().y + it->y,  false);
         i ++;
@@ -200,7 +233,7 @@ void Body::addToBuffer(BufferWriter<float> &buffer)
     {
 		next = it; next ++;
 		buffer.write(it->x, it->y);
-		buffer.write(shape().color.r, shape().color.g, shape().color.b);
+		// buffer.write(shape().color.r, shape().color.g, shape().color.b);
 		// Draw to next point
 		if (next != shape().vertices.end()) {
             buffer.write(next->x, next->y);
@@ -208,7 +241,7 @@ void Body::addToBuffer(BufferWriter<float> &buffer)
 			// End the shape.
 			buffer.write(first->x, first->y);
 		}
-		buffer.write(shape().color.r, shape().color.g, shape().color.b);
+		// buffer.write(shape().color.r, shape().color.g, shape().color.b);
 
         // Add text
         fontRenderer->addText(static_cast<ostringstream*>( &(ostringstream() << i) )->str(), position().x + it->x, position().y + it->y,  false);

@@ -7,8 +7,7 @@
 #include "Polygon.h"
 #include "glutils.h"
 
-using namespace glm;
-using namespace std;
+enum PositionType { ABSOLUTE, RELATIVE };
 
 class Body;
 
@@ -20,6 +19,7 @@ public:
 
 	void timestep(float delta);
 	Body addBody(); // Returns index of new body
+    Body addBody(Body parent);
     int numBodies() const { return count; }
 	Body getBody(int index);
 	Polygon& getPolygon(int body);
@@ -28,23 +28,30 @@ public:
 private:
 	int count;
 
-	vector<float> mass;
+    // Body data
+	std::vector<float> mass;
 
-	vector<vec2> position;
-	vector<vec2> velocity;
-	vector<vec2> force;
+    std::vector<PositionType> position_type;
 
-	vector<float> orientation;
-	vector<float> angularSpeed;
-	vector<float> torque;
+	std::vector<glm::vec2> position;
+	std::vector<glm::vec2> velocity;
+	std::vector<glm::vec2> force;
+
+	std::vector<float> orientation;
+	std::vector<float> angularSpeed;
+	std::vector<float> torque;
 
 	// Temporary solution: only one polygon each Body
-	vector<Polygon> shape;
+	std::vector<Polygon> shape;
+
+    // Hierarchical tree of bodies
+    std::vector<Body> parent;
+    std::vector<std::vector<Body>> children;
 };
 
 // class BODY
 // Functions as an index
-// Flaws: Gets invalid if elements move within vector
+// Flaws: Gets invalid if elements move within std::vector
 class Body
 {
 	friend class BodySystem;
@@ -54,16 +61,21 @@ public:
 	Body() {}
 
 	// Access to members
-		float& mass() { return system->mass[index]; }
-		vec2& position() { return system->position[index]; }
-		vec2& velocity() { return system->velocity[index]; }
-		vec2& force() { return system->force[index]; }
+		inline float& mass() { return system->mass[index]; }
+        inline PositionType& position_type() { return system->position_type[index]; }
+		inline glm::vec2& position() { return system->position[index]; }
+        glm::vec2 real_position();
+		inline glm::vec2& velocity() { return system->velocity[index]; }
+		inline glm::vec2& force() { return system->force[index]; }
 
-		float& orientation() { return system->orientation[index]; }
-		float& angularSpeed() { return system->angularSpeed[index]; }
-		float& torque() { return system->torque[index]; }
+		inline float& orientation() { return system->orientation[index]; }
+		inline float& angularSpeed() { return system->angularSpeed[index]; }
+		inline float& torque() { return system->torque[index]; }
 
-		Polygon& shape() { return system->shape[index]; }
+		inline Polygon& shape() { return system->shape[index]; }
+
+        inline Body& parent() { return system->parent[index]; }
+
 	// Drawing
         void addToBuffer(BufferWriter<float> &buffer);
 		void addToBuffer(std::vector<float> &buffer);

@@ -294,7 +294,7 @@ void APIENTRY openglCallbackFunction(GLenum source,
 
 
 // BOILER PLATE
-void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback, GLFWkeyfun key_callback)
+void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback)
 {
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
@@ -320,7 +320,6 @@ void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback, GLFWkeyf
 	glewExperimental = GL_TRUE;
 	if (glewInit()) fprintf(stderr, "Failed to initialize GLEW.\n");
 
-	glfwSetKeyCallback(*window, key_callback);
 	glDebugMessageCallback(openglCallbackFunction, 0);
 }
 

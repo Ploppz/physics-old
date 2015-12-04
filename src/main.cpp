@@ -46,6 +46,7 @@
 
 void error_callback(int error, const char* description);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 bool file_exists(const std::string &name)
 {
@@ -79,14 +80,11 @@ GLfloat rectangle[] = {
 	-1.0f, 1.0f, 0.0f, 0.0f
 };
 
-Polygon p, q;
-Body b1, b2;
 
 // TODO: Problems with bufferRef garbage. Maybe this is the problem? Make default constructor etc
 FontRenderer *fontRenderer;
 
-float scale = 1;
-float limit = 0;
+float zoom = 1;
 
 bool left_down, right_down, up_down, down_down;
 
@@ -95,7 +93,9 @@ int main()
     // srand (time(NULL));
     // srand(10);
 	GLFWwindow *window;
-	GLFW_boilerPlate(&window, error_callback, key_callback);
+	GLFW_boilerPlate(&window, error_callback);
+	glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
 	// Typewriter
 	FontTexture ft{};
@@ -112,30 +112,39 @@ int main()
     fontRenderer->setup();
 
 	// 
+    Polygon p, q, r;
 	int numEdges = 5;
 	float a;
     for (int i = 0; i < numEdges; i ++) {
-        a = rand() / static_cast<float>(INT_MAX) * 400;
-        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
+        a = rand() / static_cast<float>(INT_MAX) * 100;
+        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (300 + a), sin(-i*2.0f/numEdges * M_PI) * (300 + a)));
     }
 	numEdges = 5;
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
-		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * a, sin(-i*2.0f/numEdges * M_PI) * a));
+		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (60 + a), sin(-i*2.0f/numEdges * M_PI) * (60 + a)));
+	} 
+	for (int i = 0; i < numEdges; i ++) {
+		a = rand() / static_cast<float>(INT_MAX) * 100;
+		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (a), sin(-i*2.0f/numEdges * M_PI) * (a)));
 	} 
 
 	World world;
+    Body b1, b2, b3;
 
 	b1 = world.bodies.addBody();
 	b1.shape() = p;
-	b2 = world.bodies.addBody();
-	b2.shape() = q;
-    b2.shape().color = glm::vec3(0, 0.6f, 0);
+    b2 = world.bodies.addBody(b1);
+    b2.shape() = q;
+    b2.position_type() = ABSOLUTE;
+    b3 = world.bodies.addBody(b2);
+    b3.shape() = r;
+    b2.position_type() = ABSOLUTE;
 	
 	std::vector<float> polygonBuffer;
 	b1.addToBuffer(polygonBuffer);
-    int b2_offset = polygonBuffer.size();
-    b2.addToBuffer(polygonBuffer);
+    // int b2_offset = polygonBuffer.size();
+    // b2.addToBuffer(polygonBuffer);
 
 	// for (int i = 0; i < edges.size(); i ++)
 	// {
@@ -184,14 +193,13 @@ int main()
         if (left_down) b1.position().x -= 10;
 
 		world.timestep(30);
-		// Check if 'almost' colliding
-		if (world.bodies.overlaps(b1, b2)) {
-			// b1.shape().color.r = 1; b1.shape().color.g = 0; b1.shape().color.b = 0;
-            b1.shape().color = glm::vec3(1, 0, 0);
-		} else {
-			// b1.shape().color.r = 1; b1.shape().color.g = 1; b1.shape().color.b = 1;
-            b1.shape().color = glm::vec3(0.6f, 0.6f, 0.6f);
-		}
+		// if (world.bodies.overlaps(b1, b2)) {
+			// // b1.shape().color.r = 1; b1.shape().color.g = 0; b1.shape().color.b = 0;
+            // b1.shape().color = glm::vec3(1, 0, 0);
+		// } else {
+			// // b1.shape().color.r = 1; b1.shape().color.g = 1; b1.shape().color.b = 1;
+            // b1.shape().color = glm::vec3(0.6f, 0.6f, 0.6f);
+		// }
 
 
 		glClearColor(0, 0, 0, 1);
@@ -199,7 +207,7 @@ int main()
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
 
-        renderer.render(width, height);
+        renderer.render(width, height, zoom);
 
 
 		fontRenderer->render(width, height);
@@ -218,6 +226,11 @@ int main()
 void error_callback(int error, const char* description)
 {
 	fputs(description, stderr);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    zoom *= (-yoffset / 10.f + 1);
 }
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {

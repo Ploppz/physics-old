@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 
 
-void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback, GLFWkeyfun key_callback);
+void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback);
 /* Creates view matrix which really only offsets. */
 glm::mat4 viewMatrix2D(float centerX, float centerY, float scaleX, float scaleY);
 

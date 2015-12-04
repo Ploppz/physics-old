@@ -4,6 +4,7 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+ABSOLUTE	BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	e	enum:PositionType
 Area	typewriter/skyline-bl.h	/^	struct Area {$/;"	s	namespace:SBL
 AtlasType	typewriter/FontTexture.h	/^enum AtlasType {$/;"	g
 Axis	Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	g
@@ -34,7 +35,7 @@ FontTexture	typewriter/FontTexture.h	/^class FontTexture$/;"	c
 FontTexture	typewriter/FontTexture.cpp	/^FontTexture::FontTexture()$/;"	f	class:FontTexture
 FontVertex	typewriter/FontRenderer.h	/^	FontVertex(float x, float y, float z, float u, float v) {$/;"	f	struct:FontVertex
 FontVertex	typewriter/FontRenderer.h	/^struct FontVertex$/;"	s
-GLFW_boilerPlate	glutils.cpp	/^void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback, GLFWkeyfun key_callback)$/;"	f
+GLFW_boilerPlate	glutils.cpp	/^void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback)$/;"	f
 GlyphHolder	typewriter/FontTexture.cpp	/^struct GlyphHolder$/;"	s	file:
 Glyph	typewriter/FontTexture.h	/^	Glyph() :charcode{}, width{}, height{}, xoffset{}, yoffset{}, u{}, v{}, twidth{}, theight{} {}$/;"	f	struct:Glyph
 Glyph	typewriter/FontTexture.h	/^struct Glyph$/;"	s
@@ -50,6 +51,8 @@ Point	typewriter/skyline-bl.h	/^		Point(double x, double y) {$/;"	f	struct:SBL::
 Point	typewriter/skyline-bl.h	/^	struct Point$/;"	s	namespace:SBL
 Polygon	Polygon.h	/^class Polygon$/;"	c
 Polygon	Polygon.cpp	/^Polygon::Polygon()$/;"	f	class:Polygon
+PositionType	BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	g
+RELATIVE	BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	e	enum:PositionType
 Renderer	Renderer.h	/^class Renderer$/;"	c
 Renderer	Renderer.cpp	/^Renderer::Renderer(BodySystem& system)$/;"	f	class:Renderer
 SBL	typewriter/skyline-bl.cpp	/^namespace SBL {$/;"	n	file:
@@ -87,6 +90,7 @@ X	Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	e	enum:Axis
 Y	Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	e	enum:Axis
 abs_mod	Polygon.cpp	/^int abs_mod(int n, int range)$/;"	f
 addBody	BodySystem.cpp	/^Body BodySystem::addBody()$/;"	f	class:BodySystem
+addBody	BodySystem.cpp	/^Body BodySystem::addBody(Body parent)$/;"	f	class:BodySystem
 addPoint	typewriter/skyline-bl.cpp	/^	void addPoint(GLfloat *data, int &i, double x, double y, double r, double g, double b)$/;"	f	namespace:SBL
 addText	typewriter/FontRenderer.cpp	/^void FontRenderer::addText(std::string text, float penx, float peny, bool kerning)$/;"	f	class:FontRenderer
 addToBuffer	BodySystem.cpp	/^unsigned int Body::addToBuffer(float *buffer, int offset)$/;"	f	class:Body
@@ -97,15 +101,14 @@ addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, BufferWriter<float> & buff
 addToBuffer	tmp.cpp	/^void addToBuffer(LineSegment e, std::vector<float> &buffer)$/;"	f
 a	Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
 angle	Geometry.cpp	/^float angle(vec2 a, vec2 b, vec2 c)$/;"	f
-angularSpeed	BodySystem.h	/^		float& angularSpeed() { return system->angularSpeed[index]; }$/;"	f	class:Body
-angularSpeed	BodySystem.h	/^	vector<float> angularSpeed;$/;"	m	class:BodySystem
+angularSpeed	BodySystem.h	/^		inline float& angularSpeed() { return system->angularSpeed[index]; }$/;"	f	class:Body
+angularSpeed	BodySystem.h	/^	std::vector<float> angularSpeed;$/;"	m	class:BodySystem
+appendStencilTriangles	Polygon.cpp	/^void Polygon::appendStencilTriangles(std::vector<float> &buffer)$/;"	f	class:Polygon
 applyEdtaa3	typewriter/FontTexture.cpp	/^double *applyEdtaa3(unsigned char *image, int width, int height)$/;"	f
 atlasHeight	typewriter/FontTexture.h	/^	int atlasWidth, atlasHeight;$/;"	m	class:FontTexture
 atlasWidth	typewriter/FontTexture.h	/^	int atlasWidth, atlasHeight;$/;"	m	class:FontTexture
 atlas	typewriter/FontTexture.h	/^	std::vector<float> atlas;$/;"	m	class:FontTexture
 axis_tag	Polygon.cpp	/^template<Axis> struct axis_tag { };$/;"	s	file:
-b1	main.cpp	/^Body b1, b2;$/;"	v
-b2	main.cpp	/^Body b1, b2;$/;"	v
 barycentric	Geometry.cpp	/^vec3 barycentric(vec2 a, vec2 b, vec2 c, vec2 p)$/;"	f
 bitmap	typewriter/FontTexture.cpp	/^	FT_Bitmap bitmap;$/;"	m	struct:GlyphHolder	file:
 b	Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
@@ -114,9 +117,12 @@ bufferRef	typewriter/FontRenderer.h	/^	GLuint bufferRef;$/;"	m	class:FontRendere
 buffer	typewriter/FontRenderer.h	/^	std::vector<float> buffer;$/;"	m	class:FontRenderer
 centroid	Polygon.cpp	/^glm::vec2 Polygon::centroid()$/;"	f	class:Polygon
 charcode	typewriter/FontTexture.h	/^	wchar_t charcode;$/;"	m	struct:Glyph
+children	BodySystem.h	/^    std::vector<std::vector<Body>> children;$/;"	m	class:BodySystem
 clearBuffer	typewriter/FontRenderer.cpp	/^void FontRenderer::clearBuffer()$/;"	f	class:FontRenderer
 c	Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
-color	Polygon.h	/^	glm::vec3 color;$/;"	m	class:Polygon
+color_program	Renderer.h	/^    GLuint pos2_program, color_program;$/;"	m	class:Renderer
+color_vao	Renderer.h	/^    GLuint triangles_vao, color_vao;$/;"	m	class:Renderer
+color_vbo	Renderer.h	/^    GLuint triangles_vbo, color_vbo;$/;"	m	class:Renderer
 color	Polygon.h	/^    glm::vec3 color;$/;"	m	struct:Triangle
 computeDF	typewriter/FontTexture.cpp	/^float *computeDF(unsigned char *image, int width, int height)$/;"	f
 compute	typewriter/skyline-bl.h	/^		std::vector<Area<T>> compute(double &outWidth, double &outHeight)$/;"	f	class:SBL::SkylineBL_alg
@@ -146,8 +152,8 @@ file_exists	main.cpp	/^bool file_exists(const std::string &name)$/;"	f
 fill	Polygon.cpp	/^void SubPolygon::fill()$/;"	f	class:SubPolygon
 findBestPosition	typewriter/skyline-bl.h	/^		skyline_ptr findBestPosition(Size<T> rect)$/;"	f	class:SBL::SkylineBL_alg
 fontRenderer	main.cpp	/^FontRenderer *fontRenderer;$/;"	v
-force	BodySystem.h	/^		vec2& force() { return system->force[index]; }$/;"	f	class:Body
-force	BodySystem.h	/^	vector<vec2> force;$/;"	m	class:BodySystem
+force	BodySystem.h	/^		inline glm::vec2& force() { return system->force[index]; }$/;"	f	class:Body
+force	BodySystem.h	/^	std::vector<glm::vec2> force;$/;"	m	class:BodySystem
 generateAtlas	typewriter/FontTexture.cpp	/^void FontTexture::generateAtlas(std::string fontpath)$/;"	f	class:FontTexture
 generateAtlas	typewriter/FontTexture.cpp	/^void FontTexture::generateAtlas(std::string fontpath, int resolution, AtlasType type)$/;"	f	class:FontTexture
 generateVertices	typewriter/skyline-bl.h	/^	GLfloat *generateVertices(const std::vector<Area<T>> &atlas, int &length)$/;"	f	namespace:SBL
@@ -191,10 +197,9 @@ key	typewriter/skyline-bl.h	/^		T key;$/;"	m	struct:SBL::Size
 left_down	main.cpp	/^bool left_down, right_down, up_down, down_down;$/;"	v
 leftof	Geometry.cpp	/^bool leftof(vec2 a, vec2 b)$/;"	f
 less_than	Polygon.cpp	/^bool less_than(T a, T b){$/;"	f
-limit	main.cpp	/^float limit = 0;$/;"	v
 main	main.cpp	/^int main()$/;"	f
-mass	BodySystem.h	/^		float& mass() { return system->mass[index]; }$/;"	f	class:Body
-mass	BodySystem.h	/^	vector<float> mass;$/;"	m	class:BodySystem
+mass	BodySystem.h	/^		inline float& mass() { return system->mass[index]; }$/;"	f	class:Body
+mass	BodySystem.h	/^	std::vector<float> mass;$/;"	m	class:BodySystem
 middle	Geometry.cpp	/^vec2 middle(vec2 a, vec2 b)$/;"	f
 monotonize	Polygon.cpp	/^void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction dir)$/;"	f	class:SubPolygon
 mother	Polygon.h	/^    Polygon* mother;$/;"	m	class:SubPolygon
@@ -226,28 +231,30 @@ operator <	typewriter/skyline-bl.h	/^		bool operator< (const Point &rhs) const {
 operator ==	Polygon.cpp	/^bool Polygon::Edge::operator== (Edge other)$/;"	f	class:Polygon::Edge
 operator ==	Polygon.cpp	/^bool SubPolygon::Edge::operator== (Edge other) const $/;"	f	class:SubPolygon::Edge
 operator =	Polygon.h	/^        Diagonal& operator= (Diagonal rhs) { parent=rhs.parent; start_index=rhs.start_index; end_index=rhs.end_index; return *this;}$/;"	f	class:Polygon::Diagonal
-orientation	BodySystem.h	/^		float& orientation() { return system->orientation[index]; }$/;"	f	class:Body
-orientation	BodySystem.h	/^	vector<float> orientation;$/;"	m	class:BodySystem
+orientation	BodySystem.h	/^		inline float& orientation() { return system->orientation[index]; }$/;"	f	class:Body
+orientation	BodySystem.h	/^	std::vector<float> orientation;$/;"	m	class:BodySystem
 ortho2D	glutils.cpp	/^glm::mat4 ortho2D(float width, float height, float far, float near)$/;"	f
 outfile	typewriter/stb_image_write.h	/^static int outfile(char const *filename, int rgb_dir, int vdir, int x, int y, int comp, int expand_mono, void *data, int alpha, int pad, const char *fmt, ...)$/;"	f
 overlaps	BodySystem.cpp	/^bool BodySystem::overlaps(Body a, Body b)$/;"	f	class:BodySystem
+parent	BodySystem.h	/^        inline Body& parent() { return system->parent[index]; }$/;"	f	class:Body
+parent	BodySystem.h	/^    std::vector<Body> parent;$/;"	m	class:BodySystem
 parent	Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Diagonal
 parent	Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Edge
 parent	Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Vertex
 parent	Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Edge
 parent	Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Vertex
-pos2col3_program	Renderer.h	/^    GLuint pos2col3_program, red_program;$/;"	m	class:Renderer
-position	BodySystem.h	/^		vec2& position() { return system->position[index]; }$/;"	f	class:Body
-position	BodySystem.h	/^	vector<vec2> position;$/;"	m	class:BodySystem
+pos2_program	Renderer.h	/^    GLuint pos2_program, color_program;$/;"	m	class:Renderer
+position_type	BodySystem.h	/^        inline PositionType position_type() { return system->position_type[index]; }$/;"	f	class:Body
+position_type	BodySystem.h	/^    std::vector<PositionType> position_type;$/;"	m	class:BodySystem
+position	BodySystem.h	/^		inline glm::vec2& position() { return system->position[index]; }$/;"	f	class:Body
+position	BodySystem.h	/^	std::vector<glm::vec2> position;$/;"	m	class:BodySystem
 preceding	Polygon.cpp	/^glm::vec2& Polygon::Vertex::preceding()$/;"	f	class:Polygon::Vertex
 preceding	Polygon.cpp	/^glm::vec2& SubPolygon::Vertex::preceding()$/;"	f	class:SubPolygon::Vertex
 printVector	main.cpp	/^void printVector(std::vector<T> v)$/;"	f
 project	Geometry.cpp	/^vec2 project(vec2 p, vec2 line_a, vec2 line_b)$/;"	f
 project	typewriter/skyline-bl.h	/^		double project(double x, skyline_ptr iterationBegin, skyline_ptr iterationEnd)$/;"	f	class:SBL::SkylineBL_alg
 ptr	glutils.h	/^    T* ptr;$/;"	m	class:BufferWriter
-p	main.cpp	/^Polygon p, q;$/;"	v
 quad	Renderer.cpp	/^GLfloat quad[] = {$/;"	v
-q	main.cpp	/^Polygon p, q;$/;"	v
 radius	Polygon.cpp	/^float Polygon::radius()$/;"	f	class:Polygon
 randFloat	tmp.cpp	/^float randFloat() {$/;"	f
 randomColor	tmp.cpp	/^glm::vec3 randomColor()$/;"	f
@@ -257,19 +264,17 @@ real_greater_than	Polygon.cpp	/^bool real_greater_than(T a, T b, axis_tag<X>){ r
 real_greater_than	Polygon.cpp	/^bool real_greater_than(T a, T b, axis_tag<Y>){ return a->y > b->y; }$/;"	f
 real_less_than	Polygon.cpp	/^bool real_less_than(T a, T b, axis_tag<X>){return a->x < b->x; }$/;"	f
 real_less_than	Polygon.cpp	/^bool real_less_than(T a, T b, axis_tag<Y>){ return a->y < b->y; }$/;"	f
+real_position	BodySystem.cpp	/^vec2 Body::real_position()$/;"	f	class:Body
 rect_greaterThan	typewriter/skyline-bl.h	/^	bool rect_greaterThan(Size<T> rect1, Size<T> rect2) {$/;"	f	namespace:SBL
 rectangle1	typewriter/FontRenderer.cpp	/^GLfloat rectangle1[] = {$/;"	v
 rectangles	typewriter/skyline-bl.h	/^		std::vector<Size<T>> rectangles;$/;"	m	class:SBL::SkylineBL_alg
 rectangle	main.cpp	/^GLfloat rectangle[] = {$/;"	v
-red_program	Renderer.h	/^    GLuint pos2col3_program, red_program;$/;"	m	class:Renderer
-red_vao	Renderer.h	/^    GLuint triangles_vao, red_vao;$/;"	m	class:Renderer
-red_vbo	Renderer.h	/^    GLuint triangles_vbo, red_vbo;$/;"	m	class:Renderer
 renderBitmap	typewriter/FontTexture.cpp	/^FT_Bitmap renderBitmap(FT_Bitmap bitmap)$/;"	f
-render	Renderer.cpp	/^void Renderer::render(int width, int height)$/;"	f	class:Renderer
+render	Renderer.cpp	/^void Renderer::render(int width, int height, float zoom)$/;"	f	class:Renderer
 render	typewriter/FontRenderer.cpp	/^void FontRenderer::render(float width, float height)$/;"	f	class:FontRenderer
 resolution	typewriter/FontTexture.h	/^	int resolution = 16;$/;"	m	class:FontTexture
 right_down	main.cpp	/^bool left_down, right_down, up_down, down_down;$/;"	v
-scale	main.cpp	/^float scale = 1;$/;"	v
+scroll_callback	main.cpp	/^void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)$/;"	f
 setFormat	glutils.cpp	/^void setFormat(const char *format, GLuint shaderProgram)$/;"	f
 setIndex	Polygon.h	/^        void setIndex(int val) { index = val; }$/;"	f	class:Polygon::Vertex
 setIndex	Polygon.h	/^        void setIndex(int val) { index = val; }$/;"	f	class:SubPolygon::Vertex
@@ -278,8 +283,8 @@ setVertexAttribPointer	glutils.cpp	/^void setVertexAttribPointer(GLuint shaderPr
 setup	typewriter/FontRenderer.cpp	/^void FontRenderer::setup()$/;"	f	class:FontRenderer
 shaderProgram	typewriter/FontRenderer.h	/^	GLuint shaderProgram;$/;"	m	class:FontRenderer
 shaders	shaders.h	/^namespace shaders {$/;"	n
-shape	BodySystem.h	/^		Polygon& shape() { return system->shape[index]; }$/;"	f	class:Body
-shape	BodySystem.h	/^	vector<Polygon> shape;$/;"	m	class:BodySystem
+shape	BodySystem.h	/^		inline Polygon& shape() { return system->shape[index]; }$/;"	f	class:Body
+shape	BodySystem.h	/^	std::vector<Polygon> shape;$/;"	m	class:BodySystem
 signedArea	Geometry.cpp	/^float signedArea(vec2 a, vec2 b, vec2 c)$/;"	f
 signedArea	Polygon.cpp	/^float Polygon::signedArea()$/;"	f	class:Polygon
 signedArea	Polygon.cpp	/^float SubPolygon::signedArea()$/;"	f	class:SubPolygon
@@ -348,17 +353,18 @@ theight	typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
 timestep	BodySystem.cpp	/^void BodySystem::timestep(float delta)$/;"	f	class:BodySystem
 timestep	World.h	/^	void timestep(float delta)$/;"	f	class:World
 toFloat	typewriter/FontTexture.cpp	/^float *toFloat(double *image, int size)$/;"	f
-torque	BodySystem.h	/^		float& torque() { return system->torque[index]; }$/;"	f	class:Body
-torque	BodySystem.h	/^	vector<float> torque;$/;"	m	class:BodySystem
+torque	BodySystem.h	/^		inline float& torque() { return system->torque[index]; }$/;"	f	class:Body
+torque	BodySystem.h	/^	std::vector<float> torque;$/;"	m	class:BodySystem
 totalHeightIfInserted	typewriter/skyline-bl.h	/^		double totalHeightIfInserted(Size<T> rect, skyline_ptr where)$/;"	f	class:SBL::SkylineBL_alg
-triangles_vao	Renderer.h	/^    GLuint triangles_vao, red_vao;$/;"	m	class:Renderer
-triangles_vbo	Renderer.h	/^    GLuint triangles_vbo, red_vbo;$/;"	m	class:Renderer
+triangles_vao	Renderer.h	/^    GLuint triangles_vao, color_vao;$/;"	m	class:Renderer
+triangles_vbo	Renderer.h	/^    GLuint triangles_vbo, color_vbo;$/;"	m	class:Renderer
 triangulate	Polygon.cpp	/^void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles)$/;"	f	class:Polygon
 twidth	typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
 type	typewriter/FontTexture.h	/^	AtlasType type;$/;"	m	class:FontTexture
 uint	glutils.cpp	/^typedef unsigned int uint;$/;"	t	file:
 u	typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
 u	typewriter/FontTexture.h	/^	int u, v;$/;"	m	struct:Glyph
+uni_color	Renderer.h	/^    GLuint uni_color;$/;"	m	class:Renderer
 uni_model	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
 uni_proj	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
 uni_view	Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
@@ -367,8 +373,8 @@ uploadElements	glutils.cpp	/^GLuint uploadElements(GLuint elements[], unsigned i
 uploadVertices	glutils.h	/^GLuint uploadVertices(T data[], unsigned int size)$/;"	f
 useExistingAtlas	typewriter/FontTexture.cpp	/^void FontTexture::useExistingAtlas(std::string atlaspath, std::string metadatapath)$/;"	f	class:FontTexture
 value	tmp.h	/^        T value;$/;"	m	class:Graph::Node
-velocity	BodySystem.h	/^		vec2& velocity() { return system->velocity[index]; }$/;"	f	class:Body
-velocity	BodySystem.h	/^	vector<vec2> velocity;$/;"	m	class:BodySystem
+velocity	BodySystem.h	/^		inline glm::vec2& velocity() { return system->velocity[index]; }$/;"	f	class:Body
+velocity	BodySystem.h	/^	std::vector<glm::vec2> velocity;$/;"	m	class:BodySystem
 vertices	Polygon.h	/^	std::vector<glm::vec2> vertices;$/;"	m	class:Polygon
 viewMatrix2D	glutils.cpp	/^glm::mat4 viewMatrix2D(float centerX, float centerY, float scaleX, float scaleY)$/;"	f
 v	typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
@@ -397,4 +403,5 @@ y	typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
 y	typewriter/skyline-bl.h	/^		double width, height, x, y;$/;"	m	struct:SBL::Area
 y	typewriter/skyline-bl.h	/^		double x, y;$/;"	m	struct:SBL::Point
 yoffset	typewriter/FontTexture.h	/^	float xoffset, yoffset;$/;"	m	struct:Glyph
+zoom	main.cpp	/^float zoom = 1;$/;"	v
 ~FontTexture	typewriter/FontTexture.cpp	/^FontTexture::~FontTexture()$/;"	f	class:FontTexture

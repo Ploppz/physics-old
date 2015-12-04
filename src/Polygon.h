@@ -25,9 +25,9 @@ class Polygon
 public:
 	Polygon();
 
-	glm::vec3 color;
 	std::vector<glm::vec2> vertices;
 
+    void appendStencilTriangles(std::vector<float> &buffer);
 
 	// SHAPE
 	float signedArea();

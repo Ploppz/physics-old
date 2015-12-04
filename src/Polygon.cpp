@@ -20,7 +20,6 @@ int abs_mod(int n, int range)
 }
 
 Polygon::Polygon()
-	: color(0.6f, 0.6f, 0.6f)
 {
 }
 
@@ -469,7 +468,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     // Add triangle (last, next-to-last, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second_last.getIndex(), this));
                     float intensity = 0.5 + randFloat()*0.5;
-                    triangles.push_back( Triangle(**vertex, *second_last, *L.back(), intensity * color));
+                    triangles.push_back( Triangle(**vertex, *second_last, *L.back(), glm::vec3 {}));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second_last.getIndex() << ", " << L.back().getIndex() << ")" << std::endl;
                     L.pop_back();
                 }
@@ -484,13 +483,25 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     // Add triangle (first, second, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second.getIndex(), this));
                     float intensity = 0.5 + randFloat()*0.5;
-                    triangles.push_back( Triangle(**vertex, *second, *L.front(), intensity * color));
+                    triangles.push_back( Triangle(**vertex, *second, *L.front(), glm::vec3 {}));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second.getIndex() << ", " << L.front().getIndex() << ")" << std::endl;
                     L.pop_front();
                 }
                 L.push_back(*vertex);
             }
         }
+    }
+}
+
+
+// TRIANGLE FAN TODO make this clear
+void Polygon::appendStencilTriangles(std::vector<float> &buffer)
+{
+    // i is the edge index
+    for (int i = 0; i < vertices.size(); i ++)
+    {
+        buffer.push_back(vertices[i].x);
+        buffer.push_back(vertices[i].y);
     }
 }
 
