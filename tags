@@ -1,0 +1,499 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ABSOLUTE	src/BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	e	enum:PositionType
+Area	src/typewriter/skyline-bl.h	/^	struct Area {$/;"	s	namespace:SBL
+AtlasType	src/typewriter/FontTexture.h	/^enum AtlasType {$/;"	g
+Axis	src/Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	g
+BACK	src/Polygon.h	/^const bool BACK = false;$/;"	v
+BodySystem	src/BodySystem.h	/^class BodySystem$/;"	c
+BodySystem	src/BodySystem.c++	/^BodySystem::BodySystem()$/;"	f	class:BodySystem
+Body	src/BodySystem.h	/^class Body$/;"	c
+Body	src/BodySystem.c++	/^Body::Body(BodySystem *system, int index)$/;"	f	class:Body
+Body	src/BodySystem.h	/^	Body() {}$/;"	f	class:Body
+BufferWriter	src/glutils.h	/^class BufferWriter$/;"	c
+BufferWriter	src/glutils.h	/^    BufferWriter(int size)$/;"	f	class:BufferWriter
+CircularList	src/LinkedList.h	/^class CircularList$/;"	c
+CircularList	src/LinkedList.h	/^    CircularList() : _head {}$/;"	f	class:CircularList
+DISTAA	src/typewriter/edtaa3func.c	141;"	d	file:
+DISTAA	src/typewriter/edtaa3func.h	48;"	d
+Diagonal	src/Polygon.h	/^    class Diagonal$/;"	c	class:Polygon
+Diagonal	src/Polygon.h	/^        Diagonal(int vertex1, int vertex2, Polygon *parent)$/;"	f	class:Polygon::Diagonal
+Direction	src/Polygon.h	/^typedef bool Direction;$/;"	t
+DirectoryOfThisScript	.ycm_extra_conf.py	/^def DirectoryOfThisScript():$/;"	f
+EdgeComparator	src/Polygon.c++	/^struct EdgeComparator$/;"	s	file:
+Edge	src/Polygon.h	/^    class Edge$/;"	c	class:Polygon
+Edge	src/Polygon.h	/^    class Edge$/;"	c	class:SubPolygon
+Edge	src/Polygon.c++	/^Polygon::Edge::Edge(int index, Polygon *parent)$/;"	f	class:Polygon::Edge
+Edge	src/Polygon.c++	/^SubPolygon::Edge::Edge(int index, SubPolygon *parent)$/;"	f	class:SubPolygon::Edge
+Edge	src/Polygon.h	/^        Edge() :index(0), parent(0) {}$/;"	f	class:SubPolygon::Edge
+Edge	src/Polygon.h	/^        Edge():index(0), parent(0) {};$/;"	f	class:Polygon::Edge
+FIRST	src/Polygon.h	/^    enum Which { FIRST, SECOND};$/;"	e	enum:Intersection::Which
+FORTH	src/Polygon.h	/^const bool FORTH = true;$/;"	v
+FlagsForFile	.ycm_extra_conf.py	/^def FlagsForFile(filename, **kwargs):$/;"	f
+FontRenderer	src/typewriter/FontRenderer.h	/^class FontRenderer$/;"	c
+FontRenderer	src/typewriter/FontRenderer.c++	/^FontRenderer::FontRenderer(int size, FontTexture &texture)$/;"	f	class:FontRenderer
+FontTexture	src/typewriter/FontTexture.h	/^class FontTexture$/;"	c
+FontTexture	src/typewriter/FontTexture.c++	/^FontTexture::FontTexture()$/;"	f	class:FontTexture
+FontVertex	src/typewriter/FontRenderer.h	/^	FontVertex(float x, float y, float z, float u, float v) {$/;"	f	struct:FontVertex
+FontVertex	src/typewriter/FontRenderer.h	/^struct FontVertex$/;"	s
+FullIntersect	src/Polygon.c++	/^    FullIntersect(Intersection *i, NewVertex *p, NewVertex *q): i(i), vert_p(p), vert_q(q){}$/;"	f	struct:FullIntersect
+FullIntersect	src/Polygon.c++	/^struct FullIntersect { \/\/ An intersection is needed to sort the NewVertices$/;"	s	file:
+GLFW_boilerPlate	src/glutils.c++	/^void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback)$/;"	f
+GlyphHolder	src/typewriter/FontTexture.c++	/^struct GlyphHolder$/;"	s	file:
+Glyph	src/typewriter/FontTexture.h	/^	Glyph() :charcode{}, width{}, height{}, xoffset{}, yoffset{}, u{}, v{}, twidth{}, theight{} {}$/;"	f	struct:Glyph
+Glyph	src/typewriter/FontTexture.h	/^struct Glyph$/;"	s
+Graph	src/tmp.h	/^class Graph$/;"	c
+INCLUDE_STB_IMAGE_WRITE_H	src/typewriter/stb_image_write.h	81;"	d
+IN	src/Polygon.c++	/^const bool IN = true;$/;"	v
+Intersection	src/Polygon.c++	/^Intersection::Intersection(Polygon::Edge edge1, Polygon::Edge edge2)$/;"	f	class:Intersection
+Intersection	src/Polygon.h	/^struct Intersection {$/;"	s
+LineSegment	src/BodySystem.c++	/^typedef std::pair<glm::vec2, glm::vec2> LineSegment;$/;"	t	file:
+LineSegment	src/Polygon.h	/^typedef std::pair<glm::vec2, glm::vec2> LineSegment;$/;"	t
+LinkedList	src/LinkedList.h	/^class LinkedList$/;"	c
+LinkedList	src/LinkedList.h	/^    LinkedList():_head{}, _tail{}$/;"	f	class:LinkedList
+LoadSystemIncludes	.ycm_extra_conf.py	/^def LoadSystemIncludes(filetype):$/;"	f
+MakeRelativePathsInFlagsAbsolute	.ycm_extra_conf.py	/^def MakeRelativePathsInFlagsAbsolute( flags, working_directory ):$/;"	f
+NORMAL	src/typewriter/FontTexture.h	/^	SDF, NORMAL$/;"	e	enum:AtlasType
+NewVertex	src/Polygon.c++	/^    NewVertex(Intersection& i, Side in_out) {$/;"	f	struct:NewVertex
+NewVertex	src/Polygon.c++	/^    NewVertex(Polygon::Vertex vert, Side in_out) {$/;"	f	struct:NewVertex
+NewVertex	src/Polygon.c++	/^struct NewVertex {$/;"	s	file:
+Node	src/tmp.h	/^    class Node$/;"	c	class:Graph
+OUT	src/Polygon.c++	/^const bool OUT = false;$/;"	v
+PointLessThan	src/typewriter/skyline-bl.h	/^	struct PointLessThan {$/;"	s	namespace:SBL
+Point	src/typewriter/skyline-bl.h	/^		Point() {}$/;"	f	struct:SBL::Point
+Point	src/typewriter/skyline-bl.h	/^		Point(double x, double y) {$/;"	f	struct:SBL::Point
+Point	src/typewriter/skyline-bl.h	/^	struct Point$/;"	s	namespace:SBL
+Polygon	src/Polygon.h	/^class Polygon$/;"	c
+Polygon	src/Polygon.c++	/^Polygon::Polygon()$/;"	f	class:Polygon
+PositionType	src/BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	g
+RELATIVE	src/BodySystem.h	/^enum PositionType { ABSOLUTE, RELATIVE };$/;"	e	enum:PositionType
+Renderer	src/Renderer.h	/^class Renderer$/;"	c
+Renderer	src/Renderer.c++	/^Renderer::Renderer(BodySystem& system)$/;"	f	class:Renderer
+SBL	src/typewriter/skyline-bl.c++	/^namespace SBL {$/;"	n	file:
+SBL	src/typewriter/skyline-bl.h	/^namespace SBL {$/;"	n
+SDF	src/typewriter/FontTexture.h	/^	SDF, NORMAL$/;"	e	enum:AtlasType
+SECOND	src/Polygon.h	/^    enum Which { FIRST, SECOND};$/;"	e	enum:Intersection::Which
+SQRT2	src/typewriter/edtaa3func.c	48;"	d	file:
+STBIW_ASSERT	src/typewriter/stb_image_write.h	126;"	d
+STBIW_FREE	src/typewriter/stb_image_write.h	117;"	d
+STBIW_MALLOC	src/typewriter/stb_image_write.h	115;"	d
+STBIW_MEMMOVE	src/typewriter/stb_image_write.h	120;"	d
+STBIW_REALLOC	src/typewriter/stb_image_write.h	116;"	d
+STB_IMAGE_WRITE_IMPLEMENTATION	src/typewriter/FontTexture.c++	3;"	d	file:
+Side	src/Polygon.c++	/^typedef bool Side;$/;"	t	file:
+SingleFormat	src/glutils.c++	/^	SingleFormat(int offset, int numComponents, char type, char name[30])$/;"	f	struct:SingleFormat
+SingleFormat	src/glutils.c++	/^struct SingleFormat {$/;"	s	file:
+Size	src/typewriter/skyline-bl.h	/^		Size() {};$/;"	f	struct:SBL::Size
+Size	src/typewriter/skyline-bl.h	/^		Size(double width, double height, T key) { this->width = width; this->height = height; this->key = key;}$/;"	f	struct:SBL::Size
+Size	src/typewriter/skyline-bl.h	/^	struct Size {$/;"	s	namespace:SBL
+SkylineBL_alg	src/typewriter/skyline-bl.h	/^	class SkylineBL_alg$/;"	c	namespace:SBL
+SkylineBL_alg	src/typewriter/skyline-bl.h	/^		SkylineBL_alg(std::vector<Size<T>> rectangles)$/;"	f	class:SBL::SkylineBL_alg
+Skyline	src/typewriter/skyline-bl.h	/^	typedef std::set<Point> Skyline;$/;"	t	namespace:SBL
+SubPolygon	src/Polygon.h	/^class SubPolygon$/;"	c
+SubPolygon	src/Polygon.h	/^    SubPolygon():mother(0) {};$/;"	f	class:SubPolygon
+SubPolygon	src/Polygon.h	/^    SubPolygon(Polygon *mother):mother(mother) {};$/;"	f	class:SubPolygon
+Triangle	src/Polygon.h	/^    Triangle(glm::vec2 a, glm::vec2 b, glm::vec2 c, glm::vec3 color):a(a), b(b), c(c), color(color) {};$/;"	f	struct:Triangle
+Triangle	src/Polygon.h	/^struct Triangle$/;"	s
+VAO	src/typewriter/FontRenderer.h	/^	GLuint VAO;$/;"	m	class:FontRenderer
+Vertex	src/Polygon.h	/^    class Vertex$/;"	c	class:Polygon
+Vertex	src/Polygon.h	/^    class Vertex$/;"	c	class:SubPolygon
+Vertex	src/Polygon.c++	/^Polygon::Vertex::Vertex(int index, Polygon* parent)$/;"	f	class:Polygon::Vertex
+Vertex	src/Polygon.c++	/^SubPolygon::Vertex::Vertex(int index, SubPolygon *parent)$/;"	f	class:SubPolygon::Vertex
+Vertex	src/Polygon.h	/^        Vertex() :index(0), parent(0) {}$/;"	f	class:SubPolygon::Vertex
+Vertex	src/Polygon.h	/^        Vertex(): index(0), parent(0) {};$/;"	f	class:Polygon::Vertex
+Which	src/Polygon.h	/^    enum Which { FIRST, SECOND};$/;"	g	struct:Intersection
+World	src/World.h	/^class World $/;"	c
+X	src/Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	e	enum:Axis
+Y	src/Polygon.h	/^enum Axis { X=0, Y=1 };$/;"	e	enum:Axis
+_head	src/LinkedList.h	/^    T *_head, *_tail;$/;"	m	class:LinkedList
+_head	src/LinkedList.h	/^    T *_head;$/;"	m	class:CircularList
+_tail	src/LinkedList.h	/^    T *_head, *_tail;$/;"	m	class:LinkedList
+abs_mod	src/Polygon.c++	/^int abs_mod(int n, int range)$/;"	f
+addBody	src/BodySystem.c++	/^Body BodySystem::addBody()$/;"	f	class:BodySystem
+addBody	src/BodySystem.c++	/^Body BodySystem::addBody(Body parent)$/;"	f	class:BodySystem
+addDot	src/Renderer.c++	/^void Renderer::addDot(glm::vec2 dot)$/;"	f	class:Renderer
+addPoint	src/typewriter/skyline-bl.c++	/^	void addPoint(GLfloat *data, int &i, double x, double y, double r, double g, double b)$/;"	f	namespace:SBL
+addText	src/typewriter/FontRenderer.c++	/^void FontRenderer::addText(std::string text, float penx, float peny, bool kerning)$/;"	f	class:FontRenderer
+addToBuffer	src/BodySystem.c++	/^unsigned int Body::addToBuffer(float *buffer, int offset)$/;"	f	class:Body
+addToBuffer	src/BodySystem.c++	/^void Body::addToBuffer(BufferWriter<float> &buffer)$/;"	f	class:Body
+addToBuffer	src/BodySystem.c++	/^void Body::addToBuffer(std::vector<float> &buffer)$/;"	f	class:Body
+addToBuffer	src/tmp.c++	/^unsigned int addToBuffer(LineSegment e, float *buffer, int offset)$/;"	f
+addToBuffer	src/tmp.c++	/^void addToBuffer(LineSegment e, BufferWriter<float> & buffer, float r, float g, float b)$/;"	f
+addToBuffer	src/tmp.c++	/^void addToBuffer(LineSegment e, std::vector<float> &buffer)$/;"	f
+alpha1	src/Polygon.h	/^    float alpha1, alpha2; \/\/ How far along the edges the point resides$/;"	m	struct:Intersection
+alpha2	src/Polygon.h	/^    float alpha1, alpha2; \/\/ How far along the edges the point resides$/;"	m	struct:Intersection
+a	src/Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
+angle	src/Geometry.c++	/^float angle(vec2 a, vec2 b, vec2 c)$/;"	f
+angularSpeed	src/BodySystem.h	/^		inline float& angularSpeed() { return system->angularSpeed[index]; }$/;"	f	class:Body
+angularSpeed	src/BodySystem.h	/^	std::vector<float> angularSpeed;$/;"	m	class:BodySystem
+appendStencilTriangles	src/Polygon.c++	/^void Polygon::appendStencilTriangles(BufferWriter<float> buffer)$/;"	f	class:Polygon
+applyEdtaa3	src/typewriter/FontTexture.c++	/^double *applyEdtaa3(unsigned char *image, int width, int height)$/;"	f
+atlasHeight	src/typewriter/FontTexture.h	/^	int atlasWidth, atlasHeight;$/;"	m	class:FontTexture
+atlasWidth	src/typewriter/FontTexture.h	/^	int atlasWidth, atlasHeight;$/;"	m	class:FontTexture
+atlas	src/typewriter/FontTexture.h	/^	std::vector<float> atlas;$/;"	m	class:FontTexture
+axis_tag	src/Polygon.c++	/^template<Axis> struct axis_tag { };$/;"	s	file:
+barycentric	src/Geometry.c++	/^vec3 barycentric(vec2 a, vec2 b, vec2 c, vec2 p)$/;"	f
+bitmap	src/typewriter/FontTexture.c++	/^	FT_Bitmap bitmap;$/;"	m	struct:GlyphHolder	file:
+b	src/Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
+bodies	src/World.h	/^	BodySystem bodies;$/;"	m	class:World
+bufferRef	src/typewriter/FontRenderer.h	/^	GLuint bufferRef;$/;"	m	class:FontRenderer
+buffer	src/typewriter/FontRenderer.h	/^	std::vector<float> buffer;$/;"	m	class:FontRenderer
+centroid	src/Polygon.c++	/^glm::vec2 Polygon::centroid()$/;"	f	class:Polygon
+charcode	src/typewriter/FontTexture.h	/^	wchar_t charcode;$/;"	m	struct:Glyph
+children	src/BodySystem.h	/^    std::vector<std::vector<Body>> children;$/;"	m	class:BodySystem
+clearBuffer	src/typewriter/FontRenderer.c++	/^void FontRenderer::clearBuffer()$/;"	f	class:FontRenderer
+c	src/Polygon.h	/^    glm::vec2 a,b,c;$/;"	m	struct:Triangle
+color1	src/Renderer.h	/^    glm::vec3 color1, color2;$/;"	m	class:Renderer
+color2	src/Renderer.h	/^    glm::vec3 color1, color2;$/;"	m	class:Renderer
+color_program	src/Renderer.h	/^    GLuint pos2_program, color_program;$/;"	m	class:Renderer
+color_vao	src/Renderer.h	/^    GLuint triangles_vao, lines_vao, color_vao;$/;"	m	class:Renderer
+color_vbo	src/Renderer.h	/^    GLuint triangles_vbo, color_vbo, lines_vbo;$/;"	m	class:Renderer
+color	src/Polygon.h	/^    glm::vec3 color;$/;"	m	struct:Triangle
+computeDF	src/typewriter/FontTexture.c++	/^float *computeDF(unsigned char *image, int width, int height)$/;"	f
+compute	src/typewriter/skyline-bl.h	/^		std::vector<Area<T>> compute(double &outWidth, double &outHeight)$/;"	f	class:SBL::SkylineBL_alg
+computegradient	src/typewriter/edtaa3func.c	/^void computegradient(double *img, int w, int h, double *gx, double *gy)$/;"	f
+containsDiagonal	src/Polygon.c++	/^bool SubPolygon::containsDiagonal(int a, int b)$/;"	f	class:SubPolygon
+coor	src/Polygon.c++	/^    glm::vec2 coor;$/;"	m	struct:NewVertex	file:
+copyBitmap	src/typewriter/FontTexture.c++	/^FT_Bitmap copyBitmap(FT_Bitmap &bm)$/;"	f
+count	src/BodySystem.h	/^	int count;$/;"	m	class:BodySystem
+createShaderProgram	src/glutils.c++	/^GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc, GLuint& vertexShaderRef, GLuint& fragmentShaderRef)$/;"	f
+createVertexArrayObject	src/glutils.c++	/^GLuint createVertexArrayObject()$/;"	f
+cross	src/Geometry.c++	/^float cross(glm::vec2 a, glm::vec2 b)$/;"	f
+ctype	src/glutils.c++	/^	char ctype;$/;"	m	struct:SingleFormat	file:
+decompose	src/Polygon.c++	/^int Polygon::decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines)$/;"	f	class:Polygon
+distaa3	src/typewriter/edtaa3func.c	/^double distaa3(double *img, double *gximg, double *gyimg, int w, int c, int xc, int yc, int xi, int yi)$/;"	f
+distance	src/Geometry.c++	/^float distance(vec2 a, vec2 b)$/;"	f
+distance	src/Geometry.c++	/^float distance(vec2 p, vec2 line_a, vec2 line_b)$/;"	f
+down_down	src/main.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+down_down	tests/intersect_points.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+edge1	src/Polygon.h	/^    Polygon::Edge edge1, edge2;$/;"	m	struct:Intersection
+edge2	src/Polygon.h	/^    Polygon::Edge edge1, edge2;$/;"	m	struct:Intersection
+edgedf	src/typewriter/edtaa3func.c	/^double edgedf(double gx, double gy, double a)$/;"	f
+edtaa3	src/typewriter/edtaa3func.c	/^void edtaa3(double *img, double *gx, double *gy, int w, int h, short *distx, short *disty, double *dist)$/;"	f
+edtaa3	src/typewriter/edtaa3func.h	/^namespace edtaa3 {$/;"	n
+endIndex	src/Polygon.h	/^        int endIndex()          { return end_index;}$/;"	f	class:Polygon::Diagonal
+end_index	src/Polygon.h	/^        int end_index;$/;"	m	class:Polygon::Diagonal
+end_tr	src/Polygon.c++	/^glm::vec2 Polygon::Edge::end_tr() const$/;"	f	class:Polygon::Edge
+end	src/Polygon.c++	/^glm::vec2& Polygon::Edge::end() const$/;"	f	class:Polygon::Edge
+end	src/Polygon.c++	/^glm::vec2& SubPolygon::Edge::end() const$/;"	f	class:SubPolygon::Edge
+end	src/Polygon.h	/^        glm::vec2& end() const   { return parent->vertices[end_index];}$/;"	f	class:Polygon::Diagonal
+end	src/glutils.h	/^    void end() {$/;"	f	class:BufferWriter
+erase	src/Polygon.c++	/^void erase(std::set<SubPolygon::Edge, T>& set, int edge_index, SubPolygon* sub_polygon)$/;"	f
+error_callback	src/main.c++	/^void error_callback(int error, const char* description)$/;"	f
+error_callback	tests/intersect_points.c++	/^void error_callback(int error, const char* description)$/;"	f
+file_exists	src/main.c++	/^bool file_exists(const std::string &name)$/;"	f
+file_exists	tests/intersect_points.c++	/^bool file_exists(const std::string &name)$/;"	f
+fill	src/Polygon.c++	/^void SubPolygon::fill()$/;"	f	class:SubPolygon
+findBestPosition	src/typewriter/skyline-bl.h	/^		skyline_ptr findBestPosition(Size<T> rect)$/;"	f	class:SBL::SkylineBL_alg
+fontRenderer	src/main.c++	/^FontRenderer *fontRenderer;$/;"	v
+fontRenderer	tests/intersect_points.c++	/^FontRenderer *fontRenderer;$/;"	v
+force	src/BodySystem.h	/^		inline glm::vec2& force() { return system->force[index]; }$/;"	f	class:Body
+force	src/BodySystem.h	/^	std::vector<glm::vec2> force;$/;"	m	class:BodySystem
+generateAtlas	src/typewriter/FontTexture.c++	/^void FontTexture::generateAtlas(std::string fontpath)$/;"	f	class:FontTexture
+generateAtlas	src/typewriter/FontTexture.c++	/^void FontTexture::generateAtlas(std::string fontpath, int resolution, AtlasType type)$/;"	f	class:FontTexture
+generateVertices	src/typewriter/skyline-bl.h	/^	GLfloat *generateVertices(const std::vector<Area<T>> &atlas, int &length)$/;"	f	namespace:SBL
+getAtlasHeight	src/typewriter/FontTexture.h	/^	int getAtlasHeight() { return atlasHeight; }$/;"	f	class:FontTexture
+getAtlasWidth	src/typewriter/FontTexture.h	/^	int getAtlasWidth() { return atlasWidth; }$/;"	f	class:FontTexture
+getBody	src/BodySystem.c++	/^Body BodySystem::getBody(int index)$/;"	f	class:BodySystem
+getCurrentSize	src/glutils.h	/^    int getCurrentSize() {$/;"	f	class:BufferWriter
+getEdgeJustBelow	src/Polygon.c++	/^SubPolygon::Edge getEdgeJustBelow(T_set s, SubPolygon::Vertex subject)$/;"	f
+getEdgeJustBelow	src/Polygon.c++	/^SubPolygon::Edge getEdgeJustBelow(T_set s, SubPolygon::Vertex subject, axis_tag<X>)$/;"	f
+getEdgeJustBelow	src/Polygon.c++	/^SubPolygon::Edge getEdgeJustBelow(T_set s, SubPolygon::Vertex subject, axis_tag<Y>)$/;"	f
+getEdge	src/Polygon.c++	/^LineSegment Polygon::getEdge(int index)$/;"	f	class:Polygon
+getGlyph	src/typewriter/FontTexture.c++	/^Glyph &FontTexture::getGlyph(unsigned char ch)$/;"	f	class:FontTexture
+getIndexIndex	src/Polygon.h	/^        int getIndexIndex() const { return index; }$/;"	f	class:SubPolygon::Edge
+getIndexIndex	src/Polygon.h	/^        int getIndexIndex() { return index; }$/;"	f	class:SubPolygon::Vertex
+getIndex	src/Polygon.c++	/^int SubPolygon::Edge::getIndex() const$/;"	f	class:SubPolygon::Edge
+getIndex	src/Polygon.h	/^        int getIndex() const { return index; }$/;"	f	class:Polygon::Edge
+getIndex	src/Polygon.h	/^        int getIndex() { return index; }$/;"	f	class:Polygon::Vertex
+getIndex	src/Polygon.h	/^        int getIndex() { return parent->indices[index]; }$/;"	f	class:SubPolygon::Vertex
+getParent	src/Polygon.h	/^        Polygon& getParent() const { return *parent; }$/;"	f	class:Polygon::Edge
+getParent	src/Polygon.h	/^        SubPolygon& getParent() const { return *parent; }$/;"	f	class:SubPolygon::Edge
+getPtr	src/glutils.h	/^    T* getPtr() {$/;"	f	class:BufferWriter
+glyph	src/typewriter/FontTexture.c++	/^	Glyph *glyph;$/;"	m	struct:GlyphHolder	file:
+glyphs	src/typewriter/FontTexture.h	/^	std::vector<Glyph> glyphs;$/;"	m	class:FontTexture
+greater_than	src/Polygon.c++	/^bool greater_than(T a, T b){$/;"	f
+head	src/LinkedList.h	/^    T &head() {$/;"	f	class:CircularList
+head	src/LinkedList.h	/^    T &head()$/;"	f	class:LinkedList
+height	src/typewriter/FontTexture.h	/^	float width, height;$/;"	m	struct:Glyph
+height	src/typewriter/skyline-bl.h	/^		double width, height, x, y;$/;"	m	struct:SBL::Area
+height	src/typewriter/skyline-bl.h	/^		double width, height;$/;"	m	class:SBL::SkylineBL_alg
+height	src/typewriter/skyline-bl.h	/^		double width, height;$/;"	m	struct:SBL::Size
+i	src/Polygon.c++	/^    Intersection* i;$/;"	m	struct:FullIntersect	file:
+in_out	src/Polygon.c++	/^    Side in_out; \/\/ Entry or exit to other polygon?$/;"	m	struct:NewVertex	file:
+index	src/BodySystem.h	/^	int index;$/;"	m	class:Body
+index	src/Polygon.h	/^        int index;$/;"	m	class:Polygon::Edge
+index	src/Polygon.h	/^        int index;$/;"	m	class:Polygon::Vertex
+index	src/Polygon.h	/^        int index;$/;"	m	class:SubPolygon::Edge
+index	src/Polygon.h	/^        int index;$/;"	m	class:SubPolygon::Vertex
+indices	src/Polygon.h	/^    std::vector<int> indices; \/\/ Indices in polygon vertex buffer$/;"	m	class:SubPolygon
+insertImage	src/typewriter/FontTexture.c++	/^void insertImage(unsigned char *dest, int destW, int destH, unsigned char* src, int srcW, int srcH, int destX, int destY)$/;"	f
+insert_after	src/LinkedList.h	/^    void insert_after(T *new_node, T *existing_node)$/;"	f	class:CircularList
+insert_after	src/LinkedList.h	/^    void insert_after(T *new_node, T *existing_node)$/;"	f	class:LinkedList
+insert_before	src/LinkedList.h	/^    void insert_before(T *new_node, T *existing_node)$/;"	f	class:CircularList
+insert_before	src/LinkedList.h	/^    void insert_before(T *new_node, T *existing_node)$/;"	f	class:LinkedList
+insert	src/typewriter/skyline-bl.h	/^		void insert(Size<T> rect, skyline_ptr where, std::vector<Area<T>> &atlas)$/;"	f	class:SBL::SkylineBL_alg
+inside	src/Geometry.c++	/^bool inside(vec2 point, Polygon& p)$/;"	f
+intersect	src/Geometry.c++	/^bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec2 line2_b)$/;"	f
+intersect	src/Geometry.c++	/^bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b, vec2& point_of_intersection, float& alpha1, float& alpha2)$/;"	f
+intersection	src/Polygon.c++	/^std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)$/;"	f	class:Polygon
+intersect	src/Polygon.c++	/^    bool intersect; \/\/ Intersection point or normal vertex$/;"	m	struct:NewVertex	file:
+invertImage	src/typewriter/FontTexture.c++	/^unsigned char *invertImage(unsigned char *image, int width, int height)$/;"	f
+kerning	src/typewriter/FontTexture.h	/^	float kerning[255];$/;"	m	struct:Glyph
+key_callback	src/main.c++	/^void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)$/;"	f
+key_callback	tests/intersect_points.c++	/^void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)$/;"	f
+key	src/typewriter/skyline-bl.h	/^		T key;$/;"	m	struct:SBL::Area
+key	src/typewriter/skyline-bl.h	/^		T key;$/;"	m	struct:SBL::Size
+left_down	src/main.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+left_down	tests/intersect_points.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+leftof	src/Geometry.c++	/^bool leftof(vec2 a, vec2 b)$/;"	f
+less_than	src/Polygon.c++	/^bool less_than(T a, T b){$/;"	f
+lines_buffer	src/Renderer.h	/^    std::vector<float> lines_buffer;$/;"	m	class:Renderer
+lines_vao	src/Renderer.h	/^    GLuint triangles_vao, lines_vao, color_vao;$/;"	m	class:Renderer
+lines_vbo_size	src/Renderer.c++	/^const int lines_vbo_size = 300;$/;"	v
+lines_vbo	src/Renderer.h	/^    GLuint triangles_vbo, color_vbo, lines_vbo;$/;"	m	class:Renderer
+lt	src/Polygon.c++	/^bool FullIntersect::lt(FullIntersect& a, FullIntersect& b)$/;"	f	class:FullIntersect
+lt	src/Polygon.c++	/^bool Intersection::lt(Intersection& i, Intersection& j)$/;"	f	class:Intersection
+main	src/main.c++	/^int main()$/;"	f
+main	tests/intersect_points.c++	/^int main()$/;"	f
+mass	src/BodySystem.h	/^		inline float& mass() { return system->mass[index]; }$/;"	f	class:Body
+mass	src/BodySystem.h	/^	std::vector<float> mass;$/;"	m	class:BodySystem
+matrix	src/Polygon.h	/^    glm::mat3 matrix;$/;"	m	class:Polygon
+max_size	src/glutils.h	/^    int max_size;$/;"	m	class:BufferWriter
+middle	src/Geometry.c++	/^vec2 middle(vec2 a, vec2 b)$/;"	f
+monotonize	src/Polygon.c++	/^void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction dir)$/;"	f	class:SubPolygon
+mother	src/Polygon.h	/^    Polygon* mother;$/;"	m	class:SubPolygon
+name	src/glutils.c++	/^	char name[30];$/;"	m	struct:SingleFormat	file:
+neighbors	src/tmp.h	/^        std::vector<int> neighbors; \/\/ indices into graph$/;"	m	class:Graph::Node
+next	src/Polygon.c++	/^    NewVertex *prev, *next, *parallel; \/\/ Linked list, and link to evt. same intersection point in other polygon$/;"	m	struct:NewVertex	file:
+nodes	src/tmp.h	/^    std::vector<Node> nodes;$/;"	m	class:Graph
+numBodies	src/BodySystem.h	/^    int numBodies() const { return count; }$/;"	f	class:BodySystem
+numComponents	src/glutils.c++	/^	int numComponents;$/;"	m	struct:SingleFormat	file:
+numEdges	src/Polygon.c++	/^int Polygon::numEdges()$/;"	f	class:Polygon
+offset	src/glutils.c++	/^	int offset;$/;"	m	struct:SingleFormat	file:
+openglCallbackFunction	src/glutils.c++	/^void APIENTRY openglCallbackFunction(GLenum source,$/;"	f
+operator ()	src/Polygon.c++	/^bool EdgeComparator<X>::operator() (const SubPolygon::Edge &lhs, const SubPolygon::Edge &rhs)$/;"	f	class:EdgeComparator
+operator ()	src/Polygon.c++	/^bool EdgeComparator<Y>::operator() (const SubPolygon::Edge &lhs, const SubPolygon::Edge &rhs)$/;"	f	class:EdgeComparator
+operator ()	src/Polygon.c++	/^int Polygon::Edge::operator() (int x) const$/;"	f	class:Polygon::Edge
+operator ()	src/typewriter/skyline-bl.h	/^		bool operator() (const Point &lhs, const Point &rhs)$/;"	f	struct:SBL::PointLessThan
+operator *	src/Polygon.c++	/^glm::vec2& Polygon::Vertex::operator* ()$/;"	f	class:Polygon::Vertex
+operator *	src/Polygon.c++	/^glm::vec2& SubPolygon::Vertex::operator* ()$/;"	f	class:SubPolygon::Vertex
+operator ++	src/Polygon.c++	/^Polygon::Vertex& Polygon::Vertex::operator++ ()$/;"	f	class:Polygon::Vertex
+operator --	src/Polygon.c++	/^Polygon::Vertex& Polygon::Vertex::operator-- ()$/;"	f	class:Polygon::Vertex
+operator ->	src/Polygon.c++	/^glm::vec2* Polygon::Vertex::operator-> ()$/;"	f	class:Polygon::Vertex
+operator ->	src/Polygon.c++	/^glm::vec2* SubPolygon::Vertex::operator-> ()$/;"	f	class:SubPolygon::Vertex
+operator <<	src/Geometry.c++	/^std::ostream &operator << (std::ostream &lhs, vec2 &rhs)$/;"	f
+operator <<	src/Geometry.c++	/^std::ostream &operator << (std::ostream &lhs, vec3 &rhs)$/;"	f
+operator <<	src/Polygon.c++	/^std::ostream& operator<< (std::ostream& lhs, SubPolygon& p)$/;"	f
+operator <<	src/typewriter/skyline-bl.c++	/^	std::ostream &operator<< (std::ostream &lhs, const Point &rhs)$/;"	f	namespace:SBL
+operator <<	src/typewriter/skyline-bl.c++	/^	std::ostream &operator<< (std::ostream &lhs, const std::set<Point> &rhs)$/;"	f	namespace:SBL
+operator <<	src/typewriter/skyline-bl.h	/^	std::ostream &operator<< (std::ostream &lhs, const Area<T> &rhs)$/;"	f	namespace:SBL
+operator <<	src/typewriter/skyline-bl.h	/^	std::ostream &operator<< (std::ostream &lhs, const Size<T> &rhs)$/;"	f	namespace:SBL
+operator <<	src/typewriter/skyline-bl.h	/^	std::ostream &operator<< (std::ostream &lhs, const std::vector<Area<T>> &rhs)$/;"	f	namespace:SBL
+operator <	src/typewriter/skyline-bl.h	/^		bool operator< (const Point &rhs) const {$/;"	f	struct:SBL::Point
+operator ==	src/Polygon.c++	/^bool Polygon::Edge::operator== (Edge other)$/;"	f	class:Polygon::Edge
+operator ==	src/Polygon.c++	/^bool SubPolygon::Edge::operator== (Edge other) const $/;"	f	class:SubPolygon::Edge
+operator =	src/Polygon.h	/^        Diagonal& operator= (Diagonal rhs) { parent=rhs.parent; start_index=rhs.start_index; end_index=rhs.end_index; return *this;}$/;"	f	class:Polygon::Diagonal
+orientation	src/BodySystem.h	/^		inline float& orientation() { return system->orientation[index]; }$/;"	f	class:Body
+orientation	src/BodySystem.h	/^	std::vector<float> orientation;$/;"	m	class:BodySystem
+ortho2D	src/glutils.c++	/^glm::mat4 ortho2D(float width, float height, float far, float near)$/;"	f
+os	.ycm_extra_conf.py	/^import os$/;"	i
+outfile	src/typewriter/stb_image_write.h	/^static int outfile(char const *filename, int rgb_dir, int vdir, int x, int y, int comp, int expand_mono, void *data, int alpha, int pad, const char *fmt, ...)$/;"	f
+overlaps	src/Polygon.c++	/^std::vector<Intersection> Polygon::overlaps(Polygon& a, Polygon& b)$/;"	f	class:Polygon
+parallel	src/Polygon.c++	/^    NewVertex *prev, *next, *parallel; \/\/ Linked list, and link to evt. same intersection point in other polygon$/;"	m	struct:NewVertex	file:
+parent	src/BodySystem.h	/^        inline Body& parent() { return system->parent[index]; }$/;"	f	class:Body
+parent	src/BodySystem.h	/^    std::vector<Body> parent;$/;"	m	class:BodySystem
+parent	src/Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Diagonal
+parent	src/Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Edge
+parent	src/Polygon.h	/^        Polygon *parent;$/;"	m	class:Polygon::Vertex
+parent	src/Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Edge
+parent	src/Polygon.h	/^        SubPolygon *parent;$/;"	m	class:SubPolygon::Vertex
+point	src/Polygon.h	/^    glm::vec2 point;$/;"	m	struct:Intersection
+pos2_program	src/Renderer.h	/^    GLuint pos2_program, color_program;$/;"	m	class:Renderer
+position_type	src/BodySystem.h	/^        inline PositionType& position_type() { return system->position_type[index]; }$/;"	f	class:Body
+position_type	src/BodySystem.h	/^    std::vector<PositionType> position_type;$/;"	m	class:BodySystem
+position	src/BodySystem.h	/^		inline glm::vec2& position() { return system->position[index]; }$/;"	f	class:Body
+position	src/BodySystem.h	/^	std::vector<glm::vec2> position;$/;"	m	class:BodySystem
+preceding	src/Polygon.c++	/^glm::vec2& Polygon::Vertex::preceding()$/;"	f	class:Polygon::Vertex
+preceding	src/Polygon.c++	/^glm::vec2& SubPolygon::Vertex::preceding()$/;"	f	class:SubPolygon::Vertex
+prev	src/Polygon.c++	/^    NewVertex *prev, *next, *parallel; \/\/ Linked list, and link to evt. same intersection point in other polygon$/;"	m	struct:NewVertex	file:
+printVector	src/main.c++	/^void printVector(std::vector<T> v)$/;"	f
+printVector	tests/intersect_points.c++	/^void printVector(std::vector<T> v)$/;"	f
+processed	src/Polygon.c++	/^        bool processed;$/;"	m	struct:NewVertex	file:
+project	src/Geometry.c++	/^vec2 project(vec2 p, vec2 line_a, vec2 line_b)$/;"	f
+project	src/typewriter/skyline-bl.h	/^		double project(double x, skyline_ptr iterationBegin, skyline_ptr iterationEnd)$/;"	f	class:SBL::SkylineBL_alg
+ptr	src/glutils.h	/^    T* ptr;$/;"	m	class:BufferWriter
+push_back	src/LinkedList.h	/^    void push_back(T *node)$/;"	f	class:CircularList
+push_back	src/LinkedList.h	/^    void push_back(T *node)$/;"	f	class:LinkedList
+quad	src/Renderer.c++	/^GLfloat quad[] = {$/;"	v
+radius	src/Polygon.c++	/^float Polygon::radius()$/;"	f	class:Polygon
+randFloat	src/tmp.c++	/^float randFloat() {$/;"	f
+randomColor	src/tmp.c++	/^glm::vec3 randomColor()$/;"	f
+rawAtlas	src/typewriter/FontTexture.h	/^	unsigned char *rawAtlas;$/;"	m	class:FontTexture
+readArrayFromFile	src/typewriter/FontTexture.c++	/^void readArrayFromFile(std::ifstream &f, std::vector<T> &array)$/;"	f
+real_greater_than	src/Polygon.c++	/^bool real_greater_than(T a, T b, axis_tag<X>){ return a->x > b->x; }$/;"	f
+real_greater_than	src/Polygon.c++	/^bool real_greater_than(T a, T b, axis_tag<Y>){ return a->y > b->y; }$/;"	f
+real_less_than	src/Polygon.c++	/^bool real_less_than(T a, T b, axis_tag<X>){return a->x < b->x; }$/;"	f
+real_less_than	src/Polygon.c++	/^bool real_less_than(T a, T b, axis_tag<Y>){ return a->y < b->y; }$/;"	f
+real_position	src/BodySystem.c++	/^vec2 Body::real_position()$/;"	f	class:Body
+rect_greaterThan	src/typewriter/skyline-bl.h	/^	bool rect_greaterThan(Size<T> rect1, Size<T> rect2) {$/;"	f	namespace:SBL
+rectangle1	src/typewriter/FontRenderer.c++	/^GLfloat rectangle1[] = {$/;"	v
+rectangles	src/typewriter/skyline-bl.h	/^		std::vector<Size<T>> rectangles;$/;"	m	class:SBL::SkylineBL_alg
+rectangle	src/main.c++	/^GLfloat rectangle[] = {$/;"	v
+rectangle	tests/intersect_points.c++	/^GLfloat rectangle[] = {$/;"	v
+re	.ycm_extra_conf.py	/^import re$/;"	i
+renderBitmap	src/typewriter/FontTexture.c++	/^FT_Bitmap renderBitmap(FT_Bitmap bitmap)$/;"	f
+render	src/Renderer.c++	/^void Renderer::render(int width, int height, float zoom)$/;"	f	class:Renderer
+render	src/typewriter/FontRenderer.c++	/^void FontRenderer::render(float width, float height)$/;"	f	class:FontRenderer
+resolution	src/typewriter/FontTexture.h	/^	int resolution = 16;$/;"	m	class:FontTexture
+right_down	src/main.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+right_down	tests/intersect_points.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+scroll_callback	src/main.c++	/^void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)$/;"	f
+scroll_callback	tests/intersect_points.c++	/^void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)$/;"	f
+setColor1	src/Renderer.c++	/^void Renderer::setColor1(float r, float g, float b)$/;"	f	class:Renderer
+setColor2	src/Renderer.c++	/^void Renderer::setColor2(float r, float g, float b)$/;"	f	class:Renderer
+setFormat	src/glutils.c++	/^void setFormat(const char *format, GLuint shaderProgram)$/;"	f
+setIndex	src/Polygon.h	/^        void setIndex(int val) { index = val; }$/;"	f	class:Polygon::Vertex
+setIndex	src/Polygon.h	/^        void setIndex(int val) { index = val; }$/;"	f	class:SubPolygon::Vertex
+setSingleFormat	src/glutils.c++	/^void setSingleFormat(const char *name, int numComponents, char ctype, GLsizei stride, int offset,$/;"	f
+setVertexAttribPointer	src/glutils.c++	/^void setVertexAttribPointer(GLuint shaderProgram, const char* name, GLint numComponents, GLenum type, GLsizei stride, int offset)$/;"	f
+setup	src/typewriter/FontRenderer.c++	/^void FontRenderer::setup()$/;"	f	class:FontRenderer
+shaderProgram	src/typewriter/FontRenderer.h	/^	GLuint shaderProgram;$/;"	m	class:FontRenderer
+shaders	src/shaders.h	/^namespace shaders {$/;"	n
+shape	src/BodySystem.h	/^		inline Polygon& shape() { return system->shape[index]; }$/;"	f	class:Body
+shape	src/BodySystem.h	/^	std::vector<Polygon> shape;$/;"	m	class:BodySystem
+signedArea	src/Geometry.c++	/^float signedArea(vec2 a, vec2 b, vec2 c)$/;"	f
+signedArea	src/Polygon.c++	/^float Polygon::signedArea()$/;"	f	class:Polygon
+signedArea	src/Polygon.c++	/^float SubPolygon::signedArea()$/;"	f	class:SubPolygon
+sign	src/Geometry.c++	/^int sign(float x)$/;"	f
+size	src/glutils.h	/^    int size;$/;"	m	class:BufferWriter
+size	src/typewriter/FontRenderer.h	/^	int size;$/;"	m	class:FontRenderer
+skyline_ptr	src/typewriter/skyline-bl.h	/^	typedef std::set<Point>::iterator skyline_ptr;$/;"	t	namespace:SBL
+skyline	src/typewriter/skyline-bl.h	/^		Skyline skyline;$/;"	m	class:SBL::SkylineBL_alg
+sortByHeight	src/typewriter/skyline-bl.h	/^		void sortByHeight(std::vector<Size<T>> &rects)$/;"	f	class:SBL::SkylineBL_alg
+split	src/Polygon.c++	/^void SubPolygon::split(int a, int b, SubPolygon& out1, SubPolygon& out2)$/;"	f	class:SubPolygon
+startIndex	src/Polygon.h	/^        int startIndex()        { return start_index;}$/;"	f	class:Polygon::Diagonal
+start_index	src/Polygon.h	/^        int start_index;$/;"	m	class:Polygon::Diagonal
+start_indices	src/Renderer.h	/^    std::vector<int> start_indices;$/;"	m	class:Renderer
+start_tr	src/Polygon.c++	/^glm::vec2 Polygon::Edge::start_tr() const$/;"	f	class:Polygon::Edge
+start	src/Polygon.c++	/^glm::vec2& Polygon::Edge::start() const$/;"	f	class:Polygon::Edge
+start	src/Polygon.c++	/^glm::vec2& SubPolygon::Edge::start() const$/;"	f	class:SubPolygon::Edge
+start	src/Polygon.h	/^        glm::vec2& start() const { return parent->vertices[start_index];}$/;"	f	class:Polygon::Diagonal
+stb_image_write_test	src/typewriter/stb_image_write.h	/^typedef int stb_image_write_test[sizeof(stbiw_uint32)==4 ? 1 : -1];$/;"	t
+stbi_write_bmp	src/typewriter/stb_image_write.h	/^int stbi_write_bmp(char const *filename, int x, int y, int comp, const void *data)$/;"	f
+stbi_write_hdr	src/typewriter/stb_image_write.h	/^int stbi_write_hdr(char const *filename, int x, int y, int comp, const float *data)$/;"	f
+stbi_write_png_to_mem	src/typewriter/stb_image_write.h	/^unsigned char *stbi_write_png_to_mem(unsigned char *pixels, int stride_bytes, int x, int y, int n, int *out_len)$/;"	f
+stbi_write_png	src/typewriter/stb_image_write.h	/^int stbi_write_png(char const *filename, int x, int y, int comp, const void *data, int stride_bytes)$/;"	f
+stbi_write_tga	src/typewriter/stb_image_write.h	/^int stbi_write_tga(char const *filename, int x, int y, int comp, const void *data)$/;"	f
+stbi_zlib_compress	src/typewriter/stb_image_write.h	/^unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, int *out_len, int quality)$/;"	f
+stbiw__ZHASH	src/typewriter/stb_image_write.h	467;"	d
+stbiw__crc32	src/typewriter/stb_image_write.h	/^unsigned int stbiw__crc32(unsigned char *buffer, int len)$/;"	f
+stbiw__linear_to_rgbe	src/typewriter/stb_image_write.h	/^void stbiw__linear_to_rgbe(unsigned char *rgbe, float *linear)$/;"	f
+stbiw__max	src/typewriter/stb_image_write.h	243;"	d
+stbiw__paeth	src/typewriter/stb_image_write.h	/^static unsigned char stbiw__paeth(int a, int b, int c)$/;"	f
+stbiw__sbcount	src/typewriter/stb_image_write.h	399;"	d
+stbiw__sbfree	src/typewriter/stb_image_write.h	400;"	d
+stbiw__sbgrow	src/typewriter/stb_image_write.h	396;"	d
+stbiw__sbgrowf	src/typewriter/stb_image_write.h	/^static void *stbiw__sbgrowf(void **arr, int increment, int itemsize)$/;"	f
+stbiw__sbmaybegrow	src/typewriter/stb_image_write.h	395;"	d
+stbiw__sbm	src/typewriter/stb_image_write.h	391;"	d
+stbiw__sbn	src/typewriter/stb_image_write.h	392;"	d
+stbiw__sbneedgrow	src/typewriter/stb_image_write.h	394;"	d
+stbiw__sbpush	src/typewriter/stb_image_write.h	398;"	d
+stbiw__sbraw	src/typewriter/stb_image_write.h	390;"	d
+stbiw__wp32	src/typewriter/stb_image_write.h	587;"	d
+stbiw__wpcrc	src/typewriter/stb_image_write.h	/^static void stbiw__wpcrc(unsigned char **data, int len)$/;"	f
+stbiw__wpng4	src/typewriter/stb_image_write.h	586;"	d
+stbiw__wptag	src/typewriter/stb_image_write.h	588;"	d
+stbiw__write_dump_data	src/typewriter/stb_image_write.h	/^void stbiw__write_dump_data(FILE *f, int length, unsigned char *data)$/;"	f
+stbiw__write_hdr_scanline	src/typewriter/stb_image_write.h	/^void stbiw__write_hdr_scanline(FILE *f, int width, int comp, unsigned char *scratch, const float *scanline)$/;"	f
+stbiw__write_run_data	src/typewriter/stb_image_write.h	/^void stbiw__write_run_data(FILE *f, int length, unsigned char databyte)$/;"	f
+stbiw__zhash	src/typewriter/stb_image_write.h	/^static unsigned int stbiw__zhash(unsigned char *data)$/;"	f
+stbiw__zlib_add	src/typewriter/stb_image_write.h	456;"	d
+stbiw__zlib_bitrev	src/typewriter/stb_image_write.h	/^static int stbiw__zlib_bitrev(int code, int codebits)$/;"	f
+stbiw__zlib_countm	src/typewriter/stb_image_write.h	/^static unsigned int stbiw__zlib_countm(unsigned char *a, unsigned char *b, int limit)$/;"	f
+stbiw__zlib_flush	src/typewriter/stb_image_write.h	455;"	d
+stbiw__zlib_flushf	src/typewriter/stb_image_write.h	/^static unsigned char *stbiw__zlib_flushf(unsigned char *data, unsigned int *bitbuffer, int *bitcount)$/;"	f
+stbiw__zlib_huff1	src/typewriter/stb_image_write.h	460;"	d
+stbiw__zlib_huff2	src/typewriter/stb_image_write.h	461;"	d
+stbiw__zlib_huff3	src/typewriter/stb_image_write.h	462;"	d
+stbiw__zlib_huff4	src/typewriter/stb_image_write.h	463;"	d
+stbiw__zlib_huffa	src/typewriter/stb_image_write.h	458;"	d
+stbiw__zlib_huffb	src/typewriter/stb_image_write.h	465;"	d
+stbiw__zlib_huff	src/typewriter/stb_image_write.h	464;"	d
+stbiw_uint32	src/typewriter/stb_image_write.h	/^typedef unsigned int stbiw_uint32;$/;"	t
+subprocess	.ycm_extra_conf.py	/^import subprocess$/;"	i
+successive	src/Polygon.c++	/^glm::vec2& Polygon::Vertex::successive()$/;"	f	class:Polygon::Vertex
+successive	src/Polygon.c++	/^glm::vec2& SubPolygon::Vertex::successive()$/;"	f	class:SubPolygon::Vertex
+system	src/BodySystem.h	/^	BodySystem *system;$/;"	m	class:Body
+system	src/Renderer.h	/^    BodySystem& system;$/;"	m	class:Renderer
+tail	src/LinkedList.h	/^    T &tail()$/;"	f	class:LinkedList
+textureRef	src/typewriter/FontRenderer.h	/^	GLuint textureRef;$/;"	m	class:FontRenderer
+texture	src/typewriter/FontRenderer.h	/^	FontTexture &texture;$/;"	m	class:FontRenderer
+theight	src/typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
+timestep	src/BodySystem.c++	/^void BodySystem::timestep(float delta)$/;"	f	class:BodySystem
+timestep	src/World.h	/^	void timestep(float delta)$/;"	f	class:World
+toFloat	src/typewriter/FontTexture.c++	/^float *toFloat(double *image, int size)$/;"	f
+torque	src/BodySystem.h	/^		inline float& torque() { return system->torque[index]; }$/;"	f	class:Body
+torque	src/BodySystem.h	/^	std::vector<float> torque;$/;"	m	class:BodySystem
+totalHeightIfInserted	src/typewriter/skyline-bl.h	/^		double totalHeightIfInserted(Size<T> rect, skyline_ptr where)$/;"	f	class:SBL::SkylineBL_alg
+transform	src/Polygon.c++	/^glm::vec2 Polygon::transform(glm::vec2 point)$/;"	f	class:Polygon
+triangles_vao	src/Renderer.h	/^    GLuint triangles_vao, lines_vao, color_vao;$/;"	m	class:Renderer
+triangles_vbo	src/Renderer.h	/^    GLuint triangles_vbo, color_vbo, lines_vbo;$/;"	m	class:Renderer
+triangulate	src/Polygon.c++	/^void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles)$/;"	f	class:Polygon
+twidth	src/typewriter/FontTexture.h	/^	int twidth, theight;$/;"	m	struct:Glyph
+type	src/typewriter/FontTexture.h	/^	AtlasType type;$/;"	m	class:FontTexture
+uint	src/glutils.c++	/^typedef unsigned int uint;$/;"	t	file:
+u	src/typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
+u	src/typewriter/FontTexture.h	/^	int u, v;$/;"	m	struct:Glyph
+uni_color	src/Renderer.h	/^    GLuint uni_color;$/;"	m	class:Renderer
+uni_model	src/Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
+uni_proj	src/Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
+uni_view	src/Renderer.h	/^    GLuint uni_proj, uni_view, uni_model;$/;"	m	class:Renderer
+up_down	src/main.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+up_down	tests/intersect_points.c++	/^bool left_down, right_down, up_down, down_down;$/;"	v
+uploadElements	src/glutils.c++	/^GLuint uploadElements(GLuint elements[], unsigned int size)$/;"	f
+uploadVertices	src/Renderer.c++	/^void uploadVertices()$/;"	f
+uploadVertices	src/glutils.c++	/^GLuint uploadVertices(unsigned int size)$/;"	f
+uploadVertices	src/glutils.h	/^GLuint uploadVertices(T data[], unsigned int size)$/;"	f
+useExistingAtlas	src/typewriter/FontTexture.c++	/^void FontTexture::useExistingAtlas(std::string atlaspath, std::string metadatapath)$/;"	f	class:FontTexture
+value	src/tmp.h	/^        T value;$/;"	m	class:Graph::Node
+velocity	src/BodySystem.h	/^		inline glm::vec2& velocity() { return system->velocity[index]; }$/;"	f	class:Body
+velocity	src/BodySystem.h	/^	std::vector<glm::vec2> velocity;$/;"	m	class:BodySystem
+vert_p	src/Polygon.c++	/^    NewVertex* vert_p;$/;"	m	struct:FullIntersect	file:
+vert_q	src/Polygon.c++	/^    NewVertex* vert_q;$/;"	m	struct:FullIntersect	file:
+vertices	src/Polygon.h	/^	std::vector<glm::vec2> vertices;$/;"	m	class:Polygon
+viewMatrix2D	src/glutils.c++	/^glm::mat4 viewMatrix2D(float centerX, float centerY, float scaleX, float scaleY)$/;"	f
+v	src/typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
+v	src/typewriter/FontTexture.h	/^	int u, v;$/;"	m	struct:Glyph
+width	src/typewriter/FontTexture.h	/^	float width, height;$/;"	m	struct:Glyph
+width	src/typewriter/skyline-bl.h	/^		double width, height, x, y;$/;"	m	struct:SBL::Area
+width	src/typewriter/skyline-bl.h	/^		double width, height;$/;"	m	class:SBL::SkylineBL_alg
+width	src/typewriter/skyline-bl.h	/^		double width, height;$/;"	m	struct:SBL::Size
+write3	src/typewriter/stb_image_write.h	/^static void write3(FILE *f, unsigned char a, unsigned char b, unsigned char c)$/;"	f
+writeArrayToFile	src/typewriter/FontTexture.c++	/^void writeArrayToFile(std::ofstream &f, std::vector<T> &array)$/;"	f
+writeAtlasToFile	src/typewriter/FontTexture.c++	/^void FontTexture::writeAtlasToFile(std::string outatlas, std::string outmeta)$/;"	f	class:FontTexture
+write_pixels	src/typewriter/stb_image_write.h	/^static void write_pixels(FILE *f, int rgb_dir, int vdir, int x, int y, int comp, void *data, int write_alpha, int scanline_pad, int expand_mono)$/;"	f
+write	src/glutils.h	/^    void write(T a) {$/;"	f	class:BufferWriter
+write	src/glutils.h	/^    void write(T a, T b) {$/;"	f	class:BufferWriter
+write	src/glutils.h	/^    void write(T a, T b, T c) {$/;"	f	class:BufferWriter
+writefv	src/typewriter/stb_image_write.h	/^static void writefv(FILE *f, const char *fmt, va_list v)$/;"	f
+xadvance	src/typewriter/FontTexture.h	/^	float xadvance, yadvance;$/;"	m	struct:Glyph
+x	src/Polygon.c++	/^int SubPolygon::Edge::x(int y) const$/;"	f	class:SubPolygon::Edge
+x	src/typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
+x	src/typewriter/skyline-bl.h	/^		double width, height, x, y;$/;"	m	struct:SBL::Area
+x	src/typewriter/skyline-bl.h	/^		double x, y;$/;"	m	struct:SBL::Point
+xoffset	src/typewriter/FontTexture.h	/^	float xoffset, yoffset;$/;"	m	struct:Glyph
+yadvance	src/typewriter/FontTexture.h	/^	float xadvance, yadvance;$/;"	m	struct:Glyph
+y	src/Polygon.c++	/^int SubPolygon::Edge::y(int x) const$/;"	f	class:SubPolygon::Edge
+y	src/typewriter/FontRenderer.h	/^	float x, y, u, v;$/;"	m	struct:FontVertex
+y	src/typewriter/skyline-bl.h	/^		double width, height, x, y;$/;"	m	struct:SBL::Area
+y	src/typewriter/skyline-bl.h	/^		double x, y;$/;"	m	struct:SBL::Point
+yoffset	src/typewriter/FontTexture.h	/^	float xoffset, yoffset;$/;"	m	struct:Glyph
+zoom	src/main.c++	/^float zoom = 1;$/;"	v
+zoom	tests/intersect_points.c++	/^float zoom = 1;$/;"	v
+~FontTexture	src/typewriter/FontTexture.c++	/^FontTexture::~FontTexture()$/;"	f	class:FontTexture

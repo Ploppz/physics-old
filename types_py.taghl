@@ -1,0 +1,3 @@
+syn keyword CTagsImport re os subprocess
+syn keyword CTagsFunction DirectoryOfThisScript FlagsForFile LoadSystemIncludes MakeRelativePathsInFlagsAbsolute
+
