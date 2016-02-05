@@ -1,14 +1,14 @@
 SHELL := /bin/bash
-MAIN = src/main.cpp
-MSG = ~/scripts/make/msg
+MAIN = src/main.c++
+MSG = tools/msg
 OBJDIR = .obj
-SOURCE_CPP = $(shell ~/scripts/make/find-filetype src cpp)
-OBJECTS = $(shell /home/ploppz/scripts/make/getobjects src cpp c)
+SOURCE_CPP = $(shell ~/scripts/make/find-filetype src c++)
+OBJECTS = $(shell /home/ploppz/scripts/make/getobjects src c++ c)
 
 # Add object file of the main file
-# OBJECTS += $(patsubst */%.cpp, .obj/%.o, $(MAIN))
-MAIN_STEM = $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.cpp/\1/g')
-OBJECTS += .obj/$(MAIN_STEM).o
+# OBJECTS += $(patsubst */%.c++, .obj/%.o, $(MAIN))
+MAIN_STEM = $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.c++/\1/g')
+ OBJECTS += .obj/$(MAIN_STEM).o
 
 
 PROGRAM = bin/$(MAIN_STEM)
@@ -33,38 +33,38 @@ objects : $(OBJECTS) $(SHADER_OBJ)
 	@$(MSG) "Link"
 	$(CXX) -o $(PROGRAM) $(OBJECTS) $(SHADER_OBJ) $(LDFLAGS) $(FLAGS)
 	#
-	rm -f $(patsubst src/%.glsl, src/%.cpp, $(SHADERS))
+	rm -f $(patsubst src/%.glsl, src/%.c++, $(SHADERS))
 	#
 
-$(OBJDIR)/%.o : src/%.cpp | $(OBJDIR)
-	@$(MSG) "cpp - $<"
+$(OBJDIR)/%.o : src/%.c++ | $(OBJDIR)
+	@$(MSG) "c++ - $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
 	@mkdir -p $$(dirname "$@")
 
 $(OBJDIR)/%.o : src/%.c | $(OBJDIR)
 	@$(MSG) "c"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
-$(OBJDIR)/%.o : tests/%.cpp | $(OBJDIR)
-	@$(MSG) "Unit test cpp - $<"
+$(OBJDIR)/%.o : tests/%.c++ | $(OBJDIR)
+	@$(MSG) "Unit test c++ - $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
 	@mkdir -p $$(dirname "$@")
 
 # SHADER GENERATION
 $(OBJDIR)/%.o : src/%.glsl | $(OBJDIR)
-	@$(MSG) "GENERATE & COMPILE SHADER CPP $*.cpp	from	$*.glsl"
-	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*) = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*.cpp
-	@$(CXX) -c src/$*.cpp -o $@ $(DEFINE) $(FLAGS)
-	@rm src/$*.cpp
+	@$(MSG) "GENERATE & COMPILE SHADER CPP $*.c++	from	$*.glsl"
+	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*) = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*.c++
+	@$(CXX) -c src/$*.c++ -o $@ $(DEFINE) $(FLAGS)
+	@rm src/$*.c++
 
 $(OBJDIR)/%_v.o : src/%.vert | $(OBJDIR)
-	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*)_v = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*_v.cpp
-	@$(CXX) -c src/$*_v.cpp -o $@ $(DEFINE) $(FLAGS)
-	@rm src/$*_v.cpp
+	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*)_v = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*_v.c++
+	@$(CXX) -c src/$*_v.c++ -o $@ $(DEFINE) $(FLAGS)
+	@rm src/$*_v.c++
 
 $(OBJDIR)/%_f.o : src/%.frag | $(OBJDIR)
-	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*)_f = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*_f.cpp
-	@$(CXX) -c src/$*_f.cpp -o $@ $(DEFINE) $(FLAGS)
-	@rm src/$*_f.cpp
+	@echo 'namespace shaders { extern char const * const $(shell ~/scripts/make/deslash $*)_f = R"SHADER_D('"$$(cat $<)"')SHADER_D";}' > src/$*_f.c++
+	@$(CXX) -c src/$*_f.c++ -o $@ $(DEFINE) $(FLAGS)
+	@rm src/$*_f.c++
 
 
 src/shaders.h : $(SHADERS) $(FRAGSHADERS) $(VERTSHADERS)
@@ -83,13 +83,14 @@ $(OBJDIR):
 depend : .depend
 
 .depend : $(SOURCE_CPP)
-	echo $(OBJECTS)
+	# echo $(OBJECTS)
 	@$(MSG) ".depend"
 	@# DID: don't cd, then you don't need to prefix with src (?)
 	@ # Prefix prereqs with src/, and objects with $(OBJDIR)/
 	$(CXX) -MM -MG $^ -std=c++11 | sed 's/\(.*\:\)/$(OBJDIR)\/\1/g' > .depend;
 
 clean:
-	rm -rf $(PROGRAM) $(OBJDIR) $(patsubst src/%.glsl, src/%.cpp, $(SHADERS)) $(patsubst src/%.frag, src/%.cpp, $(FRAGSHADERS)) $(patsubst src/%.vert, src/%.cpp, $(VERTSHADERS)) src/shaders.h .depend
+	rm -rf $(PROGRAM) $(OBJDIR) $(patsubst src/%.glsl, src/%.c++, $(SHADERS)) $(patsubst src/%.frag, src/%.c++, $(FRAGSHADERS)) $(patsubst src/%.vert, src/%.c++, $(VERTSHADERS)) src/shaders.h .depend
 
 -include .depend
+# DO NOT DELETE

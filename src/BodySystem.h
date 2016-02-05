@@ -6,6 +6,8 @@
 
 #include "Polygon.h"
 #include "glutils.h"
+#include "Geometry.h"
+
 
 enum PositionType { ABSOLUTE, RELATIVE };
 
@@ -24,7 +26,7 @@ public:
 	Body getBody(int index);
 	Polygon& getPolygon(int body);
 
-	bool overlaps(Body a, Body b);
+    std::vector<Intersection> overlaps(Body a, Body b);
 private:
 	int count;
 

@@ -2,15 +2,21 @@
 
 // class POLYGON
 
+#include "glutils.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <iterator>
 #include <utility>
 #include <iostream>
+class SubPolygon;
+struct Intersection;
+
 
 enum Axis { X=0, Y=1 };
-enum Direction { FORTH=0, BACK=1 };
-class SubPolygon;
+
+typedef bool Direction;
+const bool BACK = false;
+const bool FORTH = true;
 
 typedef std::pair<glm::vec2, glm::vec2> LineSegment;
 struct Triangle
@@ -23,12 +29,17 @@ struct Triangle
 class Polygon
 {
 public:
+    static std::vector<Intersection> overlaps(Polygon& a, Polygon& b);
+    static std::vector<Polygon> intersection(Polygon& p, Polygon& q);
+public:
 	Polygon();
 
 	std::vector<glm::vec2> vertices;
+    glm::mat3 matrix;
+    glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
 
-    void appendStencilTriangles(std::vector<float> &buffer);
-
+    void appendStencilTriangles(BufferWriter<float> &buffer);
+    void appendLinesToVector(std::vector<float> &list);
 	// SHAPE
 	float signedArea();
 	glm::vec2 centroid();
@@ -36,6 +47,8 @@ public:
 
 	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
 	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines);
+
+
 
 
 	// Iterating
@@ -55,6 +68,11 @@ public:
         
         glm::vec2 & operator* ();
         glm::vec2 * operator-> ();
+
+        // Changes what vertex is pointed to
+        Vertex& operator++ ();
+        Vertex& operator-- ();
+
         glm::vec2 & preceding();
         glm::vec2 & successive();
 
@@ -76,7 +94,10 @@ public:
         int operator() (int x) const; // Gives y value at the given x value
         glm::vec2 & start() const;
         glm::vec2 & end() const;
+        glm::vec2 start_tr() const; // World coordinates
+        glm::vec2 end_tr() const;
         int getIndex() const { return index; }
+        Polygon& getParent() const { return *parent; }
 
     private:
         int index;
@@ -176,3 +197,14 @@ public:
 };
 std::ostream& operator<< (std::ostream& lhs, SubPolygon& p);
 
+struct Intersection {
+    Intersection(Polygon::Edge edge1, Polygon::Edge edge2);
+    Polygon::Edge edge1, edge2;
+    glm::vec2 point;
+    float alpha1, alpha2; // How far along the edges the point resides
+
+    // Lessthan function -- choose which to compare, edge1 or edge2
+    enum Which { FIRST, SECOND};
+    template <Which which>
+    static bool lt(Intersection& i, Intersection& j);
+};

@@ -4,6 +4,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <cstdlib>
+
+#include <iostream>
 
 
 void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback);
@@ -24,6 +27,7 @@ GLuint uploadVertices(T data[], unsigned int size)
 	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 	return reference;
 }
+GLuint uploadVertices(unsigned int size); // Uploads no data
 
 // Compiles the sources and links them to a program, whose reference it returns
 GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc, GLuint& vertexShaderRef, GLuint& fragmentShaderRef);
@@ -36,8 +40,9 @@ void setVertexAttribPointer(GLuint shaderProgram, const char* name, GLint numCom
 /* Does not bind VAO or buffer! */
 void setFormat(const char *format, GLuint shaderProgram);
 
-// Helps write to a mapped buffer:
-// TODO Doesn't unmap...
+/* BUFFER WRITER */
+// Helps write to a mapped buffer
+// WARNING: Map the correct buffer to GL_ARRAY_BUFFER first
 template <typename T>
 class BufferWriter
 {
@@ -46,17 +51,57 @@ public:
     BufferWriter(int size)
     {
 		ptr = static_cast<T*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, size * sizeof(T), GL_MAP_WRITE_BIT));
+        if (ptr == nullptr) assert(!"Couldn't map buffer range - possible too large range.");
+        this->size = 0;
+        max_size = size;
+    }
+    BufferWriter(const BufferWriter& copy) = delete;
+    ~BufferWriter() {
+        end();
     }
     // Write to buffer
     void write(T a) {
+        if (size > max_size - 1) {
+            assert(!"Buffer overflow.");
+            exit(1);
+            return;
+        }
         *ptr = a; ptr ++;   
+        size ++;
     }
     void write(T a, T b) {
+        if (size > max_size - 2) {
+            assert(!"Buffer overflow.");
+            return;
+        }
+        std::cout << "WRITE " << size << " vs " << max_size << std::endl;
         *(ptr ++) = a; *(ptr ++) = b;
+        size += 2;
     }
     void write(T a, T b, T c) {
+        if (size > max_size - 3) {
+            assert(!"Buffer overflow.");
+            exit(1);
+            return;
+        }
         *(ptr ++) = a; *(ptr ++) = b; *(ptr ++) = c;
+        size += 3;
     }
+
+    T* getPtr() {
+        return ptr;
+    }
+    int getCurrentSize() {
+        return size;
+    }
+
+
 private:
     T* ptr;
+    int size;
+    int max_size;
+    void end() {
+        std::cout << "UNMAP BUFFER" << std::endl;
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+    }
 };
