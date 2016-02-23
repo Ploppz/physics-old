@@ -98,6 +98,39 @@ public:
     T &head() {
         return *_head;
     }
+    int length()
+    {
+        if (! _head ) return 0;
+        int result = 0;
+        T *node = _head;
+        do {
+            node = node->next;
+            result ++;
+        } while (node != _head);
+        return result;
+    }
+    int numIntersects()
+    {
+        if (! _head ) return 0;
+        int result = 0;
+        T *node = _head;
+        do {
+            if (!node->intersect)
+                result ++;
+            node = node->next;
+        } while (node != _head);
+        return result;
+    }
+
+    ~CircularList()
+    {
+        T* element = _head;
+        if (_head) {
+            do {
+                delete element;
+            } while (element != _head);
+        }
+    }
 private:
     T *_head;
 };

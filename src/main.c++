@@ -108,7 +108,6 @@ int main()
 		ft.writeAtlasToFile("font_atlas", "metadata_atlas");
 	}
     fontRenderer = new FontRenderer(1, ft);
-    fontRenderer->addText("The fox..lalalalalaLALA", 0, 0, false);
     fontRenderer->setup();
 
 	// 
@@ -209,7 +208,7 @@ int main()
         }
 // #endif
         std::vector<Polygon> intersections = Polygon::intersection(b2.shape(), b3.shape());
-        std::cout << intersections.size() << std::endl;
+        std::cout << "# " << intersections.size() << std::endl;
         for (auto it = intersections.begin(); it != intersections.end(); it ++) {
             // Body b = world.bodies.addBody();
             // b.shape() = *it;
@@ -219,6 +218,7 @@ int main()
         // b2.shape().appendLinesToVector(renderer.lines_buffer);
         // b3.shape().appendLinesToVector(renderer.lines_buffer);
 
+        
 
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);

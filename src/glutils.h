@@ -74,7 +74,7 @@ public:
             assert(!"Buffer overflow.");
             return;
         }
-        std::cout << "WRITE " << size << " vs " << max_size << std::endl;
+        // std::cout << "WRITE " << size << " vs " << max_size << std::endl;
         *(ptr ++) = a; *(ptr ++) = b;
         size += 2;
     }
@@ -101,7 +101,7 @@ private:
     int size;
     int max_size;
     void end() {
-        std::cout << "UNMAP BUFFER" << std::endl;
+        // std::cout << "UNMAP BUFFER" << std::endl;
         glUnmapBuffer(GL_ARRAY_BUFFER);
     }
 };

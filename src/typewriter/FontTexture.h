@@ -12,7 +12,7 @@
 
 struct Glyph
 {
-	Glyph() :charcode{}, width{}, height{}, xoffset{}, yoffset{}, u{}, v{}, twidth{}, theight{} {}
+	Glyph() :charcode{}, xoffset{}, yoffset{}, width{}, height{}, u{}, v{}, twidth{}, theight{} {}
 	wchar_t charcode;
 	// Normalized:
 	float xoffset, yoffset;

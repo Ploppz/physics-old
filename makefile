@@ -8,7 +8,7 @@ OBJECTS = $(shell /home/ploppz/scripts/make/getobjects src c++ c)
 # Add object file of the main file
 # OBJECTS += $(patsubst */%.c++, .obj/%.o, $(MAIN))
 MAIN_STEM = $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.c++/\1/g')
- OBJECTS += .obj/$(MAIN_STEM).o
+OBJECTS += .obj/$(MAIN_STEM).o
 
 
 PROGRAM = bin/$(MAIN_STEM)
@@ -18,7 +18,7 @@ FRAGSHADERS = $(shell ~/scripts/make/find-filetype src frag)
 VERTSHADERS = $(shell ~/scripts/make/find-filetype src vert)
 SHADER_OBJ = $(shell ~/scripts/make/getshaderobjects src)
 # We have to add the include directory because freetype uses relative (to freetype2 dir) include file names
-FLAGS = -std=c++11 -ggdb -I/usr/include/freetype2 -Wall
+FLAGS = -std=c++11 -ggdb -I/usr/include/freetype2 -Wall -Wno-sign-compare
 LDFLAGS = -lglfw -lGL -lGLEW -lfreetype
 DEFINE = -DFREETYPE_GL_USE_VAO -DUSE_GLFW
 CXX = g++
@@ -27,6 +27,7 @@ CXX = g++
 
 COMMA=","
 
+
 $(PROGRAM) : objects
 
 objects : $(OBJECTS) $(SHADER_OBJ)
@@ -34,8 +35,8 @@ objects : $(OBJECTS) $(SHADER_OBJ)
 	$(CXX) -o $(PROGRAM) $(OBJECTS) $(SHADER_OBJ) $(LDFLAGS) $(FLAGS)
 	#
 	rm -f $(patsubst src/%.glsl, src/%.c++, $(SHADERS))
-	#
 
+# Source files
 $(OBJDIR)/%.o : src/%.c++ | $(OBJDIR)
 	@$(MSG) "c++ - $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
@@ -44,6 +45,8 @@ $(OBJDIR)/%.o : src/%.c++ | $(OBJDIR)
 $(OBJDIR)/%.o : src/%.c | $(OBJDIR)
 	@$(MSG) "c"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
+
+# Unit tests main files
 $(OBJDIR)/%.o : tests/%.c++ | $(OBJDIR)
 	@$(MSG) "Unit test c++ - $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
@@ -79,18 +82,18 @@ $(OBJDIR):
 	@cd $(OBJDIR); (cd ../src; find -type d ! -name .) | xargs mkdir
 	@mkdir $(OBJDIR)/tests
 
-# note: ensures that .depend is unconditionally updated??
-depend : .depend
-
 .depend : $(SOURCE_CPP)
-	# echo $(OBJECTS)
-	@$(MSG) ".depend"
+	@# Needs to be silenced so that `flags` can run 'undisturbed'
+	@#$(MSG) ".depend"
 	@# DID: don't cd, then you don't need to prefix with src (?)
 	@ # Prefix prereqs with src/, and objects with $(OBJDIR)/
-	$(CXX) -MM -MG $^ -std=c++11 | sed 's/\(.*\:\)/$(OBJDIR)\/\1/g' > .depend;
+	@$(CXX) -MM -MG $^ -std=c++11 | sed 's/\(.*\:\)/$(OBJDIR)\/\1/g' > .depend;
+
 
 clean:
 	rm -rf $(PROGRAM) $(OBJDIR) $(patsubst src/%.glsl, src/%.c++, $(SHADERS)) $(patsubst src/%.frag, src/%.c++, $(FRAGSHADERS)) $(patsubst src/%.vert, src/%.c++, $(VERTSHADERS)) src/shaders.h .depend
+flags:
+	@echo "$(FLAGS)"
 
 -include .depend
 # DO NOT DELETE

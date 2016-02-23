@@ -38,6 +38,7 @@ public:
     glm::mat3 matrix;
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
 
+
     void appendStencilTriangles(BufferWriter<float> &buffer);
     void appendLinesToVector(std::vector<float> &list);
 	// SHAPE
@@ -75,6 +76,9 @@ public:
 
         glm::vec2 & preceding();
         glm::vec2 & successive();
+
+        // Vertex transformed WRT to parent polygon
+        glm::vec2 transformed();
 
     private:
         int index;

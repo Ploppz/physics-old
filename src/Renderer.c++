@@ -111,11 +111,9 @@ void Renderer::render(int width, int height, float zoom)
     glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
     int length;
     glm::vec2 position;
-    std::cout << "START RENDERING" << std::endl;
     assert(start_indices.size() > 0); // The loop still loops when size == 0....... 
     for (int i = 0; i < start_indices.size() - 1; i ++) 
     {
-        std::cout << "Rendering Body" << std::endl;
         position = system.getBody(i).real_position();
         length = start_indices[i + 1] - start_indices[i];
         model = glm::translate(glm::mat4{}, glm::vec3(position, 0));

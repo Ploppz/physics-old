@@ -12,11 +12,13 @@
 #include <iostream>
 #include <algorithm>
 
+const int VERTEX_ATTRIBS = 7;
+
 FontRenderer::FontRenderer(int size, FontTexture &texture)
 	: size(size), texture(texture)
 {}
 
-void FontRenderer::addText(std::string text, float penx, float peny, bool kerning)
+void FontRenderer::addText(const std::string text, float penx, float peny, bool kerning)
 {
 	// x & y are pen coordinates
 	Glyph g;
@@ -49,31 +51,37 @@ void FontRenderer::addText(std::string text, float penx, float peny, bool kernin
 		buffer.push_back(y);
 		buffer.push_back(u);
 		buffer.push_back(v);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		buffer.push_back(x + w);
 		buffer.push_back(y);
 		buffer.push_back(u + tw);
 		buffer.push_back(v);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		buffer.push_back(x + w);
 		buffer.push_back(y - h);
 		buffer.push_back(u + tw);
 		buffer.push_back(v + th);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		buffer.push_back(x);
 		buffer.push_back(y);
 		buffer.push_back(u);
 		buffer.push_back(v);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		buffer.push_back(x);
 		buffer.push_back(y - h);
 		buffer.push_back(u);
 		buffer.push_back(v + th);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		buffer.push_back(x + w);
 		buffer.push_back(y - h);
 		buffer.push_back(u + tw);
 		buffer.push_back(v + th);
+        buffer.push_back(color.r); buffer.push_back(color.g); buffer.push_back(color.b);
 
 		//TODO: Kerning
 		penx += g.xadvance * size;
@@ -100,6 +108,7 @@ GLfloat rectangle1[] = {
 
 void FontRenderer::setup()
 {
+    color.r = 1; color.g = 1; color.b = 1;
 	GLuint vertexShader, fragmentShader; // unused
 	shaderProgram  = createShaderProgram(shaders::typewriter_pos2tex2_v, shaders::typewriter_pos2tex2_f, vertexShader, fragmentShader);
 	glUseProgram(shaderProgram);
@@ -113,7 +122,7 @@ void FontRenderer::setup()
 	VAO = createVertexArrayObject();
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, bufferRef);
-	setFormat("position 2f texcoor 2f", shaderProgram);
+	setFormat("position 2f texcoor 2f color 3f", shaderProgram);
 
 	// Textures
 	glGenTextures(1, &textureRef);
@@ -159,5 +168,11 @@ void FontRenderer::render(float width, float height)
 	glUniformMatrix4fv(modelUni, 1, GL_FALSE, glm::value_ptr(model));
 
 	// Draw
-	glDrawArrays(GL_TRIANGLES, 0, buffer.size() / 4);
+	glDrawArrays(GL_TRIANGLES, 0, buffer.size() / VERTEX_ATTRIBS);
+}
+void FontRenderer::setColor(int r, int g, int b)
+{
+    color.r = r / 255.f;
+    color.g = g / 255.f;
+    color.b = b / 255.f;
 }

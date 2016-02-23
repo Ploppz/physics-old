@@ -3,6 +3,7 @@
 #include "tmp.h"
 #include "LinkedList.h"
 #include "glutils.h"
+#include "typewriter/FontRenderer.h"
 
 #include <list>
 #include <glm/glm.hpp>
@@ -15,6 +16,9 @@
 #include <cmath>
 #include <stdexcept>
 #include <set>
+#include <sstream>
+
+extern FontRenderer *fontRenderer;
 
 int abs_mod(int n, int range)
 {
@@ -270,7 +274,6 @@ int Polygon::decompose(std::vector<Triangle> &triangles, std::vector<LineSegment
                 }
             }
         }
-        auto part = parts.begin();
         {
             triangulate(parts, diagonals, triangles);
         }
@@ -297,7 +300,7 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 		// can connect to with a vertical line
 	std::vector<Vertex> events; // Sorted vertices by x-axis
 	{// Sort vertices for scanline (keep in separate array)
-		for (int i = 0; i < indices.size(); i ++)
+		for (uint i = 0; i < indices.size(); i ++)
 		{
             // If the direction is backwards, vertices with higher index should preced vertices with lower index
             // If not flexible enough: sort by ascending or descending y-axis dependent on dir.
@@ -323,7 +326,7 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 	glm::vec2 precRotated; // preceding vector, rotated 90 degrees.
 	float dotProduct;
 
-	for (int i = 0; i < events.size() - 1; i ++) // Each 'event[i]' is a vertex.
+	for (uint i = 0; i < events.size() - 1; i ++) // Each 'event[i]' is a vertex.
 	{
 
 		// True means that the preceding/successive vertex is BEHIND the scanline (Direction.BACK)
@@ -432,7 +435,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
         std::vector<SubPolygon::Vertex> events;
         // Find min and max Vertices (x axis)
         Vertex max(part->indices[0], this), min(part->indices[0], this);
-        int real_index, max_index=0, min_index=0; // Index in subpolygon
+        uint real_index, max_index=0, min_index=0; // Index in subpolygon
         for (unsigned int i = 1; i < part->indices.size(); i ++)
         {
             real_index = part->indices[i];
@@ -448,13 +451,13 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
             side[part->indices[i]] = current_side;
         }
         current_side = !current_side;
-        for (int i = max_index; ; i ++) {
+        for (uint i = max_index; ; i ++) {
             if (i >= part->indices.size()) i = 0;
             if (i == min_index) break;
             side[part->indices[i]] = current_side;
         }
     // Sort vertices (x axis)
-        for (int i = 0; i < part->indices.size(); i ++)
+        for (uint i = 0; i < part->indices.size(); i ++)
         {
             events.push_back(SubPolygon::Vertex(i, &(*part)));
         }
@@ -475,7 +478,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     second_last = *(++ L.rbegin());
                     // Add triangle (last, next-to-last, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second_last.getIndex(), this));
-                    float intensity = 0.5 + randFloat()*0.5;
+                    // float intensity = 0.5 + randFloat()*0.5;
                     triangles.push_back( Triangle(**vertex, *second_last, *L.back(), glm::vec3 {}));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second_last.getIndex() << ", " << L.back().getIndex() << ")" << std::endl;
                     L.pop_back();
@@ -490,7 +493,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                     second = *(++L.begin());
                     // Add triangle (first, second, vertex)
                     // diagonals.push_back( Diagonal(vertex->getIndex(), second.getIndex(), this));
-                    float intensity = 0.5 + randFloat()*0.5;
+                    // float intensity = 0.5 + randFloat()*0.5;
                     triangles.push_back( Triangle(**vertex, *second, *L.front(), glm::vec3 {}));
                     // std::cout << "Triangle(" << vertex->getIndex() << ", " << second.getIndex() << ", " << L.front().getIndex() << ")" << std::endl;
                     L.pop_front();
@@ -503,20 +506,14 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
 
 std::vector<Intersection> Polygon::overlaps(Polygon& a, Polygon& b)
 {
-    bool collision = false;
 	// Make an "Influence Area" from a
 	// test centroid of b.
-	glm::vec2 centroid_a = a.transform(a.centroid());
+	// glm::vec2 centroid_a = a.transform(a.centroid());
 	glm::vec2 centroid_b = b.transform(b.centroid());
 	float radius_b = b.radius();
 	// First, loop through edges (u, v) of a, and create a triangle with the centroid, from which we
 	// calculate the barycentric coordinate space
     
-
-    if (inside(b.transform(b.vertices[0]), a) ||
-        inside(a.transform(a.vertices[0]), b)) {
-        collision = true;
-    }
     std::vector<Intersection> intersections;
 
 	float distFromEdge;
@@ -560,7 +557,6 @@ std::vector<Intersection> Polygon::overlaps(Polygon& a, Polygon& b)
 				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second)) {
                     intersections.push_back(Intersection(   Polygon::Edge(i, &a),
                                                             Polygon::Edge(j, &b)));
-                    collision = true;
 				}
 			}
 		}
@@ -571,19 +567,36 @@ std::vector<Intersection> Polygon::overlaps(Polygon& a, Polygon& b)
 // INTERSECTION
 
 typedef bool Side;
-const bool IN = true;
-const bool OUT = false;
+const bool IN = true; // = FORTH
+const bool OUT = false; // = BACK
+
 struct NewVertex {
     NewVertex(Intersection& i, Side in_out) {
         coor = i.point;
         intersect = true;
         processed = false;
         this->in_out = in_out;
+        vertex_num = i.edge1.getIndex();
     }
     NewVertex(Polygon::Vertex vert, Side in_out) {
-        coor = *vert;
+        coor = vert.transformed();
         intersect = false;
         this->in_out = in_out;
+        vertex_num = vert.getIndex();
+    }
+    void debug_print()
+    {
+        if (debug_label == 0)
+            std::cout << "p ";
+        else
+            std::cout << "q ";
+
+        if (intersect){
+            std::cout << "i " << vertex_num;
+        } else {
+            std::cout << "v " << vertex_num;
+        }
+        std::cout << std::endl;
     }
 
     glm::vec2 coor;
@@ -593,6 +606,9 @@ struct NewVertex {
     Side in_out; // Entry or exit to other polygon?
 
     NewVertex *prev, *next, *parallel; // Linked list, and link to evt. same intersection point in other polygon
+    // debugging only:
+    int debug_label;
+    int vertex_num;
 };
 
 struct FullIntersect { // An intersection is needed to sort the NewVertices
@@ -609,6 +625,7 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 // CALCULATE INTERSECTION //
 ///////////////////////////
 
+// TODO MEMORY LEAK
 std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
 {
     std::vector<Intersection> intersects = overlaps(p, q); // Let an intersect be an intersection vertex
@@ -619,7 +636,9 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     {
         Intersection i = *it;
         NewVertex *p = new NewVertex(i, OUT);
+        p->debug_label = 0;
         NewVertex *q = new NewVertex(i, OUT);
+        q->debug_label = 1;
         p->parallel = q; q->parallel = p;
         sorted.push_back(  FullIntersect(&i, p, q)  );
     }
@@ -637,9 +656,13 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     {
         current_index = it->i->edge1.getIndex();
         // Add eventual vertices that were skipped
-        Vertex vertex(current_index, &p);
+        Vertex vertex(added_vertex_index, &p);
         while (current_index > added_vertex_index) {
-            p_vertices.push_back(new NewVertex(vertex, in_out));
+            NewVertex *to_add = new NewVertex(vertex, in_out);
+
+            to_add->debug_label = 0;
+            to_add->debug_print();
+            p_vertices.push_back(to_add);
 
             ++ vertex;
             ++ added_vertex_index;
@@ -647,7 +670,20 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         // Add the intersection point
         in_out = !in_out;
         it->vert_p->in_out = in_out;
+        it->vert_p->debug_print();
         p_vertices.push_back(it->vert_p);
+    }
+    // just to test our logic..
+    assert(in_out == inside(p.vertices[0], q));
+    // Add rest of vertices..
+    if (sorted.size() > 0) {
+        for (uint i = sorted.back().i->edge1.getIndex() + 1; i  < p.vertices.size(); i ++)
+        {
+            NewVertex *to_add = new NewVertex(Vertex(i, &p), in_out);
+            to_add->debug_print();
+            to_add->debug_label = 0;
+            p_vertices.push_back(to_add);
+        }
     }
 
     /** Sort wrt q **/
@@ -661,11 +697,13 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
     {
-        current_index = it->i->edge1.getIndex();
+        current_index = it->i->edge2.getIndex();
         // Add eventual vertices that were skipped
-        Vertex vertex(current_index, &q);
+        Vertex vertex(added_vertex_index, &q);
         while (current_index > added_vertex_index) {
-            q_vertices.push_back(new NewVertex(vertex, in_out));
+            NewVertex *to_add = new NewVertex(vertex, in_out);
+            to_add->debug_label = 1;
+            q_vertices.push_back(to_add);
 
             ++ vertex;
             ++ added_vertex_index;
@@ -674,6 +712,28 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         in_out = !in_out;
         it->vert_q->in_out = in_out;
         q_vertices.push_back(it->vert_q);
+    }
+    // just to test our logic..
+    // assert(in_out == inside(q.vertices[0], p)); // TODO doesn't work when q[0] is inside of p
+    // Add rest of vertices..
+    if (sorted.size() > 0) {
+        for (uint i = sorted.back().i->edge2.getIndex() + 1; i  < q.vertices.size(); i ++)
+        {
+            NewVertex *to_add = new NewVertex(Vertex(i, &q), in_out);
+            to_add->debug_label = 1;
+            q_vertices.push_back(to_add);
+        }
+    }
+
+    /* TEST: Write out the linked lists */
+    
+    std::cout << "Test " << std::endl;
+    NewVertex* element = &p_vertices.head();
+    if (element) {
+        do {
+            element->debug_print();
+            element = element->next;
+        } while (element != &p_vertices.head());
     }
 
     std::vector<Polygon> result;
@@ -688,19 +748,29 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         //std::cout << std::boolalpha << current->processed << std::endl;
         
         if (current->processed) continue;
+        fontRenderer->setColor(0, 255, 0);
+        fontRenderer->addText("p", p.transform(start->coor).x + 5, p.transform(start->coor).y + 5, false);
 
+        std::cout << " New Polygon " << std::endl;
         //std::cout << "LA" << std::endl;
         Direction direction = current->in_out;
 
         // This is the start of a new polygon.
         do {
             polygon.vertices.push_back(current->coor);
+            if (current->intersect) {
+                std::cout << "   New Intersect" << std::endl;
+            } else
+                std::cout << "   New vertex " << std::endl;
+            std::cout << "     Label: " << current->debug_label << std::endl;
 
+            // TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
             if (current->intersect) {
                 assert(current->parallel);
                 current->processed = true;
                 current->parallel->processed = true;
                 current = current->parallel;
+                
                 direction = current->in_out;
             }
 
@@ -726,14 +796,17 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
 void Polygon::appendStencilTriangles(BufferWriter<float> &buffer)
 {
     // i is the edge index
-    for (int i = 0; i < vertices.size(); i ++)
+    for (uint i = 0; i < vertices.size(); i ++)
     {
         buffer.write(vertices[i].x, vertices[i].y);
+        glm::vec2 transformed = transform(vertices[i]);
+        fontRenderer->setColor(255, 255, 255);
+        fontRenderer->addText(std::to_string(i), transformed.x, transformed.y,  false);
     }
 }
 void Polygon::appendLinesToVector(std::vector<float> &list)
 {
-    for (int i = 0; i < vertices.size(); i ++) {
+    for (uint i = 0; i < vertices.size(); i ++) {
         int j = i + 1; j %= vertices.size();
         glm::vec2 vec_i = transform(vertices[i]);
         glm::vec2 vec_j = transform(vertices[j]);
@@ -753,7 +826,7 @@ LineSegment Polygon::getEdge(int index)
 {
 	if (index < 0 || index >= numEdges()) throw(std::out_of_range("Edge out of range."));
 	glm::vec2 s = vertices[index];
-	glm::vec2 t = vertices[(index < vertices.size() - 1)? index + 1 : 0];
+	glm::vec2 t = vertices[(index < numEdges() - 1)? index + 1 : 0];
 	// s += position;
 	// t += position;
 	return LineSegment(s, t);
@@ -795,6 +868,10 @@ Polygon::Vertex& Polygon::Vertex::operator-- ()
 {
 	index = (index == 0) ? parent->vertices.size() - 1 : index - 1;
     return *this;
+}
+glm::vec2 Polygon::Vertex::transformed()
+{
+    return parent->transform(parent->vertices[index]);
 }
 
 //////////////////////////////////////////////
@@ -933,6 +1010,7 @@ glm::vec2& SubPolygon::Vertex::successive()
 	int i = (index == parent->indices.size() - 1) ? 0 : index + 1;
 	return parent->mother->vertices[parent->indices[i]];
 }
+
 
 ///////////////////////
 // Edge (SubPolygon)

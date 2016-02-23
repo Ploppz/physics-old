@@ -6,3 +6,5 @@ font_atlas
 metadata_atlas
 bin/
 .obj/
+tags
+*.taghl

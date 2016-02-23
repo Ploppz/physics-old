@@ -1,8 +1,7 @@
 #include "FontTexture.h"
-
 #include <string>
-
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 
 struct FontVertex
 {
@@ -21,6 +20,7 @@ private:
 	// Structure: position 2f texcoor 2f
 	std::vector<float> buffer;
 	FontTexture &texture;
+    glm::vec3 color;
 
 
 	// OpenGL
@@ -32,7 +32,8 @@ private:
 public:
 	FontRenderer(int size, FontTexture &texture);
 	
-	void addText(std::string text, float x, float y, bool kerning);
+    void setColor(int r, int g, int b);
+	void addText(const std::string text, float x, float y, bool kerning);
 	void clearBuffer();
 	void setup();
 	void render(float width, float height);
