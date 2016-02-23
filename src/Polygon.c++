@@ -576,15 +576,17 @@ struct NewVertex {
         intersect = true;
         processed = false;
         this->in_out = in_out;
-        vertex_num = i.edge1.getIndex();
+        // vertex_num = i.edge1.getIndex();
+        debug_i = &i;
     }
     NewVertex(Polygon::Vertex vert, Side in_out) {
         coor = vert.transformed();
         intersect = false;
         this->in_out = in_out;
-        vertex_num = vert.getIndex();
+        // vertex_num = vert.getIndex();
+        debug_v = vert;
     }
-    void debug_print()
+    void debug_print(Intersection::Which w)
     {
         if (debug_label == 0)
             std::cout << "p ";
@@ -592,9 +594,13 @@ struct NewVertex {
             std::cout << "q ";
 
         if (intersect){
-            std::cout << "i " << vertex_num;
+            if (w == Intersection::FIRST)
+                std::cout << "i " << debug_i->edge1.getIndex();
+            else 
+                std::cout << "i " << debug_i->edge2.getIndex();
+
         } else {
-            std::cout << "v " << vertex_num;
+            std::cout << "v " << debug_v.getIndex();
         }
         std::cout << std::endl;
     }
@@ -608,7 +614,8 @@ struct NewVertex {
     NewVertex *prev, *next, *parallel; // Linked list, and link to evt. same intersection point in other polygon
     // debugging only:
     int debug_label;
-    int vertex_num;
+    Polygon::Vertex debug_v;
+    Intersection* debug_i;
 };
 
 struct FullIntersect { // An intersection is needed to sort the NewVertices
@@ -625,7 +632,8 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 // CALCULATE INTERSECTION //
 ///////////////////////////
 
-// TODO MEMORY LEAK
+// REMEMBER: q is the small moving one
+// TODO MEMORY LEAK?
 std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
 {
     std::vector<Intersection> intersects = overlaps(p, q); // Let an intersect be an intersection vertex
@@ -634,7 +642,7 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     std::vector<FullIntersect> sorted;
     for (auto it = intersects.begin(); it != intersects.end(); it ++)
     {
-        Intersection i = *it;
+        Intersection& i = *it;
         NewVertex *p = new NewVertex(i, OUT);
         p->debug_label = 0;
         NewVertex *q = new NewVertex(i, OUT);
@@ -661,7 +669,6 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
             NewVertex *to_add = new NewVertex(vertex, in_out);
 
             to_add->debug_label = 0;
-            to_add->debug_print();
             p_vertices.push_back(to_add);
 
             ++ vertex;
@@ -670,7 +677,6 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         // Add the intersection point
         in_out = !in_out;
         it->vert_p->in_out = in_out;
-        it->vert_p->debug_print();
         p_vertices.push_back(it->vert_p);
     }
     // just to test our logic..
@@ -680,7 +686,6 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         for (uint i = sorted.back().i->edge1.getIndex() + 1; i  < p.vertices.size(); i ++)
         {
             NewVertex *to_add = new NewVertex(Vertex(i, &p), in_out);
-            to_add->debug_print();
             to_add->debug_label = 0;
             p_vertices.push_back(to_add);
         }
@@ -727,15 +732,26 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
 
     /* TEST: Write out the linked lists */
     
-    std::cout << "Test " << std::endl;
+    std::cout << "Vertices p" << std::endl;
     NewVertex* element = &p_vertices.head();
     if (element) {
         do {
-            element->debug_print();
+            std::cout << element << " - ";
+            element->debug_print(Intersection::FIRST);
             element = element->next;
         } while (element != &p_vertices.head());
     }
+    std::cout << std::endl << "Vertices q" << std::endl;
+    element = &q_vertices.head();
+    if (element) {
+        do {
+            std::cout << element << " - ";
+            element->debug_print(Intersection::SECOND);
+            element = element->next;
+        } while (element != &q_vertices.head());
+    }
 
+    std::cout << std::endl;
     std::vector<Polygon> result;
     /** Create Polygons - by traversing q (because we already have the intersection points of q sorted. **/
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
@@ -752,17 +768,12 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         fontRenderer->addText("p", p.transform(start->coor).x + 5, p.transform(start->coor).y + 5, false);
 
         std::cout << " New Polygon " << std::endl;
-        //std::cout << "LA" << std::endl;
         Direction direction = current->in_out;
 
         // This is the start of a new polygon.
         do {
             polygon.vertices.push_back(current->coor);
-            if (current->intersect) {
-                std::cout << "   New Intersect" << std::endl;
-            } else
-                std::cout << "   New vertex " << std::endl;
-            std::cout << "     Label: " << current->debug_label << std::endl;
+            std::cout << "    " << current << std::endl;
 
             // TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
             if (current->intersect) {
@@ -770,6 +781,7 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
                 current->processed = true;
                 current->parallel->processed = true;
                 current = current->parallel;
+                std::cout << "      jump to " << current << std::endl;
                 
                 direction = current->in_out;
             }
@@ -1103,5 +1115,5 @@ bool Intersection::lt(Intersection& i, Intersection& j)
 template <Intersection::Which which>
 bool FullIntersect::lt(FullIntersect& a, FullIntersect& b)
 {
-    Intersection::lt<which>(*(a.i), *(b.i));
+    return Intersection::lt<which>(*(a.i), *(b.i));
 }
