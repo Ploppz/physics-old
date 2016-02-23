@@ -163,8 +163,8 @@ int main()
 
     
     Renderer renderer(world.bodies);
-    renderer.setColor1(0.5f, 0.1f, 0.1f);
-    renderer.setColor2(0.7f, 0.5f, 0.03f);
+    renderer.setColor1(0.1f, 0.1f, 0);
+    renderer.setColor2(0, 0.5f, 0);
 
 	int width, height;
 	double ratio, timer;
@@ -201,7 +201,7 @@ int main()
         if (intersects.size() > 0) {
             // renderer.setColor1(0.6f, 0.22f, 0.35f);
         } else {
-            renderer.setColor1(0.5f, 0.1f, 0.1f);
+            // renderer.setColor1(0.5f, 0.1f, 0.1f);
         }
         for (Intersection i : intersects) {
             renderer.addDot(i.point);

@@ -18,6 +18,8 @@
 #include <set>
 #include <sstream>
 
+#define DRAW_VERTEX_NUMBERS 0
+
 extern FontRenderer *fontRenderer;
 
 int abs_mod(int n, int range)
@@ -664,7 +666,7 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     {
         current_index = it->i->edge1.getIndex();
         // Add eventual vertices that were skipped
-        Vertex vertex(added_vertex_index, &p);
+        Vertex vertex(added_vertex_index + 1, &p);
         while (current_index > added_vertex_index) {
             NewVertex *to_add = new NewVertex(vertex, in_out);
 
@@ -697,14 +699,14 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
     /** Interleave vertices and intersects in q **/
     CircularList<NewVertex> q_vertices;
 
-    in_out = inside(q.vertices[0], q);
+    in_out = inside(q.transform(q.vertices[0]), p);
     added_vertex_index = -1;
     current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
     {
         current_index = it->i->edge2.getIndex();
         // Add eventual vertices that were skipped
-        Vertex vertex(added_vertex_index, &q);
+        Vertex vertex(added_vertex_index + 1, &q);
         while (current_index > added_vertex_index) {
             NewVertex *to_add = new NewVertex(vertex, in_out);
             to_add->debug_label = 1;
@@ -764,8 +766,6 @@ std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
         //std::cout << std::boolalpha << current->processed << std::endl;
         
         if (current->processed) continue;
-        fontRenderer->setColor(0, 255, 0);
-        fontRenderer->addText("p", p.transform(start->coor).x + 5, p.transform(start->coor).y + 5, false);
 
         std::cout << " New Polygon " << std::endl;
         Direction direction = current->in_out;
@@ -812,8 +812,10 @@ void Polygon::appendStencilTriangles(BufferWriter<float> &buffer)
     {
         buffer.write(vertices[i].x, vertices[i].y);
         glm::vec2 transformed = transform(vertices[i]);
-        fontRenderer->setColor(255, 255, 255);
-        fontRenderer->addText(std::to_string(i), transformed.x, transformed.y,  false);
+        if (DRAW_VERTEX_NUMBERS) {
+            fontRenderer->setColor(255, 255, 255);
+            fontRenderer->addText(std::to_string(i), transformed.x, transformed.y,  false);
+        }
     }
 }
 void Polygon::appendLinesToVector(std::vector<float> &list)

@@ -126,6 +126,7 @@ void Renderer::render(int width, int height, float zoom)
     glUseProgram(color_program);
     glBindVertexArray(color_vao);
     glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);                  // Disable writing to stencil buffer
 
     glUniform3f(uni_color, color1.r, color1.g, color1.b);
