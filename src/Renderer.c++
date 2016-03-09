@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 GLfloat quad[] = {
 	// x, y, tex_x, tex_y
@@ -91,7 +92,19 @@ Renderer::Renderer(BodySystem& system)
     setFormat("position 2f", color_program);
 }
 
-void Renderer::render(int width, int height, float zoom)
+glm::vec2 Renderer::centerScreenPosition(float center_x, float center_y, int width, int height, float zoom)
+{
+    // note: center_x is the world position that corresponds to center of screen
+    glm::mat4 proj = ortho2D(width * zoom, height * zoom, 0, 1);
+    glm::mat4 view = viewMatrix2D(center_x, center_y, 1, 1);
+
+    // std::cout << glm::to_string(proj * view) << std::endl;
+    glm::mat4 inv_PV = glm::inverse(proj * view);
+    glm::vec4 center_of_screen(width / 2, height / 2, 0, 1);
+    glm::vec4 result = inv_PV *  center_of_screen;
+    return glm::vec2(result.x, result.y);
+}
+void Renderer::render(float center_x, float center_y, int width, int height, float zoom)
 {
     uploadVertices();
     glClear(GL_STENCIL_BUFFER_BIT);
@@ -104,7 +117,7 @@ void Renderer::render(int width, int height, float zoom)
     glStencilOp(GL_INVERT, GL_INVERT, GL_INVERT);
 	glm::mat4 proj, view, model;
     proj = ortho2D(width * zoom, height * zoom, 0, 1);
-    view = viewMatrix2D(0, 0, 1, 1);
+    view = viewMatrix2D(center_x, center_y, 1, 1);
     glUniformMatrix4fv(uni_proj, 1, GL_FALSE, glm::value_ptr(proj));
     glUniformMatrix4fv(uni_view, 1, GL_FALSE, glm::value_ptr(view));
     glBindVertexArray(triangles_vao);
@@ -174,14 +187,29 @@ void Renderer::addDot(glm::vec2 dot)
     lines_buffer.push_back(dot.y - radius);
     lines_buffer.push_back(dot.x - radius);
     lines_buffer.push_back(dot.y + radius);
+}
+void Renderer::addVector(glm::vec2 point, glm::vec2 vec)
+{
+    const int radius = 2;
+    const float arrow_angle = 2.4f;
 
-    lines_buffer.push_back(dot.x - radius);
-    lines_buffer.push_back(dot.y + radius);
-    lines_buffer.push_back(dot.x + radius);
-    lines_buffer.push_back(dot.y - radius);
+    float vec_angle = atan2(vec.y, vec.x);
+    glm::vec2 a1 = glm::vec2(cos(vec_angle - arrow_angle) * radius, sin(vec_angle - arrow_angle) * radius);
+    glm::vec2 a2 = glm::vec2(cos(vec_angle + arrow_angle) * radius, sin(vec_angle + arrow_angle) * radius);
 
-    lines_buffer.push_back(dot.x + radius);
-    lines_buffer.push_back(dot.y + radius);
-    lines_buffer.push_back(dot.x - radius);
-    lines_buffer.push_back(dot.y - radius);
+    lines_buffer.push_back(point.x);
+    lines_buffer.push_back(point.y);
+    lines_buffer.push_back(point.x + vec.x);
+    lines_buffer.push_back(point.y + vec.y);
+
+    lines_buffer.push_back(point.x + vec.x);
+    lines_buffer.push_back(point.y + vec.y);
+    lines_buffer.push_back(point.x + vec.x + a1.x);
+    lines_buffer.push_back(point.y + vec.y + a1.y);
+
+    lines_buffer.push_back(point.x + vec.x);
+    lines_buffer.push_back(point.y + vec.y);
+    lines_buffer.push_back(point.x + vec.x + a2.x);
+    lines_buffer.push_back(point.y + vec.y + a2.y);
+
 }

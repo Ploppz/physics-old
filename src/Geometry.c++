@@ -1,5 +1,6 @@
 #include <glm/glm.hpp>
 #include <cmath>
+#include <cfloat>
 
 #include "Geometry.h"
 
@@ -30,11 +31,33 @@ vec2 middle(vec2 a, vec2 b)
 {
 	return a + ((b - a) / 2.0f);
 }
+// Returns (projected p) - line_a?
 vec2 project(vec2 p, vec2 line_a, vec2 line_b)
 {
 	vec2 u = line_b - line_a;
 	p = p - line_a;
 	return( dot(p, u)/dot(u, u) * u);
+}
+
+// Get projected size ("shadow") of polygon along direction
+float project(Polygon polygon, vec2 direction)
+{
+    direction = normalize(direction);
+    float min_shadow = FLT_MAX;
+    float max_shadow = FLT_MIN;
+    for (auto it = polygon.vertices.begin(); it != polygon.vertices.end(); it ++) {
+        float shadow = project(*it, direction);
+        if (shadow < min_shadow)
+            min_shadow = shadow;
+        if (shadow > max_shadow)
+            max_shadow = shadow;
+    }
+    return max_shadow - min_shadow;
+}
+float project(vec2 point, vec2 direction)
+{
+    direction = normalize(direction);
+    return (dot(point, direction) / dot(direction, direction));
 }
 
 float signedArea(vec2 a, vec2 b, vec2 c)
@@ -64,12 +87,17 @@ bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b, vec2& poi
     }
     return false;
 }
-bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec2 line2_b)
+bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b)
 {
     // Lazy
     vec2 a;
     float b, c;
     return intersect(line1_a, line1_b, line2_a, line2_b, a, b, c);
+}
+float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
+{
+    alpha_out = (y_constant - line_start.y)/line_direction.y;
+    return (line_start.x + alpha_out * line_direction.x);
 }
 
 std::ostream &operator << (std::ostream &lhs, vec2 &rhs)

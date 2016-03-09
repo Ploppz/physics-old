@@ -12,12 +12,15 @@ class Renderer
 {
 public:
     Renderer(BodySystem& system);
-    void render(int width, int height, float zoom);
+    void render(float center_x, float center_y, int width, int height, float zoom);
     void setColor1(float r, float g, float b);
     void setColor2(float r, float g, float b);
 
+    glm::vec2 centerScreenPosition(float center_x, float center_y, int width, int height, float zoom);
+
     // Functions to help visualize things.
     void addDot(glm::vec2 dot);
+    void addVector(glm::vec2 point, glm::vec2 vec);
     void addPolygonLines(Polygon& p, glm::vec2 position);
     std::vector<float> lines_buffer;
 private:

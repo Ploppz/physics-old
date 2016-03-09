@@ -26,7 +26,7 @@ public:
 	Body getBody(int index);
 	Polygon& getPolygon(int body);
 
-    std::vector<Intersection> overlaps(Body a, Body b);
+    std::vector<Intersect> overlaps(Body a, Body b);
 private:
 	int count;
 

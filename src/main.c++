@@ -29,6 +29,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 
 /* files */
@@ -40,13 +41,13 @@
 #include "Geometry.h"
 #include "BodySystem.h"
 #include "World.h"
+#include "Input.h"
+#include "Collision.h"
 // Typewriter
 #include "typewriter/FontTexture.h"
 #include "typewriter/FontRenderer.h"
 
 void error_callback(int error, const char* description);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 bool file_exists(const std::string &name)
 {
@@ -84,18 +85,17 @@ GLfloat rectangle[] = {
 // TODO: Problems with bufferRef garbage. Maybe this is the problem? Make default constructor etc
 FontRenderer *fontRenderer;
 
-float zoom = 1;
-
-bool left_down, right_down, up_down, down_down;
 
 int main()
 {
     // srand (time(NULL));
-    // srand(10);
+    // Input::Init();
+
 	GLFWwindow *window;
 	GLFW_boilerPlate(&window, error_callback);
-	glfwSetKeyCallback(window, key_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+	glfwSetKeyCallback(window, Input::key_callback);
+    glfwSetScrollCallback(window, Input::scroll_callback);
+    glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
 
 	// Typewriter
 	FontTexture ft{};
@@ -118,10 +118,10 @@ int main()
         a = rand() / static_cast<float>(INT_MAX) * 100;
         p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (300 + a), sin(-i*2.0f/numEdges * M_PI) * (300 + a)));
     }
-	numEdges = 5;
+	numEdges = 10;
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
-		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (60 + a), sin(-i*2.0f/numEdges * M_PI) * (60 + a)));
+		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (200 + a), sin(-i*2.0f/numEdges * M_PI) * (200 + a)));
 	} 
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
@@ -131,8 +131,8 @@ int main()
 	World world;
     Body b1, b2, b3;
 
-	b1 = world.bodies.addBody();
-	b1.shape() = p;
+	// b1 = world.bodies.addBody();
+	// b1.shape() = p;
 
     b2 = world.bodies.addBody();
     b2.shape() = q;
@@ -143,7 +143,7 @@ int main()
     b2.position_type() = ABSOLUTE;
 	
 	std::vector<float> polygonBuffer;
-	b1.addToBuffer(polygonBuffer);
+	// b1.addToBuffer(polygonBuffer);
     // int b2_offset = polygonBuffer.size();
     // b2.addToBuffer(polygonBuffer);
 
@@ -167,12 +167,23 @@ int main()
     renderer.setColor2(0, 0.5f, 0);
 
 	int width, height;
+    float zoom = 1;
+    float center_x = 0, center_y = 0;
 	double ratio, timer;
 
 	double mouseX, mouseY;
 	
 	while (!glfwWindowShouldClose(window))
 	{
+        /** Handle input **/
+
+        Input::UpdateMouse(window);
+
+        zoom *= (-Input::scroll / 10.f + 1);
+        Input::scroll = 0;
+        center_x -= Input::mouse_drag_x * zoom;
+        center_y -= Input::mouse_drag_y * zoom;
+        /** **/
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 		// Reupload vertices
@@ -184,36 +195,31 @@ int main()
 		//
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-		// b1 approaches mouse pointer
-		float xTarget = mouseX - width/2;
-		float yTarget = - mouseY + height/2;
-		// b1.velocity().x += (xTarget - b1.position().x) / 100;
-		// b1.velocity().y += (yTarget - b1.position().y) / 100;
-		// b1.velocity() *= 0.9;
-        if (up_down) b3.position().y += 10;
-        if (down_down) b3.position().y -= 10;
-        if (right_down) b3.position().x += 10;
-        if (left_down) b3.position().x -= 10;
+        const float speed = 5;
+        if (Input::keys[GLFW_KEY_UP]) b3.position().y += speed;
+        if (Input::keys[GLFW_KEY_DOWN]) b3.position().y -= speed;
+        if (Input::keys[GLFW_KEY_RIGHT]) b3.position().x += speed;
+        if (Input::keys[GLFW_KEY_LEFT]) b3.position().x -= speed;
 
 		world.timestep(30);
-// #if 0
-        std::vector<Intersection> intersects = Polygon::overlaps(b2.shape(), b3.shape());
-        if (intersects.size() > 0) {
-            // renderer.setColor1(0.6f, 0.22f, 0.35f);
-        } else {
-            // renderer.setColor1(0.5f, 0.1f, 0.1f);
-        }
-        for (Intersection i : intersects) {
+        /* std::vector<Intersect> intersects = Polygon::overlaps(b2.shape(), b3.shape());
+        for (Intersect i : intersects) {
             renderer.addDot(i.point);
+        }  */
+        std::vector<Intersection> intersections = Polygon::ExtractIntersections(b2.shape(), b3.shape(), false);
+        if (intersections.size() > 0) {
+            Intersection a = intersections[0];
+            Intersection b = a.ExtendInDirection(glm::vec2(0.5f, 0.5f), &b2.shape());
+            b.appendLinesToVector(renderer.lines_buffer);
+
+            // draw collision normal
+            /* Manifold m = a.manifold(glm::vec2(1, 0), &b2.shape(), &b3.shape());
+            renderer.addVector(a.centroid(), m.normal);  */
         }
-// #endif
-        std::vector<Polygon> intersections = Polygon::intersection(b2.shape(), b3.shape());
-        std::cout << "# " << intersections.size() << std::endl;
-        for (auto it = intersections.begin(); it != intersections.end(); it ++) {
-            // Body b = world.bodies.addBody();
-            // b.shape() = *it;
-            it->appendLinesToVector(renderer.lines_buffer);
-        }
+        // for (auto it = intersections.begin(); it != intersections.end(); it ++) {
+            // it->appendLinesToVector(renderer.lines_buffer);
+            // renderer.addDot(it->centroid());
+        // }
         // b1.shape().appendLinesToVector(renderer.lines_buffer);
         // b2.shape().appendLinesToVector(renderer.lines_buffer);
         // b3.shape().appendLinesToVector(renderer.lines_buffer);
@@ -225,7 +231,7 @@ int main()
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
 
-        renderer.render(width, height, zoom);
+        renderer.render(center_x, center_y, width, height, zoom);
 
 
 		fontRenderer->render(width, height);
@@ -246,52 +252,3 @@ void error_callback(int error, const char* description)
 	fputs(description, stderr);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    zoom *= (-yoffset / 10.f + 1);
-}
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (action == GLFW_PRESS) {
-        switch(key)
-        {
-            case GLFW_KEY_UP:
-            case GLFW_KEY_K:
-                up_down = true;
-                break;
-            case GLFW_KEY_DOWN:
-            case GLFW_KEY_J:
-                down_down = true;
-                break;
-            case GLFW_KEY_LEFT:
-            case GLFW_KEY_H:
-                left_down = true;
-                break;
-            case GLFW_KEY_RIGHT:
-            case GLFW_KEY_L:
-                right_down = true;
-                break;
-        }
-    }
-    if (action == GLFW_RELEASE) {
-        switch(key)
-        {
-            case GLFW_KEY_UP:
-            case GLFW_KEY_K:
-                up_down = false;
-                break;
-            case GLFW_KEY_DOWN:
-            case GLFW_KEY_J:
-                down_down = false;
-                break;
-            case GLFW_KEY_LEFT:
-            case GLFW_KEY_H:
-                left_down = false;
-                break;
-            case GLFW_KEY_RIGHT:
-            case GLFW_KEY_L:
-                right_down = false;
-                break;
-        }
-    }
-}

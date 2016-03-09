@@ -18,7 +18,7 @@
 #include <set>
 #include <sstream>
 
-#define DRAW_VERTEX_NUMBERS 0
+#define DRAW_VERTEX_NUMBERS true
 
 extern FontRenderer *fontRenderer;
 
@@ -39,7 +39,8 @@ float Polygon::signedArea()
 	for (auto it = vertices.begin(); it != vertices.end(); it ++)
 	{
 		next = it; next ++;
-		if (next == vertices.end()) break;
+		if (next == vertices.end())
+            next = vertices.begin();
 		A += it->x * next->y - next->x * it->y;
 	}
 	A *= 0.5f;
@@ -52,7 +53,9 @@ float SubPolygon::signedArea()
 	for (auto it = indices.begin(); it != indices.end(); it ++)
 	{
 		next = it; next ++;
-		if (next == indices.end()) break;
+		if (next == indices.end()) {
+            next = indices.begin();
+        }
 		A += mother->vertices[*it].x * mother->vertices[*next].y - mother->vertices[*next].x * mother->vertices[*it].y;
 	}
 	A *= 0.5f;
@@ -69,11 +72,12 @@ glm::vec2 Polygon::centroid()
 	for (auto it = vertices.begin(); it != vertices.end(); it ++)
 	{
 		next = it; next ++;
-		if (next == vertices.end()) break;
+		if (next == vertices.end())
+            next = vertices.begin();
 		C.x += (it->x + next->x) * (it->x * next->y - next->x * it->y);
 		C.y += (it->y + next->y) * (it->x * next->y - next->x * it->y);
 	}
-	C /= 6 * A;
+	C /= 6.f * A;
 
 	return C;
 }
@@ -95,6 +99,19 @@ glm::vec2 Polygon::transform(glm::vec2 point)
 {
     return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
                         matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+}
+/* translates first such that the center is at origin */
+glm::vec2 Polygon::transform_center(glm::vec2 point, glm::vec2 center)
+{
+    point -= center;
+    return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
+                        matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+}
+glm::vec2 Polygon::getPoint(int vertex_number, float alpha)
+{
+    int next_vertex_number = vertex_number + 1;
+    if (next_vertex_number >= vertices.size()) next_vertex_number = 0;
+    return vertices[vertex_number] * (1 - alpha) + vertices[next_vertex_number] * alpha;
 }
 
 
@@ -506,301 +523,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
     }
 }
 
-std::vector<Intersection> Polygon::overlaps(Polygon& a, Polygon& b)
-{
-	// Make an "Influence Area" from a
-	// test centroid of b.
-	// glm::vec2 centroid_a = a.transform(a.centroid());
-	glm::vec2 centroid_b = b.transform(b.centroid());
-	float radius_b = b.radius();
-	// First, loop through edges (u, v) of a, and create a triangle with the centroid, from which we
-	// calculate the barycentric coordinate space
-    
-    std::vector<Intersection> intersections;
 
-	float distFromEdge;
-	float slope, min_val, delta_val;
-	glm::vec2 delta;
-	bool withinBounds;
-	LineSegment edge_a, edge_b;
-	for (int i = 0; i < a.numEdges(); i ++)
-	{
-		edge_a = a.getEdge(i);
-        edge_a.first = a.transform(edge_a.first);
-        edge_a.second = a.transform(edge_a.second);
-		// Get barycentric coordinates with respect to centroid_a
-		// glm::vec3 lala = barycentric(centroid_a, edge_a.first, edge_a.second, centroid_b);
-
-		// If absolute value of this is within the radius of b, then there is a possible collision
-		
-		{	// First, also limit the y or x coordinate based on slope
-			delta = edge_a.first - edge_a.second;
-			slope = delta.y / delta.x;
-			if (fabs(slope) < 1) {	// Limit on x axis
-				min_val = std::min(edge_a.first.x, edge_a.second.x) - radius_b;
-				delta_val = fabs(delta.x) + radius_b + radius_b;
-				withinBounds = centroid_b.x > min_val && centroid_b.x < min_val + delta_val;
-			} else {				// Limit on y axis
-				min_val = std::min(edge_a.first.y, edge_a.second.y) - radius_b;
-				delta_val = fabs(delta.y) + radius_b + radius_b;
-				withinBounds = centroid_b.y > min_val && centroid_b.y < min_val + delta_val;
-			}
-		}
-		distFromEdge = distance(centroid_b, edge_a.first, edge_a.second);
-		if (fabs(distFromEdge) <= radius_b && withinBounds) {
-			// DO DETAILED TEST b vs. this edge (s, t)
-			//TODO: eliminate edges where both vertices are outside (using the bary-space of the centroid-triangle)
-			//TODO: ... we already know which edges may collide and which not
-			for (int j = 0; j < b.numEdges(); j ++)
-			{
-				edge_b = b.getEdge(j);
-                edge_b.first = b.transform(edge_b.first);
-                edge_b.second = b.transform(edge_b.second);
-				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second)) {
-                    intersections.push_back(Intersection(   Polygon::Edge(i, &a),
-                                                            Polygon::Edge(j, &b)));
-				}
-			}
-		}
-	}
-	return intersections;
-}
-
-// INTERSECTION
-
-typedef bool Side;
-const bool IN = true; // = FORTH
-const bool OUT = false; // = BACK
-
-struct NewVertex {
-    NewVertex(Intersection& i, Side in_out) {
-        coor = i.point;
-        intersect = true;
-        processed = false;
-        this->in_out = in_out;
-        // vertex_num = i.edge1.getIndex();
-        debug_i = &i;
-    }
-    NewVertex(Polygon::Vertex vert, Side in_out) {
-        coor = vert.transformed();
-        intersect = false;
-        this->in_out = in_out;
-        // vertex_num = vert.getIndex();
-        debug_v = vert;
-    }
-    void debug_print(Intersection::Which w)
-    {
-        if (debug_label == 0)
-            std::cout << "p ";
-        else
-            std::cout << "q ";
-
-        if (intersect){
-            if (w == Intersection::FIRST)
-                std::cout << "i " << debug_i->edge1.getIndex();
-            else 
-                std::cout << "i " << debug_i->edge2.getIndex();
-
-        } else {
-            std::cout << "v " << debug_v.getIndex();
-        }
-        std::cout << std::endl;
-    }
-
-    glm::vec2 coor;
-    bool intersect; // Intersection point or normal vertex
-    // If intersect:
-        bool processed;
-    Side in_out; // Entry or exit to other polygon?
-
-    NewVertex *prev, *next, *parallel; // Linked list, and link to evt. same intersection point in other polygon
-    // debugging only:
-    int debug_label;
-    Polygon::Vertex debug_v;
-    Intersection* debug_i;
-};
-
-struct FullIntersect { // An intersection is needed to sort the NewVertices
-    FullIntersect(Intersection *i, NewVertex *p, NewVertex *q): i(i), vert_p(p), vert_q(q){}
-    Intersection* i;
-    NewVertex* vert_p;
-    NewVertex* vert_q;
-    template <Intersection::Which which> // sort wrt p or q?
-    static bool lt(FullIntersect& a, FullIntersect& b);
-};
-
-
-////////////////////////////
-// CALCULATE INTERSECTION //
-///////////////////////////
-
-// REMEMBER: q is the small moving one
-// TODO MEMORY LEAK?
-std::vector<Polygon> Polygon::intersection(Polygon& p, Polygon& q)
-{
-    std::vector<Intersection> intersects = overlaps(p, q); // Let an intersect be an intersection vertex
-
-    /** LINK PARALLEL VERTICES **/
-    std::vector<FullIntersect> sorted;
-    for (auto it = intersects.begin(); it != intersects.end(); it ++)
-    {
-        Intersection& i = *it;
-        NewVertex *p = new NewVertex(i, OUT);
-        p->debug_label = 0;
-        NewVertex *q = new NewVertex(i, OUT);
-        q->debug_label = 1;
-        p->parallel = q; q->parallel = p;
-        sorted.push_back(  FullIntersect(&i, p, q)  );
-    }
-
-    /** Sort wrt p **/
-    //  The FIRST polygon of Intersection is from Polygon p
-    std::sort(sorted.begin(), sorted.end(), FullIntersect::lt<Intersection::FIRST>);
-    /** Interleave vertices and intersects in p **/
-    CircularList<NewVertex> p_vertices;
-
-    Side in_out = inside(p.vertices[0], q);
-    int added_vertex_index = -1;
-    int current_index = 0;
-    for (auto it = sorted.begin(); it != sorted.end(); it ++)
-    {
-        current_index = it->i->edge1.getIndex();
-        // Add eventual vertices that were skipped
-        Vertex vertex(added_vertex_index + 1, &p);
-        while (current_index > added_vertex_index) {
-            NewVertex *to_add = new NewVertex(vertex, in_out);
-
-            to_add->debug_label = 0;
-            p_vertices.push_back(to_add);
-
-            ++ vertex;
-            ++ added_vertex_index;
-        }
-        // Add the intersection point
-        in_out = !in_out;
-        it->vert_p->in_out = in_out;
-        p_vertices.push_back(it->vert_p);
-    }
-    // just to test our logic..
-    assert(in_out == inside(p.vertices[0], q));
-    // Add rest of vertices..
-    if (sorted.size() > 0) {
-        for (uint i = sorted.back().i->edge1.getIndex() + 1; i  < p.vertices.size(); i ++)
-        {
-            NewVertex *to_add = new NewVertex(Vertex(i, &p), in_out);
-            to_add->debug_label = 0;
-            p_vertices.push_back(to_add);
-        }
-    }
-
-    /** Sort wrt q **/
-    //  The FIRST polygon of Intersection is from Polygon p
-    std::sort(sorted.begin(), sorted.end(), FullIntersect::lt<Intersection::SECOND>);
-    /** Interleave vertices and intersects in q **/
-    CircularList<NewVertex> q_vertices;
-
-    in_out = inside(q.transform(q.vertices[0]), p);
-    added_vertex_index = -1;
-    current_index = 0;
-    for (auto it = sorted.begin(); it != sorted.end(); it ++)
-    {
-        current_index = it->i->edge2.getIndex();
-        // Add eventual vertices that were skipped
-        Vertex vertex(added_vertex_index + 1, &q);
-        while (current_index > added_vertex_index) {
-            NewVertex *to_add = new NewVertex(vertex, in_out);
-            to_add->debug_label = 1;
-            q_vertices.push_back(to_add);
-
-            ++ vertex;
-            ++ added_vertex_index;
-        }
-        // Add the intersection point
-        in_out = !in_out;
-        it->vert_q->in_out = in_out;
-        q_vertices.push_back(it->vert_q);
-    }
-    // just to test our logic..
-    // assert(in_out == inside(q.vertices[0], p)); // TODO doesn't work when q[0] is inside of p
-    // Add rest of vertices..
-    if (sorted.size() > 0) {
-        for (uint i = sorted.back().i->edge2.getIndex() + 1; i  < q.vertices.size(); i ++)
-        {
-            NewVertex *to_add = new NewVertex(Vertex(i, &q), in_out);
-            to_add->debug_label = 1;
-            q_vertices.push_back(to_add);
-        }
-    }
-
-    /* TEST: Write out the linked lists */
-    
-    std::cout << "Vertices p" << std::endl;
-    NewVertex* element = &p_vertices.head();
-    if (element) {
-        do {
-            std::cout << element << " - ";
-            element->debug_print(Intersection::FIRST);
-            element = element->next;
-        } while (element != &p_vertices.head());
-    }
-    std::cout << std::endl << "Vertices q" << std::endl;
-    element = &q_vertices.head();
-    if (element) {
-        do {
-            std::cout << element << " - ";
-            element->debug_print(Intersection::SECOND);
-            element = element->next;
-        } while (element != &q_vertices.head());
-    }
-
-    std::cout << std::endl;
-    std::vector<Polygon> result;
-    /** Create Polygons - by traversing q (because we already have the intersection points of q sorted. **/
-    for (auto it = sorted.begin(); it != sorted.end(); it ++)
-    {
-        Polygon polygon;
-       
-        NewVertex* start;
-        NewVertex* current = start = it->vert_q;
-        // current and start are _intersection_
-        //std::cout << std::boolalpha << current->processed << std::endl;
-        
-        if (current->processed) continue;
-
-        std::cout << " New Polygon " << std::endl;
-        Direction direction = current->in_out;
-
-        // This is the start of a new polygon.
-        do {
-            polygon.vertices.push_back(current->coor);
-            std::cout << "    " << current << std::endl;
-
-            // TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
-            if (current->intersect) {
-                assert(current->parallel);
-                current->processed = true;
-                current->parallel->processed = true;
-                current = current->parallel;
-                std::cout << "      jump to " << current << std::endl;
-                
-                direction = current->in_out;
-            }
-
-            if (direction == FORTH) {
-                assert(current->next);
-                current = current->next;
-            } else {
-                assert(current->prev);
-                current = current->prev;
-            }
-        } while (current != start);
-
-
-        result.push_back(polygon);
-    }
-
-    return result;
-}
 
 
 // TRIANGLE FAN TODO make this clear
@@ -855,6 +578,12 @@ LineSegment Polygon::getEdge(int index)
 Polygon::Vertex::Vertex(int index, Polygon* parent)
     :index(index % parent->vertices.size()), parent(parent) { }
 
+void Polygon::Vertex::setIndex(int val)
+{
+    index = val;
+    if (index < 0) index += parent->vertices.size();
+    index %= parent->vertices.size();
+}
 glm::vec2& Polygon::Vertex::operator* ()
 {
 	return parent->vertices[index];
@@ -875,13 +604,21 @@ glm::vec2& Polygon::Vertex::preceding()
 }
 Polygon::Vertex& Polygon::Vertex::operator++ ()
 {
-	index = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+	// index = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+    index ++;
+    index %= parent->vertices.size();
     return *this;
 }
 Polygon::Vertex& Polygon::Vertex::operator-- ()
 {
-	index = (index == 0) ? parent->vertices.size() - 1 : index - 1;
+	// index = (index == 0) ? parent->vertices.size() - 1 : index - 1;
+    index --;
+    if (index < 0) index += parent->vertices.size();
     return *this;
+}
+bool Polygon::Vertex::operator== (Polygon::Vertex& v)
+{
+    return (index == v.index && parent == v.parent);
 }
 glm::vec2 Polygon::Vertex::transformed()
 {
@@ -1078,44 +815,3 @@ bool SubPolygon::Edge::operator== (Edge other) const
 
 
 
-////////////////////
-// Intersection
-///////////////////
-Intersection::Intersection(Polygon::Edge edge1, Polygon::Edge edge2)
-{
-    this->edge1 = edge1; this->edge2 = edge2;
-    // Find intersection point (last argument is output)
-    bool result = intersect(edge1.start_tr(), edge1.end_tr(),
-            edge2.start_tr(), edge2.end_tr(), point, alpha1, alpha2);
-    if (!result) {
-        std::cout << "Error: edges do not actually overlap (" << edge1.getIndex() << ", " << edge2.getIndex() << ")" << std::endl;
-    }
-}
-
-template <Intersection::Which which> // TODO separate functions for FIRST and SECOND
-bool Intersection::lt(Intersection& i, Intersection& j)
-{
-    if (which == FIRST) {
-        if (i.edge1.getIndex() < j.edge1.getIndex()) {
-            return true;
-        } else if (i.edge1.getIndex() == j.edge1.getIndex()) {
-            return (i.alpha1 < j.alpha1);
-        } else {
-            return false;
-        }
-    } else {
-        if (i.edge2.getIndex() < j.edge2.getIndex()) {
-            return true;
-        } else if (i.edge2.getIndex() == j.edge2.getIndex()) {
-            return (i.alpha2 < j.alpha2);
-        } else {
-            return false;
-        }
-    }
-}
-
-template <Intersection::Which which>
-bool FullIntersect::lt(FullIntersect& a, FullIntersect& b)
-{
-    return Intersection::lt<which>(*(a.i), *(b.i));
-}

@@ -9,8 +9,14 @@
 #include <utility>
 #include <iostream>
 class SubPolygon;
-struct Intersection;
 
+struct Intersect;
+
+struct NewVertex;
+struct FullIntersect;
+
+struct HybridVertex;
+struct Intersection;
 
 enum Axis { X=0, Y=1 };
 
@@ -29,14 +35,15 @@ struct Triangle
 class Polygon
 {
 public:
-    static std::vector<Intersection> overlaps(Polygon& a, Polygon& b);
-    static std::vector<Polygon> intersection(Polygon& p, Polygon& q);
+    static std::vector<Intersect> overlaps(Polygon& a, Polygon& b);
+    static std::vector<Intersection> ExtractIntersections(Polygon& p, Polygon& q, bool flip_logic);
 public:
 	Polygon();
 
 	std::vector<glm::vec2> vertices;
     glm::mat3 matrix;
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
+    glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
 
 
     void appendStencilTriangles(BufferWriter<float> &buffer);
@@ -45,6 +52,7 @@ public:
 	float signedArea();
 	glm::vec2 centroid();
 	float radius();
+    glm::vec2 getPoint(int vertex_number, float alpha);
 
 	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
 	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines);
@@ -65,7 +73,8 @@ public:
         Vertex(): index(0), parent(0) {};
         Vertex(int index, Polygon *parent);
         int getIndex() { return index; }
-        void setIndex(int val) { index = val; }
+        void setIndex(int val);
+        Polygon* getParent() { return parent; }
         
         glm::vec2 & operator* ();
         glm::vec2 * operator-> ();
@@ -73,6 +82,7 @@ public:
         // Changes what vertex is pointed to
         Vertex& operator++ ();
         Vertex& operator-- ();
+        bool operator== (Vertex& v);
 
         glm::vec2 & preceding();
         glm::vec2 & successive();
@@ -101,10 +111,31 @@ public:
         glm::vec2 start_tr() const; // World coordinates
         glm::vec2 end_tr() const;
         int getIndex() const { return index; }
-        Polygon& getParent() const { return *parent; }
+        Polygon* getParent() const { return parent; }
 
     private:
         int index;
+        Polygon *parent;
+    };
+    //////////////////////
+    // Point on polygon //
+    //////////////////////
+    class Point
+    {
+    public:
+        Point():start_index(0), alpha(0), parent(0) {};
+        Point(int start_index, float alpha, Polygon *parent);
+        bool operator== (Point other);
+        glm::vec2 & start() const;
+        glm::vec2 & end() const;
+        glm::vec2 start_tr() const; // World coordinates
+        glm::vec2 end_tr() const;
+        int getIndex() const { return start_index; }
+        Polygon* getParent() const { return parent; }
+        float getAlpha() const { return alpha; }
+    private:
+        int start_index;
+        float alpha; // how far from start to end the point is along the edge
         Polygon *parent;
     };
 
@@ -136,7 +167,10 @@ private:
     void triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles);
 };
 
-bool overlaps(Polygon a, Polygon b);
+
+/*********************/
+/*    SubPolygon     */
+/*********************/
 
 
 class SubPolygon
@@ -201,14 +235,3 @@ public:
 };
 std::ostream& operator<< (std::ostream& lhs, SubPolygon& p);
 
-struct Intersection {
-    Intersection(Polygon::Edge edge1, Polygon::Edge edge2);
-    Polygon::Edge edge1, edge2;
-    glm::vec2 point;
-    float alpha1, alpha2; // How far along the edges the point resides
-
-    // Lessthan function -- choose which to compare, edge1 or edge2
-    enum Which { FIRST, SECOND};
-    template <Which which>
-    static bool lt(Intersection& i, Intersection& j);
-};
