@@ -43,6 +43,7 @@ public:
 	std::vector<glm::vec2> vertices;
     glm::mat3 matrix;
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
+    glm::vec2 transformed(int vertex_index);
     glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
 
 

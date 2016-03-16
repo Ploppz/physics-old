@@ -116,16 +116,19 @@ int main()
 	float a;
     for (int i = 0; i < numEdges; i ++) {
         a = rand() / static_cast<float>(INT_MAX) * 100;
-        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (300 + a), sin(-i*2.0f/numEdges * M_PI) * (300 + a)));
+        float size = 300;
+        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
     }
 	numEdges = 10;
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
-		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (200 + a), sin(-i*2.0f/numEdges * M_PI) * (200 + a)));
+        float size = 200;
+		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
-		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (a), sin(-i*2.0f/numEdges * M_PI) * (a)));
+        float size = 100;
+		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size/3 + a)));
 	} 
 
 	World world;
@@ -195,22 +198,47 @@ int main()
 		//
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-        const float speed = 5;
-        if (Input::keys[GLFW_KEY_UP]) b3.position().y += speed;
-        if (Input::keys[GLFW_KEY_DOWN]) b3.position().y -= speed;
-        if (Input::keys[GLFW_KEY_RIGHT]) b3.position().x += speed;
-        if (Input::keys[GLFW_KEY_LEFT]) b3.position().x -= speed;
+        const float speed = 8;
+        Body& b = b3;
+        Body& a = b2;
+        if (Input::keys[GLFW_KEY_UP]) {
+            b.position().y += speed;
+            // a.position().y -= speed;
+        }
+        if (Input::keys[GLFW_KEY_DOWN]) {
+            b.position().y -= speed; 
+            // a.position().y += speed;
+        }
+        if (Input::keys[GLFW_KEY_RIGHT]) {
+            b.position().x += speed; 
+            // a.position().x -= speed;
+        }
+        if (Input::keys[GLFW_KEY_LEFT]) {
+            b.position().x -= speed; 
+            // a.position().x += speed;
+        }
 
 		world.timestep(30);
         /* std::vector<Intersect> intersects = Polygon::overlaps(b2.shape(), b3.shape());
         for (Intersect i : intersects) {
             renderer.addDot(i.point);
         }  */
-        std::vector<Intersection> intersections = Polygon::ExtractIntersections(b2.shape(), b3.shape(), false);
+        std::vector<Intersection> intersections = Polygon::ExtractIntersections(b3.shape(), b2.shape(), false);
         if (intersections.size() > 0) {
             Intersection a = intersections[0];
-            Intersection b = a.ExtendInDirection(glm::vec2(0.5f, 0.5f), &b2.shape());
-            b.appendLinesToVector(renderer.lines_buffer);
+            // a.appendLinesToVector(renderer.lines_buffer);
+            // glm::vec2 vel(0.5f, 0.5f);
+            // glm::vec2 vel(2, 1);
+            glm::vec2 vel(0.7, -5);
+            if(1)
+            {
+                // LineStrip i = a.CastInternalShadow(-vel, &b2.shape());
+                // LineStrip j = a.CastInternalShadow(vel, &b3.shape());
+                // i.appendLinesToVector(renderer.lines_buffer);
+                // j.appendLinesToVector(renderer.lines_buffer);
+            }
+            a.manifold(vel, &b2.shape(), &b3.shape(), renderer);
+            renderer.addVector(glm::vec2(0, 0), glm::vec2(0, 1));
 
             // draw collision normal
             /* Manifold m = a.manifold(glm::vec2(1, 0), &b2.shape(), &b3.shape());

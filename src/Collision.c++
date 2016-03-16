@@ -2,6 +2,7 @@
 #include "Collision.h"
 #include "Geometry.h"
 #include "LinkedList.h"
+#include "Renderer.h"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -10,21 +11,15 @@
 
 using namespace glm;
 
-/* IMPORTANT: Take into consideration local coordinate systems */
-
-Intersection Intersection::ExtendInDirection(glm::vec2 v, Polygon* subject)
+LineStrip Intersection::CastInternalShadow(glm::vec2 direction, Polygon* subject)
 {
-    v = normalize(v);
-    float align_transform_d[4] = {v.x, v.y, -v.y, v.x};
+    direction = normalize(direction);
+    float align_transform_d[4] = {direction.x, -direction.y, direction.y, direction.x}; //note: column major
     mat2 align_transform = make_mat2x2(align_transform_d);
 
-    /* TODO: transform all polygons. For now, just transform whenever they are used */
     /* find the limits of the intersection on the transformed y-axis */
     float y_min = std::numeric_limits<float>::max();
     float y_max = -std::numeric_limits<float>::max();
-    // HybridVertex y_min_vertex;
-    // HybridVertex y_max_vertex;
-    // int y_min_vertex_index, y_max_vertex_index;
     Vertex y_min_vertex, y_max_vertex;
 
     for (int i = 0; i < vertices.size(); i ++) 
@@ -39,57 +34,28 @@ Intersection Intersection::ExtendInDirection(glm::vec2 v, Polygon* subject)
             y_max_vertex = Vertex(i, this);
         }
     }
-
-    /* Find the portion of the subject which we want to attach to the intersection */
-    /* - If clockwise: it has to enter at y-max, and leave at y-min */
-
-    std::vector<HybridVertex> potential_vertices; // list of intersects between y max/min lines and subject
+    std::cout << " Y " << y_min << ", " << y_max << std::endl; 
 
     float alpha;
 
-    HybridVertex start_point;
-    HybridVertex end_point;
+    EdgePoint start_point;
+    start_point.parent = subject;
+    EdgePoint end_point;
+    end_point.parent = subject;
     bool start_found = false;
     bool end_found = false;
-    /* first, if vertex is between a and b, go backwards to find the start point
-     * (the first edge we will check next starts at the last vertex - that's why back() )*/
-    {
-        float first_y = (align_transform * subject->vertices.back()).y;
-        if (first_y < y_max && first_y > y_min) {
-            int j = 0;
-            vec2 b = align_transform * subject->vertices.front();
-            for (int i = subject->vertices.size() - 1; i >=0; i --)
-            {
-                vec2 a = align_transform * subject->vertices[i];
-                if (a.y >= y_max && b.y <= y_max) {
-                    intersect_horizontal(a, b - a, y_max, alpha);
-                    // TODO NEXT: respect alpha in point calculation - need an Intersection::Vertex object...
-                    start_found = true;
-                    start_point.vertex = i;
-                    start_point.owner = subject;
-                    start_point.point = subject->getPoint(i, alpha);
-                    start_point.alpha = alpha;
-                    /* start_point.intersect = false;// TODO can exploit intersect aspect */
-                    break;
-                }
-                j = i;
-                b = a;
-            }
-        }
-    }
     // (i, j) is the edge indeces, (a, b) is the edge coordinates
     int i = subject->vertices.size() - 1; 
-    vec2 a = align_transform * subject->vertices.back();
-    for (int j = 0; j < subject->vertices.size(); j ++) {
-        vec2 b = align_transform * subject->vertices[j];
+    vec2 a = align_transform * subject->transform(subject->vertices.back());
+    for (int j_2 = 0; j_2 < subject->vertices.size() * 2; j_2 ++) {
+        int j = j_2 % subject->vertices.size();
+        vec2 b = align_transform * subject->transformed(j);
         
         // std::cout << a.y << " < " << y_max << " && " << b.y << " < " << y_max << std::endl;
         if (a.y >= y_max && b.y <= y_max) { // Enter via y_max - start recording the path
             intersect_horizontal(a, b - a, y_max, alpha);
             start_found = true;
-            start_point.vertex = i;
-            start_point.owner = subject;
-            start_point.point = subject->getPoint(i, alpha);
+            start_point.index = i;
             start_point.alpha = alpha;
         }
         /* std::cout << "Edge (" <<i << ", " << j << ")     - start found: " << std::boolalpha << start_found << std::endl;
@@ -98,9 +64,7 @@ Intersection Intersection::ExtendInDirection(glm::vec2 v, Polygon* subject)
             if (start_found) { // SUCCESS
                 intersect_horizontal(a, b - a, y_min, alpha);
                 end_found = true;
-                end_point.vertex = i;
-                end_point.owner = subject;
-                end_point.point = subject->getPoint(i, alpha);
+                end_point.index = i;
                 end_point.alpha = alpha;
                 break;
             }
@@ -108,234 +72,138 @@ Intersection Intersection::ExtendInDirection(glm::vec2 v, Polygon* subject)
         i = j;
         a = b;
     }
+    //TODO END NOT FOUND
+    /* std::cout << "  start: " << start_point.index << " .. a = " << start_point.alpha << std::endl;
+    std::cout << "  end: " << end_point.index << " .. a = " << end_point.alpha << std::endl; */
     assert(start_found);
     assert(end_found);
 
-	bool CCW = (signedArea() > 0); // Is this intersection conter clockwise?
-    /** Make the extended polygon **/
-    Intersection result;
-    /* First add the left part of the intersection */
-// #if 0
-    Vertex it = y_min_vertex;
-    while (true)
-    {
-        result.vertices.push_back(*it);
-        if (it == y_max_vertex) break;
-        if (CCW)    -- it;
-        else        ++ it;
-    }
-// #endif
-    /* Then add the rest of the subject polygon */
+    /* Create line strip */
+	bool CCW = (subject->signedArea() > 0); // Is this intersection conter clockwise?
+    LineStrip result(subject);
+    EdgePoint p;
+    p.parent = subject;
 
-    // Should not add start vertex if it coincides with the y_max vertex
-    // Which (simplified) happens if y_max is one of subject's vertices:
-    bool omit_top, omit_bottom;
-    if (!y_max_vertex->intersect && y_max_vertex->owner == subject) { // TODO additional test (index is the same) for issue [I]
-        std::cout << "omit top - is top" << std::endl;
-        omit_top = true;
-    }
-    // ... or if y_max is an intersect in which one of the owners is subject - this NEEDS an index check
-    if (y_max_vertex->intersect) {
-        if (y_max_vertex->edge1_owner == subject && y_max_vertex->edge1_index == start_point.vertex) {
-            std::cout << "omit top - is intersect" << std::endl;
-            omit_top = true;
-        }
-        if (y_max_vertex->edge2_owner == subject && y_max_vertex->edge2_index == start_point.vertex) {
-            std::cout << "omit top - is intersect" << std::endl;
-            omit_top = true;
+    Polygon::Vertex start(start_point.index, subject), end(end_point.index, subject);
+
+    result.vertices.push_back(start_point);
+    if (start_point.index != end_point.index) {
+
+        Polygon::Vertex it = start; 
+        ++ it;
+        while (true) {
+            p.set( it.getIndex(), 0);
+            result.vertices.push_back(p);
+
+            if (it == end) break;
+
+            if (CCW)    -- it;
+            else        ++ it;
         }
     }
-    if (!y_min_vertex->intersect && y_min_vertex->owner == subject) {
-        std::cout << "omit bottom - is bottom" << std::endl;
-        omit_bottom = true;
-    }
-    if (y_min_vertex->intersect) {
-        if (y_min_vertex->edge1_owner == subject && y_min_vertex->edge1_index == end_point.vertex)
-        {
-            std::cout << "omit bottom - is intersect" << std::endl;
-            omit_bottom = true;
-        }
-        if (y_min_vertex->edge2_owner == subject && y_min_vertex->edge2_index == end_point.vertex) {
-            std::cout << "omit bottom - is intersect" << std::endl;
-            omit_bottom = true;
-        }
-    }
-    std::cout << " -------------- " << std::endl;
-
-    /* HybridVertex A;
-    A.point = glm::vec2(0, 0);
-    result.vertices.push_back(A); */
-    /* Add rest of polygon */
-    if (!omit_top) {
-        result.vertices.push_back(start_point);
-    }
-    // rest of vertices are normal vertices of the subject polygon
-    {
-        Polygon::Vertex start(0, subject), end(0, subject);
-        if (start_point.edge1_owner == subject) start.setIndex(start_point.edge1_index);
-        if (start_point.edge2_owner == subject) start.setIndex(start_point.edge2_index);
-        if (end_point.edge1_owner == subject) end.setIndex(end_point.edge1_index);
-        if (end_point.edge2_owner == subject) end.setIndex(end_point.edge2_index);
-        if (start.getIndex() != end.getIndex()) {
-            ++ start;
-            std::cout << " Start index : " << start.getIndex() << std::endl;
-            std::cout << " End index : " << end.getIndex() << std::endl;
-            Polygon::Vertex it = start;
-            while (true) {
-            std::cout << "add vertex " << std::endl;
-                HybridVertex to_add(it);
-                result.vertices.push_back(to_add);
-                if (it == end) break;
-                if (CCW)    -- it;
-                else        ++ it;
-            }
-        }
-    }
-
-    if (!omit_bottom) {
-        result.vertices.push_back(end_point);
-    }
-
-
-    //TODO this illustrates a fatal error when the peak of intersection is not the highest point ahead [I]
-    /* {
-        if (!y_max_vertex.intersect && y_max_vertex.owner == subject) {
-            std::cout << "ASSERTION" << std::endl;
-            assert(y_max_vertex.vertex == start_point.vertex);
-        }
-    } */
-/*
- *     if (start_found) {
- *         std::cout << "Start: " << start_point.vertex << std::endl;
- *         float a;
- *         vec2 A = subject->vertices[start_point.vertex];
- *         int index = start_point.vertex + 1;
- *         if (index >= subject->vertices.size()) index = 0;
- *         vec2 B = subject->vertices[index];
- * 
- *         float x = intersect_horizontal(align_transform * A, align_transform * (B - A), y_max, a);
- *         std::cout << " -> alpha = " << a << std::endl;
- *         std::cout << " -> x = " << x << std::endl;
- *         std::cout << to_string( A) << std::endl;
- *         std::cout << to_string(B - A) << std::endl;
- *         std::cout << "y_max = " << y_max << std::endl;
- *     }
- *         
- *     if (end_found) {
- *         std::cout << "End: " << end_point.vertex << std::endl;
- *     }
- *     if (!start_found || !end_found){
- *         std::cout << "=======ERROR=======" << std::endl;
- *     }
- *     std::cout << " -------------- " << std::endl;
- */
-
+    result.vertices.push_back(end_point);
 
     return result;
 }
 
 
-/* WILL NOT BE USED */
-// TODO error happens when centroid is outside of intersection xDDD
-Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Polygon* subject)
+
+Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Polygon* subject, Renderer& renderer)
 {
-	bool ref_CCW = (reference->signedArea() > 0); // Counter clockwise
-	bool subj_CCW = (subject->signedArea() > 0); // Needed to determine on which side the interior is
-    //
-    // v is v_subject - v_reference. So we pretend reference is at rest
-    relative_velocity = normalize(relative_velocity);
-#define v relative_velocity
-
+    std::cout << " ---------------- " << std::endl;
+    //TODO simplifying assumption: the line strips are both CCW or both CW
+    #define v relative_velocity
+    float align_transform_d[4] = {v.x, -v.y, v.y, v.x}; //note: column major
+    mat2 align_transform = make_mat2x2(align_transform_d);
+    mat2 align_inverse = glm::inverse(align_transform);
+    std::cout << " -- reference -- " << std::endl;
+    LineStrip r_strip = CastInternalShadow(-v, reference);
+    std::cout << " -- subject -- " << std::endl;
+    LineStrip s_strip = CastInternalShadow(v, subject);
+    /*** Task: Find the line of longest distance in direction v, between the two line strips ***/
+    /*** So after transformation, find line ... in x direction ***/
+    /*** What we do know is that after transformation, the lines start and end at the same y values ***/
+    // TODO depending on CCW: We need to know in what direction (+/-) we are moving in the loop
     
-    vec2 centr = centroid();
+    /* Goal: */
+    struct ManifoldData {
+        float depth = 0;
+        // Data for the collision vertex:
+        EdgePoint vertex_point; // could also be an EdgePoint but we don't need alpha
+        // Data for the collision edge:
+        EdgePoint edge_point;
 
-    // align v with x axis
-    float M_d[4] = {v.x, v.y, -v.y, v.x};
-    mat2 M = make_mat2x2(M_d); 
-
-    /* Results: */
-    int ref_edge = -1, subj_edge = -1;
-    float ref_edge_x = -std::numeric_limits<float>::max(), subj_edge_x = std::numeric_limits<float>::max();
-    /* End */
-
-    vec2 difference;
-    // project centroid in v direction, onto subject
-    vec2 next_vertex = M * subject->transform_center(subject->vertices[0], centr);
-    for (int i = subject->vertices.size() - 1; i >= 0; i --) {
-        vec2 vertex = M * subject->transform_center(subject->vertices[i], centr);
-        if (sign(vertex.y) != sign(next_vertex.y)) {
-            std::cout << "Crosses1" << std::endl;
-            // find where it crosses the x axis
-            difference = next_vertex - vertex;
-            float x = vertex.x - vertex.y * difference.x / difference.y;
-            std::cout << "x: " << x << std::endl;
-            if (x > 0) { // right of centroid
-                // find the next edge (minimum egde) that has the interior to its left
-                bool has_interior_to_left = (vertex.y > 0) ^ subj_CCW;
-                std::cout << "\t" << std::boolalpha << has_interior_to_left << std::endl;
-                if (has_interior_to_left) {
-                    if (x < subj_edge_x) {
-                        subj_edge = i;
-                        subj_edge_x = x;
-                    }
-                }
+    };
+    ManifoldData max_manifold;
+    /**/
+    LineStrip::Vertex r(r_strip.vertices.size() - 1, &r_strip);
+    LineStrip::Vertex s(0, &s_strip);
+    vec2 r_vec = align_transform * r->point_t();
+    vec2 s_vec = align_transform * s->point_t();
+    vec2 r_vec_next, s_vec_next;
+#define R false
+#define S true
+    bool current = R;
+    while (true) {
+        /* Treat */
+        // std::cout << r.getIndex() << ", " << s.getIndex() << std::endl;
+        float alpha;
+        float intersect_x;
+        if (current == R) {
+            intersect_x = intersect_horizontal(s_vec, s_vec_next - s_vec, r_vec.y, alpha);
+            vec2 projected_point = s_vec + alpha * (s_vec_next - s_vec);
+            renderer.addVector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+            float depth = glm::length(projected_point - r_vec);
+            if (depth > max_manifold.depth) {
+                max_manifold.depth = depth;
+                max_manifold.vertex_point = EdgePoint(r.getIndex(), 0, reference);
+                max_manifold.edge_point = EdgePoint(s.getIndex(), alpha, subject);
+            }
+        } else {
+            intersect_x = intersect_horizontal(r_vec, r_vec_next - r_vec, s_vec.y, alpha);
+            vec2 projected_point = r_vec + alpha * (r_vec_next - r_vec);
+            renderer.addVector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+            float depth = glm::length(projected_point - s_vec);
+            if (depth > max_manifold.depth) {
+                max_manifold.depth = depth;
+                max_manifold.vertex_point = EdgePoint(s.getIndex(), 0, subject);
+                max_manifold.edge_point = EdgePoint(r.getIndex(), alpha, reference);
             }
         }
-        next_vertex = vertex;
-    }
-    // project centroid in -v direction, onto reference
-    next_vertex = M * reference->transform_center(reference->vertices[0], centr);
-    for (int i = reference->vertices.size() - 1; i >= 0; i --) {
-        vec2 vertex = M * reference->transform_center(reference->vertices[i], centr);
-        if (sign(vertex.y) != sign(next_vertex.y)) {
-            std::cout << "Crosses2" << std::endl;
-            // find where it crosses the x axis
-            difference = next_vertex - vertex;
-            float x = vertex.x - vertex.y * difference.x / difference.y;
-            std::cout << "x: " << x << std::endl;
-            if (x < 0) { // left of centroid
-                // find the next edge (minimum egde) that has the interior to its left
-                bool has_interior_to_left = (vertex.y < 0) ^ ref_CCW; //TODO not sure about x < 0. thought since it's -v
-                std::cout << "\t" << std::boolalpha << has_interior_to_left << std::endl;
-                if (has_interior_to_left) {
-                    std::cout << x << " VS " << ref_edge_x << std::endl;
-                    if (x > ref_edge_x) { //so find max x < 0
-                        ref_edge = i;
-                        ref_edge_x = x;
-                    }
-                }
-            }
+
+        /* Advance */
+        if (r.atBegin() || s.atEnd()) break;
+        r_vec_next = align_transform * (--LineStrip::Vertex(r))->point_t();
+        s_vec_next = align_transform * (++LineStrip::Vertex(s))->point_t();
+
+        if (r_vec_next.y > s_vec_next.y) { // We are moving upwards (temporary solution), so pick r because it comes first
+            if (!r.atBegin())
+                -- r;
+            current = R;
+        } else {
+            if (!s.atEnd())
+                ++ s;
+            current = S;
         }
-        next_vertex = vertex;
+        r_vec = align_transform * r->point_t();
+        s_vec = align_transform * s->point_t();
     }
-    assert(ref_edge != -1 && subj_edge != -1);
+    /* std::cout << (max.edge_owner == reference) << std::endl;
+    renderer.addDot(align_inverse * max.point->point); */
+    Manifold result;
+    /*
+     * Collision normal and depth are in world coordinates.
+     * Collision points are EdgePoints - so local to each polygon
+     */
+    Polygon::Edge collision_edge(max_manifold.edge_point.index, max_manifold.edge_point.parent);
+    vec2 edge_direction = collision_edge.end() - collision_edge.start();
+    vec2 collision_normal = vec2(-edge_direction.y, edge_direction.x);
 
-    // TODO 'subj collision edge' is still on reference..
+    result.subj_point = max_manifold.vertex_point;
+    result.ref_point = max_manifold.edge_point;
+    result.normal = collision_normal * max_manifold.depth;
 
-    float depth = abs(ref_edge_x - subj_edge_x);
-
-    Manifold results;
-    // The edge that is most perpendicular to v 'wins'
-    Polygon::Vertex ref_vert(ref_edge, reference);
-    glm::vec2 ref_edge_dir = normalize(*ref_vert - ref_vert.successive());
-    float ref_dot_v = ref_edge_dir.x;
-
-    Polygon::Vertex subj_vert(subj_edge, subject);
-    glm::vec2 subj_edge_dir = normalize(*subj_vert - subj_vert.successive());
-    float subj_dot_v = subj_edge_dir.x;
-    /* if (abs(ref_dot_v) < abs(subj_dot_v)) { // reference has edge more perpendicular to v */
-    if (true){
-        results.normal = glm::vec2(-ref_edge_dir.y, ref_edge_dir.x) * depth;
-        std::cout << "ref. collision edge " << ref_edge << std::endl;
-    } else {
-        results.normal = glm::vec2(-subj_edge_dir.y, subj_edge_dir.x) * depth;
-        std::cout << "subj. collision edge " << subj_edge << std::endl;
-    }
-    results.subject = subject;
-    results.reference = reference;
-    results.ref_point = centr + ref_edge_x * v;
-    results.subj_point = centr + subj_edge_x * v;
-    return results;
+    return result;
 }
 
 
@@ -369,7 +237,7 @@ std::vector<Intersection> Polygon::ExtractIntersections(Polygon& p, Polygon& q, 
     /** Interleave vertices and intersects in p **/
     CircularList<NewVertex> p_vertices;
 
-    Side in_out = p_inside_q = inside(p.vertices[0], q) ^ flip_logic;
+    Side in_out = p_inside_q = inside(p.transform(p.vertices[0]), q) ^ flip_logic;
     int added_vertex_index = -1;
     int current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
@@ -552,6 +420,7 @@ HybridVertex::HybridVertex(Polygon::Vertex v)
     vertex = v.getIndex();
     intersect = false;
     point = v.transformed();
+    // std::cout << "Make HV point " << glm::to_string(point) << std::endl;
 }
 /****************/
 /* Intersection */
@@ -667,6 +536,81 @@ bool Intersection::Vertex::operator== (Intersection::Vertex& v)
 {
     return (index == v.index && parent == v.parent);
 }
+/////////// Vertex of Line Strip
+// TODO there are a lot of copies of this class for different kinds of geometric things... make template class?
+
+LineStrip::Vertex::Vertex(int index, LineStrip* parent)
+    :index(index % parent->vertices.size()), parent(parent) { }
+
+void LineStrip::Vertex::setIndex(int val)
+{
+    index = val;
+    if (index < 0) index += parent->vertices.size();
+    index = index % parent->vertices.size();
+}
+glm::vec2 EdgePoint::point()
+{
+    int next_index = (index + 1) % parent->vertices.size();
+    return parent->vertices[index];
+}
+glm::vec2 EdgePoint::point_t()
+{
+    int next_index = (index + 1) % parent->vertices.size();
+    return parent->transform((1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index]);
+}
+EdgePoint& LineStrip::Vertex::operator* ()
+{
+	return parent->vertices[index];
+}
+EdgePoint* LineStrip::Vertex::operator-> ()
+{
+	return &(parent->vertices[index]);
+}
+EdgePoint& LineStrip::Vertex::successive()
+{
+	int i = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+	return parent->vertices[i];
+}
+EdgePoint& LineStrip::Vertex::preceding()
+{
+	int i = (index == 0) ? parent->vertices.size() - 1 : index - 1;
+	return *(&(parent->vertices[i]));
+}
+LineStrip::Vertex& LineStrip::Vertex::operator++ ()
+{
+    if (index < parent->vertices.size() - 1) index ++;
+    return *this;
+}
+LineStrip::Vertex& LineStrip::Vertex::operator-- ()
+{
+    if (index > 0) index --;
+    return *this;
+}
+bool LineStrip::Vertex::operator== (LineStrip::Vertex& v)
+{
+    return (index == v.index && parent == v.parent);
+}
+///////////////////
+// LineStrip /////
+// //////////////
+void LineStrip::appendLinesToVector(std::vector<float> &list)
+{
+    // Loop through HybridVertices
+    std::vector<EdgePoint>::iterator prev;
+    auto it = vertices.begin();
+    prev = it;
+    ++ it;
+    for (; it != vertices.end(); it ++)
+    {
+        glm::vec2 vec_i = prev->point_t();
+        glm::vec2 vec_j = it->point_t();
+        list.push_back(vec_i.x);
+        list.push_back(vec_i.y);
+        list.push_back(vec_j.x);
+        list.push_back(vec_j.y);
+        prev = it;
+    }
+}
 
 ///////////////////////////////////////////
 // Overlaps: old, maybe not used anymore //
@@ -730,3 +674,200 @@ std::vector<Intersect> Polygon::overlaps(Polygon& a, Polygon& b)
 	}
 	return intersections;
 }
+
+
+#if 0
+/* IMPORTANT: Take into consideration local coordinate systems */
+Intersection Intersection::ExtendInDirection(glm::vec2 v, Polygon* subject)
+{
+    v = normalize(v);
+    float align_transform_d[4] = {v.x, v.y, -v.y, v.x};
+    mat2 align_transform = make_mat2x2(align_transform_d);
+
+    /* TODO: transform all polygons. For now, just transform whenever they are used */
+    /* find the limits of the intersection on the transformed y-axis */
+    float y_min = std::numeric_limits<float>::max();
+    float y_max = -std::numeric_limits<float>::max();
+    // HybridVertex y_min_vertex;
+    // HybridVertex y_max_vertex;
+    // int y_min_vertex_index, y_max_vertex_index;
+    Vertex y_min_vertex, y_max_vertex;
+
+    for (int i = 0; i < vertices.size(); i ++) 
+    {
+        vec2 vertex = align_transform * vertices[i].point;
+        if (vertex.y < y_min) {
+            y_min = vertex.y;
+            y_min_vertex = Vertex(i, this);
+        }
+        if (vertex.y > y_max) {
+            y_max = vertex.y;
+            y_max_vertex = Vertex(i, this);
+        }
+    }
+
+    /* Find the portion of the subject which we want to attach to the intersection */
+    /* - If clockwise: it has to enter at y-max, and leave at y-min */
+
+    std::vector<HybridVertex> potential_vertices; // list of intersects between y max/min lines and subject
+
+    float alpha;
+
+    HybridVertex start_point;
+    HybridVertex end_point;
+    bool start_found = false;
+    bool end_found = false;
+    /* first, if vertex is between a and b, go backwards to find the start point
+     * (the first edge we will check next starts at the last vertex - that's why back() )*/
+    {
+        float first_y = (align_transform * subject->vertices.back()).y;
+        if (first_y < y_max && first_y > y_min) {
+            int j = 0;
+            vec2 b = align_transform * subject->vertices.front();
+            for (int i = subject->vertices.size() - 1; i >=0; i --)
+            {
+                vec2 a = align_transform * subject->vertices[i];
+                if (a.y >= y_max && b.y <= y_max) {
+                    intersect_horizontal(a, b - a, y_max, alpha);
+                    // TODO NEXT: respect alpha in point calculation - need an Intersection::Vertex object...
+                    start_found = true;
+                    start_point.vertex = i;
+                    start_point.owner = subject;
+                    start_point.point = subject->getPoint(i, alpha);
+                    start_point.alpha = alpha;
+                    /* start_point.intersect = false;// TODO can exploit intersect aspect */
+                    break;
+                }
+                j = i;
+                b = a;
+            }
+        }
+    }
+    // (i, j) is the edge indeces, (a, b) is the edge coordinates
+    int i = subject->vertices.size() - 1; 
+    vec2 a = align_transform * subject->vertices.back();
+    for (int j = 0; j < subject->vertices.size(); j ++) {
+        vec2 b = align_transform * subject->vertices[j];
+        
+        // std::cout << a.y << " < " << y_max << " && " << b.y << " < " << y_max << std::endl;
+        if (a.y >= y_max && b.y <= y_max) { // Enter via y_max - start recording the path
+            intersect_horizontal(a, b - a, y_max, alpha);
+            start_found = true;
+            start_point.vertex = i;
+            start_point.owner = subject;
+            start_point.point = subject->getPoint(i, alpha);
+            start_point.alpha = alpha;
+        }
+        /* std::cout << "Edge (" <<i << ", " << j << ")     - start found: " << std::boolalpha << start_found << std::endl;
+        std::cout << a.y << " >= " << y_min << "\t&&\t" << b.y << " <= " << y_min << std::endl; */
+        if (a.y >= y_min && b.y <= y_min) { // Leave via y_min
+            if (start_found) { // SUCCESS
+                intersect_horizontal(a, b - a, y_min, alpha);
+                end_found = true;
+                end_point.vertex = i;
+                end_point.owner = subject;
+                end_point.point = subject->getPoint(i, alpha);
+                end_point.alpha = alpha;
+                break;
+            }
+        }
+        i = j;
+        a = b;
+    }
+    assert(start_found);
+    assert(end_found);
+
+	bool CCW = (signedArea() > 0); // Is this intersection conter clockwise?
+    /** Make the extended polygon **/
+    Intersection result;
+    /* First add the left part of the intersection */
+// #if 0
+    Vertex it = y_min_vertex;
+    while (true)
+    {
+        result.vertices.push_back(*it);
+        if (it == y_max_vertex) break;
+        if (CCW)    -- it;
+        else        ++ it;
+    }
+// #endif
+    /* Then add the rest of the subject polygon */
+
+    // Should not add start vertex if it coincides with the y_max vertex
+    // Which (simplified) happens if y_max is one of subject's vertices:
+    bool omit_top, omit_bottom;
+    if (!y_max_vertex->intersect && y_max_vertex->owner == subject) { // TODO additional test (index is the same) for issue [I]
+        std::cout << "omit top - is top" << std::endl;
+        omit_top = true;
+    }
+    // ... or if y_max is an intersect in which one of the owners is subject - this NEEDS an index check
+    if (y_max_vertex->intersect) {
+        if (y_max_vertex->edge1_owner == subject && y_max_vertex->edge1_index == start_point.vertex) {
+            std::cout << "omit top - is intersect" << std::endl;
+            omit_top = true;
+        }
+        if (y_max_vertex->edge2_owner == subject && y_max_vertex->edge2_index == start_point.vertex) {
+            std::cout << "omit top - is intersect" << std::endl;
+            omit_top = true;
+        }
+    }
+    if (!y_min_vertex->intersect && y_min_vertex->owner == subject) {
+        std::cout << "omit bottom - is bottom" << std::endl;
+        omit_bottom = true;
+    }
+    if (y_min_vertex->intersect) {
+        if (y_min_vertex->edge1_owner == subject && y_min_vertex->edge1_index == end_point.vertex)
+        {
+            std::cout << "omit bottom - is intersect" << std::endl;
+            omit_bottom = true;
+        }
+        if (y_min_vertex->edge2_owner == subject && y_min_vertex->edge2_index == end_point.vertex) {
+            std::cout << "omit bottom - is intersect" << std::endl;
+            omit_bottom = true;
+        }
+    }
+    std::cout << " -------------- " << std::endl;
+
+    /* HybridVertex A;
+    A.point = glm::vec2(0, 0);
+    result.vertices.push_back(A); */
+    /* Add rest of polygon */
+    if (!omit_top) {
+        result.vertices.push_back(start_point);
+    }
+    // rest of vertices are normal vertices of the subject polygon
+    {
+        Polygon::Vertex start(0, subject), end(0, subject);
+        if (start_point.edge1_owner == subject) start.setIndex(start_point.edge1_index);
+        if (start_point.edge2_owner == subject) start.setIndex(start_point.edge2_index);
+        if (end_point.edge1_owner == subject) end.setIndex(end_point.edge1_index);
+        if (end_point.edge2_owner == subject) end.setIndex(end_point.edge2_index);
+        if (start.getIndex() != end.getIndex()) {
+            ++ start; // TODO this needs to change if CCW
+            Polygon::Vertex it = start;
+            while (true) {
+                HybridVertex to_add(it);
+                result.vertices.push_back(to_add);
+                if (it == end) break;
+                if (CCW)    -- it;
+                else        ++ it;
+            }
+        }
+    }
+
+    if (!omit_bottom) {
+        result.vertices.push_back(end_point);
+    }
+
+
+    //TODO this illustrates a fatal error when the peak of intersection is not the highest point ahead [I]
+    /* {
+        if (!y_max_vertex.intersect && y_max_vertex.owner == subject) {
+            std::cout << "ASSERTION" << std::endl;
+            assert(y_max_vertex.vertex == start_point.vertex);
+        }
+    } */
+
+    return result;
+}
+#endif

@@ -190,7 +190,7 @@ void Renderer::addDot(glm::vec2 dot)
 }
 void Renderer::addVector(glm::vec2 point, glm::vec2 vec)
 {
-    const int radius = 2;
+    const int radius = 4;
     const float arrow_angle = 2.4f;
 
     float vec_angle = atan2(vec.y, vec.x);

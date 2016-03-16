@@ -1,5 +1,6 @@
 #pragma once
 #include "Polygon.h"
+class Renderer;
 
 struct Intersect;
 
@@ -64,16 +65,64 @@ struct HybridVertex
     float alpha2;
 };
 
+/* Algorithm */
+struct EdgePoint {
+    EdgePoint() {};
+    EdgePoint(int index, float alpha, Polygon* parent) : index(index), alpha(alpha), parent(parent) {}
+    void set(int index, float alpha) {this->index = index; this->alpha = alpha; }
+    void set(int index, float alpha, Polygon* parent) {this->index = index; this->alpha = alpha; this->parent = parent; }
+
+    glm::vec2 point();
+    glm::vec2 point_t(); //transformed point
+
+    int index;
+    float alpha;
+    Polygon* parent;
+};
 
 struct Manifold {
+    // Collision normal and depth in world coordinates
     glm::vec2 normal; // includes depth
 
-    Polygon* reference;
-    glm::vec2 ref_point;
-    Polygon* subject;
-    glm::vec2 subj_point;
-
+    // Collision incident points (relative to the model)
+    EdgePoint ref_point;
+    EdgePoint subj_point;
 };
+
+struct LineStrip
+{
+    LineStrip(Polygon* parent) : parent(parent) {}
+    void appendLinesToVector(std::vector<float> &list);
+    Polygon* parent; // each EdgePoint also has one - questionable if needed
+    std::vector<EdgePoint> vertices;
+    class Vertex {
+    public:
+        Vertex(): index(0), parent(0) {};
+        Vertex(int index, LineStrip *parent);
+        int getIndex() { return index; }
+        bool atBegin() {return index == 0; };
+        bool atEnd() {return index == parent->vertices.size() - 1;}
+        void setIndex(int val);
+        LineStrip* getParent() { return parent; }
+        
+        EdgePoint & operator* ();
+        EdgePoint * operator-> ();
+
+        // Changes what vertex is pointed to
+        Vertex& operator++ ();
+        Vertex& operator-- ();
+        //
+        bool operator== (Vertex& v);
+
+        EdgePoint & preceding();
+        EdgePoint & successive();
+
+    private:
+        int index;
+        LineStrip *parent;
+    };
+};
+/* */
 
 struct Intersection // Or HybridPolygon..
 {
@@ -81,8 +130,11 @@ struct Intersection // Or HybridPolygon..
 
     Intersection() {};
     Intersection(Polygon& p); // 'copy' p
-    Intersection ExtendInDirection(glm::vec2 v, Polygon* subject);
-    Manifold manifold(glm::vec2 relative_velocity, Polygon* subject, Polygon* reference);
+    // Intersection ExtendInDirection(glm::vec2 v, Polygon* subject);
+    LineStrip CastInternalShadow(glm::vec2 direction, Polygon* subject);
+
+    Manifold manifold(glm::vec2 relative_velocity, Polygon* subject, Polygon* reference, Renderer& renderer); 
+
     float signedArea();
     glm::vec2 centroid();
     void appendLinesToVector(std::vector<float> &list);
@@ -112,6 +164,7 @@ struct Intersection // Or HybridPolygon..
         int index;
         Intersection *parent;
     };
+
 };
 
 

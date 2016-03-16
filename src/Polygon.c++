@@ -18,8 +18,15 @@
 #include <set>
 #include <sstream>
 
-#define DRAW_VERTEX_NUMBERS true
+#define DRAW_VERTEX_NUMBERS false
 
+/*
+Some useful sources I used. (not exhaustive)
+http://www.cs.uu.nl/docs/vakken/ga/slides3.pdf
+http://www.cs.unc.edu/~dm/CODE/GEM/chapter.html#Fournier84
+https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
+
+*/
 extern FontRenderer *fontRenderer;
 
 int abs_mod(int n, int range)
@@ -100,6 +107,12 @@ glm::vec2 Polygon::transform(glm::vec2 point)
     return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
                         matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
 }
+glm::vec2 Polygon::transformed(int vertex_index)
+{
+    glm::vec2 point = vertices[vertex_index];
+    return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
+                        matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+}
 /* translates first such that the center is at origin */
 glm::vec2 Polygon::transform_center(glm::vec2 point, glm::vec2 center)
 {
@@ -111,7 +124,7 @@ glm::vec2 Polygon::getPoint(int vertex_number, float alpha)
 {
     int next_vertex_number = vertex_number + 1;
     if (next_vertex_number >= vertices.size()) next_vertex_number = 0;
-    return vertices[vertex_number] * (1 - alpha) + vertices[next_vertex_number] * alpha;
+    return  transform(vertices[vertex_number]) * (1 - alpha) + transform(vertices[next_vertex_number]) * alpha;
 }
 
 

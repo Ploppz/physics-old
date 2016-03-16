@@ -29,6 +29,7 @@ private:
     std::vector<int> start_indices;
 
     glm::vec3 color1, color2;
+    glm::vec3 lines_color;
 
     // Programs
     GLuint pos2_program, color_program;
