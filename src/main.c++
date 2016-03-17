@@ -229,7 +229,7 @@ int main()
             // a.appendLinesToVector(renderer.lines_buffer);
             // glm::vec2 vel(0.5f, 0.5f);
             // glm::vec2 vel(2, 1);
-            glm::vec2 vel(0.7, -5);
+            glm::vec2 vel(1, 0);
             if(1)
             {
                 // LineStrip i = a.CastInternalShadow(-vel, &b2.shape());

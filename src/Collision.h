@@ -68,7 +68,7 @@ struct HybridVertex
 /* Algorithm */
 struct EdgePoint {
     EdgePoint() {};
-    EdgePoint(int index, float alpha, Polygon* parent) : index(index), alpha(alpha), parent(parent) {}
+    EdgePoint(int index, float alpha, Polygon* parent);
     void set(int index, float alpha) {this->index = index; this->alpha = alpha; }
     void set(int index, float alpha, Polygon* parent) {this->index = index; this->alpha = alpha; this->parent = parent; }
 
@@ -92,9 +92,12 @@ struct Manifold {
 struct LineStrip
 {
     LineStrip(Polygon* parent) : parent(parent) {}
-    void appendLinesToVector(std::vector<float> &list);
+    
     Polygon* parent; // each EdgePoint also has one - questionable if needed
     std::vector<EdgePoint> vertices;
+
+    void appendLinesToVector(std::vector<float> &list);
+
     class Vertex {
     public:
         Vertex(): index(0), parent(0) {};
@@ -104,6 +107,9 @@ struct LineStrip
         bool atEnd() {return index == parent->vertices.size() - 1;}
         void setIndex(int val);
         LineStrip* getParent() { return parent; }
+        // A point between two edge points is a new edge point...
+        EdgePoint toEdgePoint(float alpha);
+        EdgePoint toEdgePointReverse(float alpha);
         
         EdgePoint & operator* ();
         EdgePoint * operator-> ();

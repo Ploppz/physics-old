@@ -120,6 +120,18 @@ Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Poly
     LineStrip r_strip = CastInternalShadow(-v, reference);
     std::cout << " -- subject -- " << std::endl;
     LineStrip s_strip = CastInternalShadow(v, subject);
+    /* test */
+    // testing a solution that nearly fixes it // TODO
+    /* if (r_strip.vertices[0].alpha > 0) {
+        r_strip.vertices[0].index --;
+        r_strip.vertices[0].alpha = 0;
+    }
+    if (r_strip.vertices.back().alpha > 0) {
+        r_strip.vertices.back().index ++;
+        r_strip.vertices.back().alpha = 0;
+
+    } */
+    /**/
     /*** Task: Find the line of longest distance in direction v, between the two line strips ***/
     /*** So after transformation, find line ... in x direction ***/
     /*** What we do know is that after transformation, the lines start and end at the same y values ***/
@@ -141,10 +153,13 @@ Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Poly
     vec2 r_vec = align_transform * r->point_t();
     vec2 s_vec = align_transform * s->point_t();
     vec2 r_vec_next, s_vec_next;
+#define manifold_debug false
 #define R false
 #define S true
     bool current = R;
+    int ctr = 0;
     while (true) {
+        // TODO HERE: Seems like we have the wrong polygon in vertex_point and edge_point
         /* Treat */
         // std::cout << r.getIndex() << ", " << s.getIndex() << std::endl;
         float alpha;
@@ -152,23 +167,41 @@ Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Poly
         if (current == R) {
             intersect_x = intersect_horizontal(s_vec, s_vec_next - s_vec, r_vec.y, alpha);
             vec2 projected_point = s_vec + alpha * (s_vec_next - s_vec);
-            renderer.addVector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+
+            if (manifold_debug) renderer.addVector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+
             float depth = glm::length(projected_point - r_vec);
             if (depth > max_manifold.depth) {
                 max_manifold.depth = depth;
-                max_manifold.vertex_point = EdgePoint(r.getIndex(), 0, reference);
-                max_manifold.edge_point = EdgePoint(s.getIndex(), alpha, subject);
+                // max_manifold.vertex_point = EdgePoint(r->index, 0, reference);
+                // max_manifold.edge_point = EdgePoint(s->index, alpha, subject);
+                max_manifold.vertex_point = r.toEdgePoint(0);
+                max_manifold.edge_point = s.toEdgePoint(alpha);
             }
         } else {
             intersect_x = intersect_horizontal(r_vec, r_vec_next - r_vec, s_vec.y, alpha);
             vec2 projected_point = r_vec + alpha * (r_vec_next - r_vec);
-            renderer.addVector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+
+            if (manifold_debug) renderer.addVector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+            // std::cout << "alpha goes from " << to_string(align_inverse * r_vec) << " to " << to_string(align_inverse * r_vec_next) << std::endl;
+            renderer.addDot(align_inverse * r_vec);
+            renderer.addDot(align_inverse * r_vec_next);
+
             float depth = glm::length(projected_point - s_vec);
             if (depth > max_manifold.depth) {
                 max_manifold.depth = depth;
-                max_manifold.vertex_point = EdgePoint(s.getIndex(), 0, subject);
-                max_manifold.edge_point = EdgePoint(r.getIndex(), alpha, reference);
+                // max_manifold.vertex_point = EdgePoint(s->index, 0, subject);
+                // max_manifold.edge_point = EdgePoint(r->index - 1, 1 - alpha, reference);
+                max_manifold.vertex_point = s.toEdgePoint(0);
+                max_manifold.edge_point = r.toEdgePointReverse(alpha);
+                std::cout << "- pre  " << r->index << ", " << r->alpha << std::endl;
+                std::cout << "- post " << max_manifold.edge_point.index << ", " << max_manifold.edge_point.alpha << " with alpha " << alpha << std::endl;
+                // max_manifold.edge_point.alpha = 1 - alpha;
+                // max_manifold.edge_point.index --;
+                // max_manifold.edge_point.index %= reference->vertices.size();
             }
+            // break;
+            // TODO erroneous behaviour happens when start and end of LineStrip are on same edge
         }
 
         /* Advance */
@@ -185,8 +218,11 @@ Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Poly
                 ++ s;
             current = S;
         }
+
         r_vec = align_transform * r->point_t();
         s_vec = align_transform * s->point_t();
+        r_vec_next = align_transform * (--LineStrip::Vertex(r))->point_t();
+        s_vec_next = align_transform * (++LineStrip::Vertex(s))->point_t();
     }
     /* std::cout << (max.edge_owner == reference) << std::endl;
     renderer.addDot(align_inverse * max.point->point); */
@@ -197,11 +233,24 @@ Manifold Intersection::manifold(vec2 relative_velocity, Polygon* reference, Poly
      */
     Polygon::Edge collision_edge(max_manifold.edge_point.index, max_manifold.edge_point.parent);
     vec2 edge_direction = collision_edge.end() - collision_edge.start();
-    vec2 collision_normal = vec2(-edge_direction.y, edge_direction.x);
+    vec2 collision_normal = normalize(vec2(-edge_direction.y, edge_direction.x));
 
     result.subj_point = max_manifold.vertex_point;
     result.ref_point = max_manifold.edge_point;
-    result.normal = collision_normal * max_manifold.depth;
+    result.normal = collision_normal;
+
+    vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
+
+    {
+        std::cout << "Alpha = " << max_manifold.edge_point.alpha << std::endl;
+        EdgePoint a = max_manifold.edge_point;
+        a.alpha = 0;
+        EdgePoint b = a;
+        b.alpha = 1;
+        std::cout << "\t alpha goes from .. " << to_string(a.point_t()) << " to " << to_string(b.point_t()) << std::endl;
+        std::cout << "Index = " << max_manifold.edge_point.index << std::endl;
+    }
+    renderer.addVector(max_manifold.vertex_point.point_t(), intersection_dir);
 
     return result;
 }
@@ -536,6 +585,27 @@ bool Intersection::Vertex::operator== (Intersection::Vertex& v)
 {
     return (index == v.index && parent == v.parent);
 }
+
+
+///////////
+EdgePoint::EdgePoint(int index, float alpha, Polygon* parent)
+    :alpha(alpha), parent(parent)
+{
+    if (index < 0) index += parent->vertices.size();
+    this->index = index % parent->vertices.size();
+}
+glm::vec2 EdgePoint::point()
+{
+    int next_index = (index + 1) % parent->vertices.size();
+    return (1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index];
+}
+glm::vec2 EdgePoint::point_t()
+{
+    int next_index = (index + 1) % parent->vertices.size();
+    // return parent->transform((1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index]);
+    return parent->transform(parent->vertices[index] + alpha * (parent->vertices[next_index] - parent->vertices[index]));
+
+}
 /////////// Vertex of Line Strip
 // TODO there are a lot of copies of this class for different kinds of geometric things... make template class?
 
@@ -548,15 +618,21 @@ void LineStrip::Vertex::setIndex(int val)
     if (index < 0) index += parent->vertices.size();
     index = index % parent->vertices.size();
 }
-glm::vec2 EdgePoint::point()
+EdgePoint LineStrip::Vertex::toEdgePoint(float alpha)
 {
-    int next_index = (index + 1) % parent->vertices.size();
-    return parent->vertices[index];
+    return EdgePoint((*this)->index, (*this)->alpha + (1 - (*this)->alpha) * alpha, parent->parent);
 }
-glm::vec2 EdgePoint::point_t()
+EdgePoint LineStrip::Vertex::toEdgePointReverse(float alpha) // where alpha represents progress in reverse direction from this LineStrip::Vertex
 {
-    int next_index = (index + 1) % parent->vertices.size();
-    return parent->transform((1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index]);
+    // TODO does assume contiguous vertices
+    if ((*this)->alpha == 0) {
+        Vertex a = *this;
+        -- a;
+        std::cout << " index == 0" << std::endl;
+        return a.toEdgePoint(1 - alpha);
+    }
+    std::cout << " index != 0" << std::endl;
+    return EdgePoint((*this)->index, (*this)->alpha * (1 - alpha), parent->parent);
 }
 EdgePoint& LineStrip::Vertex::operator* ()
 {

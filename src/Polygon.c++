@@ -18,7 +18,7 @@
 #include <set>
 #include <sstream>
 
-#define DRAW_VERTEX_NUMBERS false
+#define DRAW_VERTEX_NUMBERS true
 
 /*
 Some useful sources I used. (not exhaustive)
