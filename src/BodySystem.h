@@ -4,9 +4,9 @@
 #include <vector>
 #include <iostream>
 
-#include "Polygon.h"
+#include "geometry/Polygon.h"
 #include "glutils.h"
-#include "Geometry.h"
+#include "geometry/geometry.h"
 
 
 enum PositionType { ABSOLUTE, RELATIVE };
@@ -20,11 +20,11 @@ public:
 	BodySystem();
 
 	void timestep(float delta);
-	Body addBody(); // Returns index of new body
-    Body addBody(Body parent);
-    int numBodies() const { return count; }
-	Body getBody(int index);
-	Polygon& getPolygon(int body);
+	Body add_body(); // Returns index of new body
+    Body add_body(Body parent);
+    int num_bodies() const { return count; }
+	Body get_body(int index);
+	Polygon& get_polygon(int body);
 
     std::vector<Intersect> overlaps(Body a, Body b);
 private:
@@ -40,7 +40,7 @@ private:
 	std::vector<glm::vec2> force;
 
 	std::vector<float> orientation;
-	std::vector<float> angularSpeed;
+	std::vector<float> angular_speed;
 	std::vector<float> torque;
 
 	// Temporary solution: only one polygon each Body
@@ -71,7 +71,7 @@ public:
 		inline glm::vec2& force() { return system->force[index]; }
 
 		inline float& orientation() { return system->orientation[index]; }
-		inline float& angularSpeed() { return system->angularSpeed[index]; }
+		inline float& angular_speed() { return system->angular_speed[index]; }
 		inline float& torque() { return system->torque[index]; }
 
 		inline Polygon& shape() { return system->shape[index]; }
@@ -79,9 +79,9 @@ public:
         inline Body& parent() { return system->parent[index]; }
 
 	// Drawing
-        void addToBuffer(BufferWriter<float> &buffer);
-		void addToBuffer(std::vector<float> &buffer);
-		unsigned int addToBuffer(float *buffer, int offset);
+        void add_to_buffer(BufferWriter<float> &buffer);
+		void add_to_buffer(std::vector<float> &buffer);
+		unsigned int add_to_buffer(float *buffer, int offset);
 	// Iterator TODO
 
 private:

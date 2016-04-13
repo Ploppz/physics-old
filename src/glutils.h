@@ -88,10 +88,10 @@ public:
         size += 3;
     }
 
-    T* getPtr() {
+    T* get_ptr() {
         return ptr;
     }
-    int getCurrentSize() {
+    int get_current_size() {
         return size;
     }
 

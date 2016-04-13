@@ -2,7 +2,8 @@
 
 // class POLYGON
 
-#include "glutils.h"
+#include "constants.h"
+#include "../glutils.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <iterator>
@@ -12,17 +13,9 @@ class SubPolygon;
 
 struct Intersect;
 
-struct NewVertex;
-struct FullIntersect;
-
 struct HybridVertex;
 struct Intersection;
 
-enum Axis { X=0, Y=1 };
-
-typedef bool Direction;
-const bool BACK = false;
-const bool FORTH = true;
 
 typedef std::pair<glm::vec2, glm::vec2> LineSegment;
 struct Triangle
@@ -35,8 +28,8 @@ struct Triangle
 class Polygon
 {
 public:
-    static std::vector<Intersect> overlaps(Polygon& a, Polygon& b);
-    static std::vector<Intersection> ExtractIntersections(Polygon& p, Polygon& q, bool flip_logic);
+    static std::vector<Intersect> find_intersects(Polygon& a, Polygon& b);
+    static std::vector<Intersection> extract_intersections(Polygon& p, Polygon& q, bool flip_logic);
 public:
 	Polygon();
 
@@ -47,23 +40,23 @@ public:
     glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
 
 
-    void appendStencilTriangles(BufferWriter<float> &buffer);
-    void appendLinesToVector(std::vector<float> &list);
+    void append_stencil_triangles(BufferWriter<float> &buffer);
+    void append_lines_to_vector(std::vector<float> &list);
 	// SHAPE
-	float signedArea();
+	float signed_area();
 	glm::vec2 centroid();
 	float radius();
-    glm::vec2 getPoint(int vertex_number, float alpha);
+    glm::vec2 get_point(int vertex_number, float alpha);
 
 	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
-	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines);
+	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &added_lines);
 
 
 
 
 	// Iterating
-	int numEdges();
-	LineSegment getEdge(int index);
+	int num_edges();
+	LineSegment get_edge(int index);
 
     ///////////////////////
     // Vertex smart-pointer
@@ -73,9 +66,9 @@ public:
     public:
         Vertex(): index(0), parent(0) {};
         Vertex(int index, Polygon *parent);
-        int getIndex() { return index; }
-        void setIndex(int val);
-        Polygon* getParent() { return parent; }
+        int get_index() { return index; }
+        void set_index(int val);
+        Polygon* get_parent() { return parent; }
         
         glm::vec2 & operator* ();
         glm::vec2 * operator-> ();
@@ -111,8 +104,8 @@ public:
         glm::vec2 & end() const;
         glm::vec2 start_tr() const; // World coordinates
         glm::vec2 end_tr() const;
-        int getIndex() const { return index; }
-        Polygon* getParent() const { return parent; }
+        int get_index() const { return index; }
+        Polygon* get_parent() const { return parent; }
 
     private:
         int index;
@@ -131,9 +124,9 @@ public:
         glm::vec2 & end() const;
         glm::vec2 start_tr() const; // World coordinates
         glm::vec2 end_tr() const;
-        int getIndex() const { return start_index; }
-        Polygon* getParent() const { return parent; }
-        float getAlpha() const { return alpha; }
+        int get_index() const { return start_index; }
+        Polygon* get_parent() const { return parent; }
+        float get_alpha() const { return alpha; }
     private:
         int start_index;
         float alpha; // how far from start to end the point is along the edge
@@ -150,11 +143,9 @@ public:
             :parent(parent), start_index(vertex1), end_index(vertex2) {};
         glm::vec2& start() const { return parent->vertices[start_index];}
         glm::vec2& end() const   { return parent->vertices[end_index];}
-        int startIndex()        { return start_index;}
-        int endIndex()          { return end_index;}
 
         Diagonal& operator= (Diagonal rhs) { parent=rhs.parent; start_index=rhs.start_index; end_index=rhs.end_index; return *this;}
-    private:
+// was private ..
         Polygon *parent;
         int start_index;
         int end_index;
@@ -183,9 +174,9 @@ public:
     std::vector<int> indices; // Indices in polygon vertex buffer
     Polygon* mother;
 
-	float signedArea();
+	float signed_area();
     void fill(); // Let subpolygon be the full polygon
-    bool containsDiagonal(int a, int b); // Returns true if vertices a and b are contained
+    bool contains_diagonal(int a, int b); // Returns true if vertices a and b are contained
     void split(int a, int b, SubPolygon& out1, SubPolygon& out2); // Split into two polygons at edge (a, b)
     template <Axis axis>
     void monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction dir);
@@ -199,9 +190,9 @@ public:
         // index: This is the index into the indices array of the subpolygon
         Vertex() :index(0), parent(0) {}
         Vertex(int index, SubPolygon *parent);
-        int getIndex() { return parent->indices[index]; }
-        int getIndexIndex() { return index; }
-        void setIndex(int val) { index = val; }
+        int get_index() { return parent->indices[index]; }
+        int get_index_index() { return index; }
+        void set_index(int val) { index = val; }
         
         glm::vec2 & operator* ();
         glm::vec2 * operator-> ();
@@ -226,9 +217,9 @@ public:
         int x(int y) const;
         glm::vec2 & start() const;
         glm::vec2 & end() const;
-        int getIndex() const;
-        int getIndexIndex() const { return index; }
-        SubPolygon& getParent() const { return *parent; }
+        int get_index() const;
+        int get_index_index() const { return index; }
+        SubPolygon& get_parent() const { return *parent; }
     private:
         int index;
         SubPolygon *parent;

@@ -10,14 +10,14 @@
 #include "BodySystem.h"
 #include "glutils.h"
 #include "typewriter/FontRenderer.h"
-#include "Geometry.h"
+#include "geometry/geometry.h"
 
 extern FontRenderer *fontRenderer;
 
 using namespace glm;
 
 BodySystem::BodySystem()
-	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, angularSpeed {}, torque {}, shape {}
+	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, angular_speed {}, torque {}, shape {}
 {
 }
 
@@ -30,7 +30,7 @@ void BodySystem::timestep(float delta)
 	}
 }
 
-Body BodySystem::addBody()
+Body BodySystem::add_body()
 {
     position_type.push_back(RELATIVE);
 	mass.push_back( 0 );
@@ -40,7 +40,7 @@ Body BodySystem::addBody()
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-	angularSpeed.push_back( 0 );
+	angular_speed.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
 
@@ -50,7 +50,7 @@ Body BodySystem::addBody()
 	++ count;
 	return Body(this, count - 1);
 }
-Body BodySystem::addBody(Body parent)
+Body BodySystem::add_body(Body parent)
 {
 
     position_type.push_back(RELATIVE);
@@ -61,7 +61,7 @@ Body BodySystem::addBody(Body parent)
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-	angularSpeed.push_back( 0 );
+	angular_speed.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
 
@@ -74,7 +74,7 @@ Body BodySystem::addBody(Body parent)
 	return Body(this, count - 1);
 }
 
-Body BodySystem::getBody(int index)
+Body BodySystem::get_body(int index)
 {
 	return Body(this, index);
 }
@@ -113,7 +113,7 @@ vec2 Body::real_position()
 
 using namespace std;
 
-void Body::addToBuffer(std::vector<float> &buffer)
+void Body::add_to_buffer(std::vector<float> &buffer)
 {
 	// Test: render lines.
 	std::vector<glm::vec2>::iterator next;
@@ -163,7 +163,7 @@ void Body::addToBuffer(std::vector<float> &buffer)
 		buffer.push_back(0);
 	} */
 }
-void Body::addToBuffer(BufferWriter<float> &buffer)
+void Body::add_to_buffer(BufferWriter<float> &buffer)
 {
 	// Test: render lines.
 	std::vector<glm::vec2>::iterator next;
@@ -188,10 +188,10 @@ void Body::addToBuffer(BufferWriter<float> &buffer)
         i ++;
 	}
 }
-unsigned int Body::addToBuffer(float *buffer, int offset)
+unsigned int Body::add_to_buffer(float *buffer, int offset)
 {
 	std::vector<float> data;
-	addToBuffer(data);
+	add_to_buffer(data);
 	// Write data to buffer
 	
 	std::copy(data.begin(), data.end(), buffer + offset);

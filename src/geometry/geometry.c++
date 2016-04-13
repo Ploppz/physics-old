@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cfloat>
 
-#include "Geometry.h"
+#include "geometry.h"
 
 using namespace glm;
 
@@ -123,9 +123,9 @@ bool inside(vec2 point, Polygon& p)
     int counter = 0;
     glm::vec2 delta;
     float t;
-    for (int i = 0; i < p.numEdges(); i ++)
+    for (int i = 0; i < p.num_edges(); i ++)
     {
-        edge = p.getEdge(i);
+        edge = p.get_edge(i);
         //TODO did some changes here
         edge.first = p.transform(edge.first);
         edge.second = p.transform(edge.second);

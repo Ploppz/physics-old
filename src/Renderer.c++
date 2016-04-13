@@ -5,7 +5,7 @@
 #include "tmp.h"
 #include "Renderer.h"
 #include "BodySystem.h"
-#include "Geometry.h"
+#include "geometry/geometry.h"
 /* glm */
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -25,7 +25,7 @@ GLfloat quad[] = {
 
 const int lines_vbo_size = 300;
 
-void Renderer::uploadVertices()
+void Renderer::upload_vertices()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
     start_indices.clear();
@@ -33,18 +33,18 @@ void Renderer::uploadVertices()
 
     // Estimate size
     int size = 0;
-    for (int i = 0; i < system.numBodies(); i ++)
+    for (int i = 0; i < system.num_bodies(); i ++)
     {
-        size += system.getBody(i).shape().vertices.size() * 2;
+        size += system.get_body(i).shape().vertices.size() * 2;
     }
     
     BufferWriter<float> buffer(size);
-    for (int i = 0; i < system.numBodies(); i ++)
+    for (int i = 0; i < system.num_bodies(); i ++)
     {
-        start_indices.push_back(buffer.getCurrentSize() / VERT_SIZE);
-        system.getBody(i).shape().appendStencilTriangles(buffer);
+        start_indices.push_back(buffer.get_current_size() / VERT_SIZE);
+        system.get_body(i).shape().append_stencil_triangles(buffer);
     }
-    start_indices.push_back(buffer.getCurrentSize() / VERT_SIZE); // This line is just so we don't need to check end of vector
+    start_indices.push_back(buffer.get_current_size() / VERT_SIZE); // This line is just so we don't need to check end of vector
 }
 
 Renderer::Renderer(BodySystem& system)
@@ -92,7 +92,7 @@ Renderer::Renderer(BodySystem& system)
     setFormat("position 2f", color_program);
 }
 
-glm::vec2 Renderer::centerScreenPosition(float center_x, float center_y, int width, int height, float zoom)
+glm::vec2 Renderer::center_screen_position(float center_x, float center_y, int width, int height, float zoom)
 {
     // note: center_x is the world position that corresponds to center of screen
     glm::mat4 proj = ortho2D(width * zoom, height * zoom, 0, 1);
@@ -106,7 +106,7 @@ glm::vec2 Renderer::centerScreenPosition(float center_x, float center_y, int wid
 }
 void Renderer::render(float center_x, float center_y, int width, int height, float zoom)
 {
-    uploadVertices();
+    upload_vertices();
     glClear(GL_STENCIL_BUFFER_BIT);
     glEnable(GL_STENCIL_TEST);
 // Draw stencil triangles
@@ -127,7 +127,7 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     assert(start_indices.size() > 0); // The loop still loops when size == 0....... 
     for (int i = 0; i < start_indices.size() - 1; i ++) 
     {
-        position = system.getBody(i).real_position();
+        position = system.get_body(i).real_position();
         length = start_indices[i + 1] - start_indices[i];
         model = glm::translate(glm::mat4{}, glm::vec3(position, 0));
         glUniformMatrix4fv(uni_model, 1, GL_FALSE, glm::value_ptr(model));
@@ -165,16 +165,16 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     lines_buffer.clear(); 
 }
 
-void Renderer::setColor1(float r, float g, float b)
+void Renderer::set_color_1(float r, float g, float b)
 {
     color1 = glm::vec3(r, g, b);
 }
-void Renderer::setColor2(float r, float g, float b)
+void Renderer::set_color_2(float r, float g, float b)
 {
     color2 = glm::vec3(r, g, b);
 }
 
-void Renderer::addDot(glm::vec2 dot)
+void Renderer::add_dot(glm::vec2 dot)
 {
     const int radius = 2;
 
@@ -188,7 +188,7 @@ void Renderer::addDot(glm::vec2 dot)
     lines_buffer.push_back(dot.x - radius);
     lines_buffer.push_back(dot.y + radius);
 }
-void Renderer::addVector(glm::vec2 point, glm::vec2 vec)
+void Renderer::add_vector(glm::vec2 point, glm::vec2 vec)
 {
     const int radius = 4;
     const float arrow_angle = 2.4f;

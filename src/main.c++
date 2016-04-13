@@ -37,12 +37,12 @@
 #include "Renderer.h"
 #include "shaders.h"
 #include "glutils.h"
-#include "Polygon.h"
-#include "Geometry.h"
 #include "BodySystem.h"
 #include "World.h"
 #include "Input.h"
-#include "Collision.h"
+#include "geometry/Intersection.h"
+#include "geometry/Polygon.h"
+#include "geometry/geometry.h"
 // Typewriter
 #include "typewriter/FontTexture.h"
 #include "typewriter/FontRenderer.h"
@@ -137,11 +137,11 @@ int main()
 	// b1 = world.bodies.addBody();
 	// b1.shape() = p;
 
-    b2 = world.bodies.addBody();
+    b2 = world.bodies.add_body();
     b2.shape() = q;
     b2.position_type() = ABSOLUTE;
 
-    b3 = world.bodies.addBody();
+    b3 = world.bodies.add_body();
     b3.shape() = r;
     b2.position_type() = ABSOLUTE;
 	
@@ -166,8 +166,8 @@ int main()
 
     
     Renderer renderer(world.bodies);
-    renderer.setColor1(0.1f, 0.1f, 0);
-    renderer.setColor2(0, 0.5f, 0);
+    renderer.set_color_1(0.1f, 0.1f, 0);
+    renderer.set_color_2(0, 0.5f, 0);
 
 	int width, height;
     float zoom = 1;
@@ -223,26 +223,8 @@ int main()
         for (Intersect i : intersects) {
             renderer.addDot(i.point);
         }  */
-        std::vector<Intersection> intersections = Polygon::ExtractIntersections(b3.shape(), b2.shape(), false);
+        std::vector<Intersection> intersections = Polygon::extract_intersections(b3.shape(), b2.shape(), false);
         if (intersections.size() > 0) {
-            Intersection a = intersections[0];
-            // a.appendLinesToVector(renderer.lines_buffer);
-            // glm::vec2 vel(0.5f, 0.5f);
-            // glm::vec2 vel(2, 1);
-            glm::vec2 vel(1, 0);
-            if(1)
-            {
-                // LineStrip i = a.CastInternalShadow(-vel, &b2.shape());
-                // LineStrip j = a.CastInternalShadow(vel, &b3.shape());
-                // i.appendLinesToVector(renderer.lines_buffer);
-                // j.appendLinesToVector(renderer.lines_buffer);
-            }
-            a.manifold(vel, &b2.shape(), &b3.shape(), renderer);
-            renderer.addVector(glm::vec2(0, 0), glm::vec2(0, 1));
-
-            // draw collision normal
-            /* Manifold m = a.manifold(glm::vec2(1, 0), &b2.shape(), &b3.shape());
-            renderer.addVector(a.centroid(), m.normal);  */
         }
         // for (auto it = intersections.begin(); it != intersections.end(); it ++) {
             // it->appendLinesToVector(renderer.lines_buffer);

@@ -1,24 +1,29 @@
-SHELL := /bin/bash
-MAIN = src/main.c++
+SHELL = /bin/bash
+DEFAULT_MAIN = src/main.c++
+MAIN := $(DEFAULT_MAIN)
 MSG = tools/msg
 OBJDIR = .obj
-SOURCE_CPP = $(shell ~/scripts/make/find-filetype src c++)
-OBJECTS = $(shell /home/ploppz/scripts/make/getobjects src c++ c)
+SOURCE_CPP := $(shell ~/scripts/make/find-filetype src c++) $(MAIN)
+OBJECTS := $(shell /home/ploppz/scripts/make/getobjects src c++ c)
 
 # Add object file of the main file
 # OBJECTS += $(patsubst */%.c++, .obj/%.o, $(MAIN))
-MAIN_STEM = $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.c++/\1/g')
+MAIN_STEM := $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.c++/\1/g')
 OBJECTS += .obj/$(MAIN_STEM).o
+ifneq "$(MAIN)" "$(DEFAULT_MAIN)"
+	OBJECTS += .obj/catch.o
+endif
 
 
 PROGRAM = bin/$(MAIN_STEM)
 
-SHADERS = $(shell ~/scripts/make/find-filetype src glsl)
-FRAGSHADERS = $(shell ~/scripts/make/find-filetype src frag)
-VERTSHADERS = $(shell ~/scripts/make/find-filetype src vert)
-SHADER_OBJ = $(shell ~/scripts/make/getshaderobjects src)
+SHADERS := $(shell ~/scripts/make/find-filetype src glsl)
+FRAGSHADERS := $(shell ~/scripts/make/find-filetype src frag)
+VERTSHADERS := $(shell ~/scripts/make/find-filetype src vert)
+SHADER_OBJ := $(shell ~/scripts/make/getshaderobjects src)
 # We have to add the include directory because freetype uses relative (to freetype2 dir) include file names
-FLAGS = -std=c++11 -ggdb -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable -Wno-unused-but-set-variable
+FLAGS = -std=c++11 -ggdb -Isrc -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable -Wno-unused-but-set-variable
+# FLAGS = -std=c++11 -ggdb -Isrc -I/usr/include/freetype2 -Wall -Wextra
 LDFLAGS = -lglfw -lGL -lGLEW -lfreetype
 DEFINE = -DFREETYPE_GL_USE_VAO -DUSE_GLFW
 CXX = g++
@@ -27,6 +32,8 @@ CXX = g++
 
 COMMA=","
 
+# TODO progress:
+# Fixed the shaders.h problem BUT files compile before Make generates src/shaders.h
 
 $(PROGRAM) : objects
 
@@ -35,20 +42,21 @@ objects : $(OBJECTS) $(SHADER_OBJ)
 	$(CXX) -o $(PROGRAM) $(OBJECTS) $(SHADER_OBJ) $(LDFLAGS) $(FLAGS)
 	#
 	rm -f $(patsubst src/%.glsl, src/%.c++, $(SHADERS))
+	@echo -e '\e[0m'
 
 # Source files
 $(OBJDIR)/%.o : src/%.c++ | $(OBJDIR)
-	@$(MSG) "c++ - $<"
+	@$(MSG) "Compile $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
 	@mkdir -p $$(dirname "$@")
 
 $(OBJDIR)/%.o : src/%.c | $(OBJDIR)
-	@$(MSG) "c"
+	@$(MSG) "Compile $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
 
 # Unit tests main files
 $(OBJDIR)/%.o : tests/%.c++ | $(OBJDIR)
-	@$(MSG) "Unit test c++ - $<"
+	@$(MSG) "Compile unit test main file - $<"
 	$(CXX) -c $< -o $@ $(DEFINE) $(FLAGS)
 	@mkdir -p $$(dirname "$@")
 
@@ -84,10 +92,9 @@ $(OBJDIR):
 
 .depend : $(SOURCE_CPP)
 	@# Needs to be silenced so that `flags` can run 'undisturbed'
-	@#$(MSG) ".depend"
-	@# DID: don't cd, then you don't need to prefix with src (?)
-	@ # Prefix prereqs with src/, and objects with $(OBJDIR)/
-	@$(CXX) -MM -MG $^ -std=c++11 | sed 's/\(.*\:\)/$(OBJDIR)\/\1/g' > .depend;
+	@ # Prefix prereqs with src/, and objects with $(OBJDIR)/.
+	@# Make sure shaders.h is prefixed with src/shaders.h
+	@$(CXX) -MM -MG $^ -std=c++11 | sed 's/\(.*\:\)/$(OBJDIR)\/\1/g' | sed 's/ \(shaders\.h\|\.\.\/shaders\.h\) / src\/shaders.h /g' > .depend;
 
 
 clean:
@@ -96,4 +103,3 @@ flags:
 	@echo "$(FLAGS)"
 
 -include .depend
-# DO NOT DELETE

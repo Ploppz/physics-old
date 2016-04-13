@@ -1,4 +1,3 @@
-#include "Polygon.h"
 #include "BodySystem.h"
 #include "glutils.h"
 
