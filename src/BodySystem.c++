@@ -1,4 +1,9 @@
-
+/** Thoughts
+update_body could be a member function of Body?
+should BS work with Body or int?
+**/
+#include "Renderer.h"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <vector>
 #include <iostream>
@@ -11,28 +16,249 @@
 #include "glutils.h"
 #include "typewriter/FontRenderer.h"
 #include "geometry/geometry.h"
+#include "geometry/Intersection.h"
 
 extern FontRenderer *fontRenderer;
 
 using namespace glm;
 
 BodySystem::BodySystem()
-	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, angular_speed {}, torque {}, shape {}
+	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
 }
 
-void BodySystem::timestep(float delta)
+void BodySystem::timestep(float delta_time)
 {
 	for (int i = 0; i < count; i ++)
 	{
-		position[i] += velocity[i];
-        shape[i].matrix = glm::translate(glm::mat3 {}, position[i]);
+        
+        update_body(i, delta_time);
+        
+        /* shape[i].position = position[i];
+        shape[i].orientation = orientation[i]; */
 	}
+
+    for (Body p : top_level_bodies)
+    {
+        treat_body_tree(p, delta_time);
+    }
+}
+void BodySystem::update_body(int index, float delta_time)
+{
+    position[index] += delta_time * velocity[index] * simulation_speed;
+    orientation[index] += delta_time * rotation[index] * simulation_speed; 
+
+    /* Copy transformation information for the Polygon object */
+    shape[index].position = position[index];
+    shape[index].orientation = orientation[index];
 }
 
+
+/** Treating bodies: penetration and physical **/
+
+void BodySystem::treat_body_tree(Body root, float delta_time)
+{
+    // Children can't go outside of parent polygon:
+    root.mode = POLYGON_OUTSIDE;
+    for (int i = 0; i < children[root.index].size(); i ++)
+    {
+        Body child = children[root.index][i];
+        child.mode = POLYGON_INSIDE;
+
+        /* Test against parent */
+        treat(child, root, delta_time);
+
+        /* Test against siblings */
+        for (int j = i+1; j < children[root.index].size(); j ++)
+        {
+            Body second_child = children[root.index][j];
+            second_child.mode = POLYGON_INSIDE;
+
+            treat(child, second_child, delta_time);
+        }
+        /* Recurse the tree */
+        treat_body_tree(child, delta_time);
+    }
+}
+
+void BodySystem::treat(Body b1, Body b2, float delta_time)
+{
+    std::cout << "TESTING " << b1.index << " against " << b2.index << std::endl;
+    std::vector<Intersection> intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(),
+                                                                                bool(b1.mode), bool(b2.mode)); 
+    if (intersections.size() == 0)
+        return;
+    Contact contact = find_earliest_contact(b1, b2, intersections, delta_time);
+    simulation_speed = 0;
+    return;
+    resolve_penetration(b1, b2, contact);
+    physical_reaction(b1, b2, contact);
+}
+void BodySystem::resolve_penetration(Body b1, Body b2, Contact c)
+{
+    update_body(b1.index, -c.rewind_time);
+    update_body(b2.index, -c.rewind_time);
+}
+void BodySystem::physical_reaction(Body b1, Body b2, Contact c)
+{
+}
+
+Contact BodySystem::find_earliest_contact(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
+{
+    Contact earliest_contact;
+    earliest_contact.rewind_time = 0;
+
+    if (intersections.size() == 0) {
+        return earliest_contact;
+    }
+
+    for (auto it = intersections.begin(); it != intersections.end(); it ++)
+    {
+        Contact c = calculate_contact(b1, b2, *it, delta_time);
+        if (c.rewind_time > earliest_contact.rewind_time)
+            earliest_contact = c;
+    }
+    std::cout << "\tChosen contact: " << earliest_contact.rewind_time << std::endl;
+    return earliest_contact;
+}
+
+Contact BodySystem::calculate_contact(Body b1, Body b2, Intersection& intersection, float delta_time)
+{
+    assert(renderer);
+    renderer->append_lines_to_vector(intersection);
+    /** Possibilities
+     Send 'intersection' to rewind_out_of to only consider those edges?
+    **/
+
+    /* Find the Contact with the highest rewind time */
+    Contact best_contact;
+    best_contact.rewind_time = 0;
+    for (auto it = intersection.vertices.begin(); it != intersection.vertices.end(); it ++)
+    {
+        if ( ! (it->intersect)) {
+            if (it->owner == &b1.shape()) {
+                Contact current_contact = rewind_out_of(*it, b2, b1, delta_time);
+                if (current_contact.rewind_time > best_contact.rewind_time) {
+                    best_contact = current_contact;
+                }
+            } else if (it->owner == &b2.shape()) {
+                Contact current_contact = rewind_out_of(*it, b1, b2, delta_time);
+                if (current_contact.rewind_time > best_contact.rewind_time) {
+                    best_contact = current_contact;
+                }
+            }
+        }
+    }
+    std::cout << "contact candidate: " << best_contact.rewind_time << std::endl;
+    return best_contact;
+}
+
+
+/**
+Numerically appoximate
+at what time `point`, belonging to `subject`, no longer is inside `reference`
+The Intersection is used as a guide of which edges of the reference to pick.
+ -> In the future, we may want to check all edges or find a smarter way to select edges.
+**/
+inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
+{
+    assert(vertex.intersect == false);
+    const float error_threshold = 0.8f;
+    float error;
+    float time_offset = delta_time / 2.f;
+    float time_step_size =  delta_time / 2.f;
+    int closest_edge = -1;
+    float closest_edge_alpha = 0;
+
+    {
+        glm::vec2 point_now = relative_pos(vertex.point, reference, subject, 0);
+        renderer->add_dot(point_now);
+        glm::vec2 point_then = relative_pos(vertex.point, reference, subject, - delta_time);
+        renderer->add_dot(point_then);
+    }
+    int count = 0;
+    const int max_count = 10;
+    while (true)
+    {
+        std::cout << count << std::endl;
+        count ++;
+        if (count > max_count) break;
+        glm::vec2 point_at_time = relative_pos(vertex.point, reference, subject, - time_offset);
+        renderer->add_dot(point_at_time);
+
+        int closest_edge;
+        error = distance(point_at_time, reference.shape(), closest_edge, closest_edge_alpha);
+
+        if (reference.mode == POLYGON_OUTSIDE)
+            error = - error; // outside is inside
+
+        /** PERFORMANCE? get velocity, create better estimate of new time offset **/
+        
+        time_step_size *= 0.5f;
+        if (abs(error) <= error_threshold) // TODO 50% chance it's still inside, but can't check for error>0..
+            break;
+        /* std::cout << count << ": " << error << std::endl; */
+
+        //TODO error breaks when subject rotates...
+        std::cout << "error: " << error << std::endl;
+        std::cout << "\tedge: " << closest_edge << std::endl;
+        if (error > 0)  time_offset -= time_step_size;
+        else            time_offset += time_step_size;
+    }
+    Contact result;
+    result.rewind_time = time_offset;
+    result.normal = Polygon::Edge(closest_edge, &reference.shape()).normal_tr();
+    result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());
+    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    return result;
+}
+void BodySystem::just_plot_movement(Body reference, Body subject, float total_time, int samples)
+{
+    Polygon& p = subject.shape();
+    for (int vertex = 0; vertex < p.vertices.size(); vertex ++ )
+    {
+        for (int i = 0; i < samples; i ++)
+        {
+            float time = total_time / samples * i;
+            glm::vec2 rel_pos = relative_pos(p.transformed(vertex), reference, subject, time);
+            renderer->add_dot(rel_pos);
+        }
+    }
+}
+
+inline glm::vec2 center(Body body, float time_offset)
+{
+    return body.position() + time_offset * body.velocity();
+}
+inline glm::vec2 BodySystem::relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset)
+{
+    // PERFORMANCE There is a way to greatly optimize this.. a lot only has to be calculated once
+    float angle_wrt_subject = angle_of_vector(point - subject.position());
+    float angle_wrt_reference = angle_of_vector(point - reference.position());
+    float distance_from_subject = glm::length(point - subject.position());
+    float distance_from_reference = glm::length(point - reference.position());
+
+    // First, absolute position:
+    glm::vec2 translated_pos = subject.position() + subject.velocity() * time_offset
+        + unit_vector(angle_wrt_subject + time_offset * subject.rotation()) * distance_from_subject;
+    // Add translational velocity of reference
+    // Translate:
+    translated_pos -= time_offset * reference.velocity();
+    // Add rotational velocity of reference
+    // Rotate:
+    glm::vec2 relative_pos = translated_pos.x * unit_vector(reference.rotation() * time_offset)
+        + translated_pos.y * unit_vector_wrt_y(reference.rotation() * time_offset)
+        // constant (translation affiliated with rotation about a point):
+        + reference.position() - unit_vector(reference.rotation() * time_offset) * reference.position().x
+        - unit_vector_wrt_y(reference.rotation() * time_offset) * reference.position().y;
+    // PERFORMANCE notice the repeated use of the angle ref.rotation() * time... ^
+    return relative_pos;
+}
+
+/** BodySystem: Body management **/
 Body BodySystem::add_body()
 {
-    position_type.push_back(RELATIVE);
+    position_type.push_back(ABSOLUTE);
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
@@ -40,15 +266,17 @@ Body BodySystem::add_body()
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-	angular_speed.push_back( 0 );
+	rotation.push_back( 0 );
 	torque.push_back( 0 );
-	shape.push_back( Polygon () );
+	shape.push_back( Polygon() );
 
     children.push_back(std::vector<Body> {});
     parent.push_back(Body(this, -1)); // Invalid body
 
 	++ count;
-	return Body(this, count - 1);
+    Body new_body = Body(this, count - 1);
+    top_level_bodies.push_back(new_body);
+	return new_body;
 }
 Body BodySystem::add_body(Body parent)
 {
@@ -61,11 +289,10 @@ Body BodySystem::add_body(Body parent)
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-	angular_speed.push_back( 0 );
+	rotation.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
 
-    assert(parent.index <= int(children.size() - 1));
     children[parent.index].push_back(Body(this, count));
     children.push_back(std::vector<Body> {});
     this->parent.push_back(parent);
@@ -79,24 +306,13 @@ Body BodySystem::get_body(int index)
 	return Body(this, index);
 }
 
-// Collision
-
-typedef std::pair<glm::vec2, glm::vec2> LineSegment;
-
-bool inside(vec2 point, Polygon polygon);
-
-
-
-// For now this is copy-pasta code from Polygon: we just have to add the Body's pos.
-
-
-// class BODY
+//////////////
+/*** Body ***/
+//////////////
 
 Body::Body(BodySystem *system, int index)
-	: system(system), index(index)
-{
-	// std::cout << "Body .. " << index << std::endl;
-}
+	: mode(POLYGON_INSIDE), system(system), index(index)
+{ }
 
 vec2 Body::real_position()
 {
@@ -107,94 +323,20 @@ vec2 Body::real_position()
     }
 }
 
-
-
-// DRAWING
-
-using namespace std;
-
-void Body::add_to_buffer(std::vector<float> &buffer)
+Body& Body::operator++ ()
 {
-	// Test: render lines.
-	std::vector<glm::vec2>::iterator next;
-    int i = 0;
-	auto first = shape().vertices.begin();
-	for (auto it = first; it != shape().vertices.end(); it ++)
-    {
-		next = it; next ++;
-		buffer.push_back(it->x);
-		buffer.push_back(it->y);
-		// buffer.push_back(shape().color.r);
-		// buffer.push_back(shape().color.g);
-		// buffer.push_back(shape().color.b);
-		// Draw to next point
-		if (next != shape().vertices.end()) {
-			buffer.push_back(next->x);
-			buffer.push_back(next->y);
-		} else {
-			// End the shape.
-			buffer.push_back(first->x);
-			buffer.push_back(first->y);
-		}
-		// buffer.push_back(shape().color.r);
-		// buffer.push_back(shape().color.g);
-		// buffer.push_back(shape().color.b);
-        // Add text
-        fontRenderer->addText(static_cast<ostringstream*>( &(ostringstream() << i) )->str(), position().x + it->x, position().y + it->y,  false);
-        i ++;
-	}
-	
-	// RENDER RADIUS
-	/* float r = shape().radius();
-	glm::vec2 c = shape().centroid() + position();
-	for (int i = 0; i < 50; i ++) {
-		buffer.push_back(c.x + cos(i / 25.0f * M_PI) * r);
-		buffer.push_back(c.y + sin(i / 25.0f * M_PI) * r);
-		// Color
-		buffer.push_back(0);
-		buffer.push_back(1);
-		buffer.push_back(0);
-		//
-		buffer.push_back(c.x + cos((i + 1) / 25.0f * M_PI) * r);
-		buffer.push_back(c.y + sin((i + 1) / 25.0f * M_PI) * r);
-		// Color
-		buffer.push_back(0);
-		buffer.push_back(1);
-		buffer.push_back(0);
-	} */
+    index ++;
+    return *this;
 }
-void Body::add_to_buffer(BufferWriter<float> &buffer)
+bool Body::is_valid()
 {
-	// Test: render lines.
-	std::vector<glm::vec2>::iterator next;
-    int i = 0;
-	auto first = shape().vertices.begin();
-	for (auto it = first; it != shape().vertices.end(); it ++)
-    {
-		next = it; next ++;
-		buffer.write(it->x, it->y);
-		// buffer.write(shape().color.r, shape().color.g, shape().color.b);
-		// Draw to next point
-		if (next != shape().vertices.end()) {
-            buffer.write(next->x, next->y);
-		} else {
-			// End the shape.
-			buffer.write(first->x, first->y);
-		}
-		// buffer.write(shape().color.r, shape().color.g, shape().color.b);
-
-        // Add text
-        fontRenderer->addText(static_cast<ostringstream*>( &(ostringstream() << i) )->str(), position().x + it->x, position().y + it->y,  false);
-        i ++;
-	}
+    return index >= 0 && index < system->count;
 }
-unsigned int Body::add_to_buffer(float *buffer, int offset)
+void Body::ensure_valid()
 {
-	std::vector<float> data;
-	add_to_buffer(data);
-	// Write data to buffer
-	
-	std::copy(data.begin(), data.end(), buffer + offset);
-	return offset + data.size();
+    if (! is_valid()) {
+        std::cerr << "Body is not valid: index: " << index << std::endl;
+        exit(1);
+    }
 }
 

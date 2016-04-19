@@ -12,12 +12,35 @@ std::ostream &operator << (std::ostream &lhs, glm::vec2 &rhs);
 std::ostream &operator << (std::ostream &lhs, glm::vec3 &rhs);
 
 float angle(glm::vec2 a, glm::vec2 b, glm::vec2 c);
+
+inline glm::vec2 unit_vector(float angle) {
+    return glm::vec2(cos(angle), sin(angle));
+}
+inline glm::vec2 unit_vector_wrt_y(float angle) {
+    return glm::vec2(- sin(angle), cos(angle));
+}
+inline float angle_of_vector(glm::vec2 vec) {
+    return atan2(vec.y, vec.x);
+}
 // Returns true if a points left of b
 bool leftof(glm::vec2 a, glm::vec2 b);
 
 float distance(glm::vec2 a, glm::vec2 b);
-// Distance from point to line
-float distance(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
+float distance_line(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
+
+// Distance from polygon (also gives the closest edge)
+float distance(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
+float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
+float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end);
+
+struct result_point_vs_polygon {
+    float distance;
+    int closest_edge;
+    float closest_edge_alpha;
+};
+// Distance from polygon (also gives the closest edge)
+result_point_vs_polygon distance(glm::vec2 point, Polygon& p); // TODO is it supposed to stay this way?
+float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
 
 // Midpoint of two points
 glm::vec2 middle(glm::vec2 a, glm::vec2 b);
@@ -38,3 +61,5 @@ float intersect_horizontal(glm::vec2 line_start, glm::vec2 line_direction, float
 
 bool inside(glm::vec2 point, Polygon& p);
 float cross(glm::vec2 a, glm::vec2 b);
+
+int sign(float x);

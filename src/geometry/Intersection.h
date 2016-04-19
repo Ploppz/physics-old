@@ -33,7 +33,7 @@ struct Intersect
 */
 struct HybridVertex
 {
-    HybridVertex(){}
+    HybridVertex(){} 
     HybridVertex(Intersect& i);
     HybridVertex(Polygon::Vertex v);
     glm::vec2 point; // only a sort of cache - can be calculated any time
@@ -72,27 +72,16 @@ struct EdgePoint {
     Polygon* parent;
 };
 
-struct Manifold {
-    // Collision normal and depth in world coordinates
-    glm::vec2 normal; // includes depth
 
-    // Collision incident points (relative to the model)
-    EdgePoint ref_point;
-    EdgePoint subj_point;
-};
-
-struct Intersection // Or HybridPolygon..
+struct Intersection
 {
     std::vector<HybridVertex> vertices;
 
     Intersection() {};
     Intersection(Polygon& p); // 'copy' p
 
-    Manifold manifold(glm::vec2 relative_velocity, Polygon* subject, Polygon* reference, Renderer& renderer); 
-
     float signed_area();
     glm::vec2 centroid();
-    void append_lines_to_vector(std::vector<float> &list);
     glm::vec2 get_point(int vertex_number, float alpha);
 
     class Vertex {

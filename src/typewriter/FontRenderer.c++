@@ -1,6 +1,7 @@
 #include "FontRenderer.h"
 #include "../shaders.h"
 #include "../glutils.h"
+#include "../tmp.h"
 
 /* glm */
 #include <glm/glm.hpp>
@@ -14,9 +15,17 @@
 
 const int VERTEX_ATTRIBS = 7;
 
-FontRenderer::FontRenderer(int size, FontTexture &texture)
-	: size(size), texture(texture)
-{}
+FontRenderer::FontRenderer(int size, const std::string font_file_name)
+	: size(size)
+{
+	std::string s;
+	if (file_exists("font_atlas")) {
+		texture.useExistingAtlas("font_atlas", "metadata_atlas");
+	} else {
+		texture.generateAtlas(font_file_name);
+		texture.writeAtlasToFile("font_atlas", "metadata_atlas");
+	}
+}
 
 void FontRenderer::addText(const std::string text, float penx, float peny, bool kerning)
 {
@@ -139,7 +148,7 @@ void FontRenderer::setup()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
-void FontRenderer::render(float width, float height)
+void FontRenderer::render(float center_x, float center_y, int width, int height, float zoom)
 {
     if (buffer.size() == 0) return;
 	glUseProgram(shaderProgram);
@@ -157,8 +166,8 @@ void FontRenderer::render(float width, float height)
 	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	// Upload matrices
-	glm::mat4 proj = ortho2D(width, height, 0, 1);
-	glm::mat4 view = viewMatrix2D(0, 0, 1, 1);
+	glm::mat4 proj = ortho2D(width * zoom, height * zoom, 0, 1);
+	glm::mat4 view = viewMatrix2D(center_x, center_y, 1, 1);
 	glm::mat4 model = glm::mat4();
 	GLuint projUni = glGetUniformLocation(shaderProgram, "proj");
 	GLuint viewUni = glGetUniformLocation(shaderProgram, "view");

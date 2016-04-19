@@ -56,3 +56,12 @@ glm::vec3 randomColor()
     return glm::vec3(randFloat(), randFloat(), randFloat()) * 0.5f;
 }
 
+bool file_exists(const std::string &name)
+{
+	if (FILE *file = fopen(name.c_str(), "r")) {
+		fclose(file);
+		return true;
+	} else {
+		return false;
+	}   
+}

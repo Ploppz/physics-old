@@ -13,18 +13,4 @@ void addToBuffer(LineSegment e, BufferWriter<float> &buffer, float, float, float
 
 float randFloat();
 glm::vec3 randomColor();
-
-template <typename T>
-class Graph
-{
-public:
-    class Node;
-    std::vector<Node> nodes;
-
-    class Node
-    {
-        T value;
-        std::vector<int> neighbors; // indices into graph
-    };
-private:
-};
+bool file_exists(const std::string &name);

@@ -14,20 +14,14 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <stdexcept>
 #include <set>
 #include <sstream>
 
-#define DRAW_VERTEX_NUMBERS true
+#define DRAW_VERTEX_NUMBERS false
 
-/*
-Some useful sources I used. (not exhaustive)
-http://www.cs.uu.nl/docs/vakken/ga/slides3.pdf
-http://www.cs.unc.edu/~dm/CODE/GEM/chapter.html#Fournier84
-https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
-
-*/
 extern FontRenderer *fontRenderer;
 
 int abs_mod(int n, int range)
@@ -36,6 +30,7 @@ int abs_mod(int n, int range)
 }
 
 Polygon::Polygon()
+    : orientation(0) // TODO why is this -nan if not initialized??
 {
 }
 
@@ -90,21 +85,24 @@ float Polygon::radius()
 
 glm::vec2 Polygon::transform(glm::vec2 point)
 {
-    return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
-                        matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+    // return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
+                        // matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+    float c = cos(orientation);
+    float s = sin(orientation);
+    return glm::vec2(   c * point.x - s * point.y + position.x,
+                        s * point.x + c * point.y + position.y);
+
 }
 glm::vec2 Polygon::transformed(int vertex_index)
 {
     glm::vec2 point = vertices[vertex_index];
-    return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
-                        matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+    return transform(point);
 }
 /* translates first such that the center is at origin */
 glm::vec2 Polygon::transform_center(glm::vec2 point, glm::vec2 center)
 {
     point -= center;
-    return glm::vec2(   matrix[0][0] * point.x + matrix[1][0] * point.y + matrix[2][0],
-                        matrix[0][1] * point.x + matrix[1][1] * point.y + matrix[2][1] );
+    return transform(point);
 }
 glm::vec2 Polygon::get_point(int vertex_number, float alpha)
 {
@@ -120,33 +118,6 @@ glm::vec2 Polygon::get_point(int vertex_number, float alpha)
 
 std::ostream &operator << (std::ostream &lhs, glm::vec2 &rhs);
 
-// TRIANGLE FAN TODO make this clear
-//void Polygon::append_stencil_triangles(std::vector<float> &buffer)
-void Polygon::append_stencil_triangles(BufferWriter<float> &buffer)
-{
-    // i is the edge index
-    for (uint i = 0; i < vertices.size(); i ++)
-    {
-        buffer.write(vertices[i].x, vertices[i].y);
-        glm::vec2 transformed = transform(vertices[i]);
-        if (DRAW_VERTEX_NUMBERS) {
-            fontRenderer->setColor(255, 255, 255);
-            fontRenderer->addText(std::to_string(i), transformed.x, transformed.y,  false);
-        }
-    }
-}
-void Polygon::append_lines_to_vector(std::vector<float> &list)
-{
-    for (uint i = 0; i < vertices.size(); i ++) {
-        int j = i + 1; j %= vertices.size();
-        glm::vec2 vec_i = transform(vertices[i]);
-        glm::vec2 vec_j = transform(vertices[j]);
-        list.push_back(vec_i.x);
-        list.push_back(vec_i.y);
-        list.push_back(vec_j.x);
-        list.push_back(vec_j.y);
-    }
-}
 
 int Polygon::num_edges()
 {
@@ -228,6 +199,13 @@ glm::vec2 Polygon::Vertex::transformed()
 Polygon::Edge::Edge(int index, Polygon *parent)
     :index(index % parent->vertices.size()), parent(parent) { }
 
+glm::vec2 Polygon::Edge::normal_tr()
+{
+    // Needs to know CCW of polygon to know the correct direction (+/-)
+    glm::vec2 edge_vec = end_tr() - start_tr();
+    return glm::normalize(glm::vec2( - edge_vec.y, edge_vec.x));
+}
+
 glm::vec2& Polygon::Edge::start() const
 {
 	return parent->vertices[index];
@@ -255,8 +233,20 @@ int Polygon::Edge::operator() (int x) const
 	float t = (x - start().x)/delta.x;
 	return start().y + t * delta.y;
 }
-
-bool Polygon::Edge::operator== (Edge other)
+bool Polygon::Edge::operator== (Polygon::Edge other) {
+    return index == other.index;
+}
+bool Polygon::Edge::operator!= (Polygon::Edge other) {
+    return index != other.index;
+}
+// Experimental iterator...
+Polygon::Edge& Polygon::Edge::operator++ ()
 {
-    return index == other.index && parent == other.parent;
+	 index = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+     return *this;
+}
+Polygon::Edge& Polygon::Edge::operator-- ()
+{
+    index = (index == 0) ? (parent->vertices.size() - 1) : index - 1;
+    return *this;
 }

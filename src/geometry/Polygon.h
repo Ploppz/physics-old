@@ -29,19 +29,19 @@ class Polygon
 {
 public:
     static std::vector<Intersect> find_intersects(Polygon& a, Polygon& b);
-    static std::vector<Intersection> extract_intersections(Polygon& p, Polygon& q, bool flip_logic);
+    static std::vector<Intersection> extract_intersections(Polygon& p, Polygon& q, bool flip_p_logic, bool flip_q_logic);
 public:
 	Polygon();
 
 	std::vector<glm::vec2> vertices;
-    glm::mat3 matrix;
+    glm::vec2 position;
+    float orientation;
+
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
     glm::vec2 transformed(int vertex_index);
     glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
 
 
-    void append_stencil_triangles(BufferWriter<float> &buffer);
-    void append_lines_to_vector(std::vector<float> &list);
 	// SHAPE
 	float signed_area();
 	glm::vec2 centroid();
@@ -97,8 +97,9 @@ public:
     public:
         Edge():index(0), parent(0) {};
         Edge(int index, Polygon *parent);
-        // bool operator< (Edge other);
-        bool operator== (Edge other);
+
+        glm::vec2 normal_tr();
+
         int operator() (int x) const; // Gives y value at the given x value
         glm::vec2 & start() const;
         glm::vec2 & end() const;
@@ -106,6 +107,12 @@ public:
         glm::vec2 end_tr() const;
         int get_index() const { return index; }
         Polygon* get_parent() const { return parent; }
+
+        bool operator== (Edge other); // Asumes that they have the same polygon!
+        bool operator!= (Edge other);
+        // Changes what edge is pointed to
+        Edge& operator++ ();
+        Edge& operator-- ();
 
     private:
         int index;

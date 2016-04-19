@@ -1,15 +1,3 @@
-/*
- *	TODO
- *	migrate overlap code to somewhere sensible and make it work there...
- *
- *  For now, make a function to split a polygon up in convex polygons,
- *  then maybe use SAT or something else to find the Manifolds.
- *  	Disable axes that are there only because of the splits.
- * 	  Later, maybe optimize by finding the collision points directly knowing the colliding edges?
- *
- *  Collide with boundaries of window
- */
-
 /* std */
 #include <iostream>
 #include <cassert>
@@ -33,22 +21,31 @@
 
 
 /* files */
-#include "tmp.h"
-#include "Renderer.h"
-#include "shaders.h"
-#include "glutils.h"
-#include "BodySystem.h"
-#include "World.h"
-#include "Input.h"
-#include "geometry/Intersection.h"
-#include "geometry/Polygon.h"
-#include "geometry/geometry.h"
+#include "../src/tmp.h"
+#include "../src/Renderer.h"
+#include "../src/shaders.h"
+#include "../src/glutils.h"
+#include "../src/BodySystem.h"
+#include "../src/World.h"
+#include "../src/Input.h"
+#include "../src/geometry/Intersection.h"
+#include "../src/geometry/Polygon.h"
+#include "../src/geometry/geometry.h"
 // Typewriter
-#include "typewriter/FontTexture.h"
-#include "typewriter/FontRenderer.h"
+#include "../src/typewriter/FontTexture.h"
+#include "../src/typewriter/FontRenderer.h"
 
 void error_callback(int error, const char* description);
 
+bool file_exists(const std::string &name)
+{
+	if (FILE *file = fopen(name.c_str(), "r")) {
+		fclose(file);
+		return true;
+	} else {
+		return false;
+	}   
+}
 
 template <typename T>
 void printVector(std::vector<T> v)
@@ -88,14 +85,27 @@ int main()
     glfwSetScrollCallback(window, Input::scroll_callback);
     glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
 
+	// Typewriter
+	FontTexture ft{};
+	std::string s;
+	if (file_exists("font_atlas")) {
+		ft.useExistingAtlas("font_atlas", "metadata_atlas");
+	} else {
+		ft.generateAtlas("fonts/peep-07x14.bdf");
+
+		ft.writeAtlasToFile("font_atlas", "metadata_atlas");
+	}
+    fontRenderer = new FontRenderer(1, ft);
+    fontRenderer->setup();
 
 	// 
     Polygon p, q, r;
-	int numEdges = 4;
+	int numEdges = 5;
 	float a;
     for (int i = 0; i < numEdges; i ++) {
-        float size = 1000;
-        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size, sin(-i*2.0f/numEdges * M_PI) * size));
+        a = rand() / static_cast<float>(INT_MAX) * 100;
+        float size = 300;
+        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
     }
 	numEdges = 10;
 	for (int i = 0; i < numEdges; i ++) {
@@ -110,33 +120,29 @@ int main()
 	} 
 
 	World world;
-    Body big, small, bounding_box;
+    Body b1, b2, b3;
 
-    bounding_box = world.bodies.add_body();
-    bounding_box.shape() = p;
-    bounding_box.position_type() = ABSOLUTE;
-    bounding_box.mode = POLYGON_OUTSIDE;
+	// b1 = world.bodies.addBody();
+	// b1.shape() = p;
 
-    big = world.bodies.add_body(bounding_box);
-    big.shape() = q;
-    big.position_type() = RELATIVE;
-    big.velocity() = glm::vec2(10, 0);
-    big.rotation() = -0.05f;
-    big.rotation() = 0; 
+    b2 = world.bodies.add_body();
+    b2.shape() = q;
+    b2.position_type() = ABSOLUTE;
+    b2.velocity() = glm::vec2(10, 0);
+    b2.rotation() = -0.2f;
 
-#define SMALL_POLYGON_EXISTS false
-    if (SMALL_POLYGON_EXISTS) {
-        small = world.bodies.add_body(bounding_box);
-        small.shape() = r;
-        small.position_type() = RELATIVE;
-        small.velocity() = glm::vec2(-10, 0);
-        small.rotation() = 0.05f;
-        small.rotation() = 0; 
-    }
+    b3 = world.bodies.add_body();
+    b3.shape() = r;
+    b3.position_type() = ABSOLUTE;
+    b3.velocity() = glm::vec2(-10, 0);
+    b3.rotation() = -0.2f;
+
+
 	
+	std::vector<float> polygonBuffer;
+
+    
     Renderer renderer(world.bodies);
-    renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS);
     renderer.set_color_1(0.1f, 0.1f, 0);
     renderer.set_color_2(0, 0.5f, 0);
     world.bodies.renderer = &renderer;
@@ -164,25 +170,21 @@ int main()
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
         const float speed = 8;
-        Body& a = big;
-        if (SMALL_POLYGON_EXISTS) {
-            Body& b = small; 
-            if (Input::keys[GLFW_KEY_UP]) b.position().y += speed;
-            if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= speed; 
-            if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += speed; 
-            if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= speed;  
-        }
+        Body& b = b3;
+        Body& a = b2;
+        if (Input::keys[GLFW_KEY_UP]) b.position().y += speed;
+        if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= speed; 
+        if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += speed; 
+        if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= speed; 
         //
         if (Input::keys[GLFW_KEY_N])    a.position().x -= speed;
         if (Input::keys[GLFW_KEY_E])    a.position().y -= speed;
         if (Input::keys[GLFW_KEY_I])    a.position().y += speed;
         if (Input::keys[GLFW_KEY_O])    a.position().x += speed;
 
-        const float delta_time = 1; // kinda milliseconds * 10
-		world.timestep(delta_time);
-        /* std::vector<Intersection> intersections = Polygon::extract_intersections(bounding_box.shape(), big.shape(), false, false);
-        if (intersections.size() > 0)
-            renderer.append_lines_to_vector(intersections[0]); */
+		world.timestep(3);
+        std::vector<Intersection> intersections = Polygon::extract_intersections(b3.shape(), b2.shape(), false);
+        world.bodies.just_plot_movement(b2, b3, 10, 30);
 
         
 
@@ -194,12 +196,13 @@ int main()
         renderer.render(center_x, center_y, width, height, zoom);
 
 
+		fontRenderer->render(width, height);
+        fontRenderer->clearBuffer();
 
 		// Done drawing
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-        const int FRAME_DURATION_MS = 30;
-		std::this_thread::sleep_for(std::chrono::milliseconds(FRAME_DURATION_MS));
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 	}
 
 	return 0;

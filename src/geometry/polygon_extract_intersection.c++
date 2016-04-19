@@ -50,10 +50,7 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 // CALCULATE INTERSECTION //
 ///////////////////////////
 
-// REMEMBER: q is the small moving one
-// TODO MEMORY LEAK? not afaik
-
-std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q, bool flip_logic)
+std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q, bool p_inside_out, bool q_inside_out)
 {
     std::vector<Intersect> intersects = find_intersects(p, q); // Let an intersect be an intersection vertex
     bool p_inside_q, q_inside_p;
@@ -75,7 +72,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in p **/
     CircularList<NewVertex> p_vertices;
 
-    Side in_out = p_inside_q = inside(p.transform(p.vertices[0]), q) ^ flip_logic;
+    Side in_out = p_inside_q = inside(p.transform(p.vertices[0]), q) ^ q_inside_out;
     int added_vertex_index = -1;
     int current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
@@ -113,7 +110,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in q **/
     CircularList<NewVertex> q_vertices;
 
-    in_out = q_inside_p = inside(q.transform(q.vertices[0]), p) ^ flip_logic;
+    in_out = q_inside_p = inside(q.transform(q.vertices[0]), p) ^ p_inside_out;
     added_vertex_index = -1;
     current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
@@ -237,7 +234,7 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 				within_bounds = centroid_b.y > min_val && centroid_b.y < min_val + delta_val;
 			}
 		}
-		dist_from_edge = distance(centroid_b, edge_a.first, edge_a.second);
+		dist_from_edge = distance_line_segment(centroid_b, edge_a.first, edge_a.second);
 		if (fabs(dist_from_edge) <= radius_b && within_bounds) {
 			// DO DETAILED TEST b vs. this edge (s, t)
 			//TODO: eliminate edges where both vertices are outside (using the bary-space of the centroid-triangle)

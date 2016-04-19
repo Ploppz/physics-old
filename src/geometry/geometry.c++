@@ -1,6 +1,7 @@
 #include <glm/glm.hpp>
 #include <cmath>
 #include <cfloat>
+#include <algorithm>
 
 #include "geometry.h"
 
@@ -11,6 +12,10 @@ float angle(vec2 a, vec2 b, vec2 c)
     a -= b;
     c -= b;
     return acos(dot(a, c) / (length(a) * length(c)));
+}
+float length_squared(vec2 v)
+{
+    return v.x*v.x + v.y*v.y;
 }
 bool leftof(vec2 a, vec2 b)
 {
@@ -23,9 +28,27 @@ float distance(vec2 a, vec2 b)
 	vec2 diff = a - b;
 	return sqrt(diff.x * diff.x + diff.y * diff.y);
 }
-float distance(vec2 p, vec2 line_a, vec2 line_b)
+float distance_line(vec2 p, vec2 line_a, vec2 line_b)
 {
 	return distance(p - line_a, project(p, line_a, line_b));
+}
+float distance_line_segment(vec2 p, vec2 line_start, vec2 line_end)
+{
+    float length_sq = length_squared(line_start - line_end);
+    if (length_sq == 0.f) return distance(p, line_start);
+    // clamp t between 0 and 1 because it's a _line segment_
+    const float t = std::max(0.f, std::min(1.f, dot(p - line_start, line_end - line_start) / length_sq));
+    const vec2 projection = line_start + t * (line_end - line_start);
+    return distance(p, projection);
+}
+float distance_line_segment(vec2 p, vec2 line_start, vec2 line_end, float &out_alpha)
+{
+    float length_sq = length_squared(line_start - line_end);
+    if (length_sq == 0.f) return distance(p, line_start);
+    // clamp t between 0 and 1 because it's a _line segment_
+    out_alpha = std::max(0.f, std::min(1.f, dot(p - line_start, line_end - line_start) / length_sq));
+    const vec2 projection = line_start + out_alpha * (line_end - line_start);
+    return distance(p, projection);
 }
 vec2 middle(vec2 a, vec2 b)
 {
@@ -141,6 +164,32 @@ bool inside(vec2 point, Polygon& p)
         }
     }
     return counter % 2 == 1;
+}
+float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
+{
+    // PERFORMANCE incorporate the inside 
+    
+    // Experimental way to iterate
+    Polygon::Edge start(0, &p);
+    Polygon::Edge it(0, &p);
+    float min_distance = FLT_MAX;
+    do
+    {
+        // PERFORMANCE We transform twice per iteration ..
+        float alpha_on_edge;
+        float distance_from_edge = distance_line_segment(point, it.start_tr(), it.end_tr(), alpha_on_edge);
+        if (distance_from_edge < min_distance) {
+            min_distance = distance_from_edge;
+            out_closest_edge = it.get_index();
+            out_closest_edge_alpha = alpha_on_edge;
+        }
+        ++ it;
+    } while (it != start);
+    assert (min_distance != FLT_MAX);
+    bool is_inside = inside(point, p);
+    if (is_inside)
+        min_distance = - min_distance;
+    return min_distance;
 }
 
 float cross(glm::vec2 a, glm::vec2 b)

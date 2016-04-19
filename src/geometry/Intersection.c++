@@ -49,7 +49,6 @@ HybridVertex::HybridVertex(Polygon::Vertex v)
     vertex = v.get_index();
     intersect = false;
     point = v.transformed();
-    // std::cout << "Make HV point " << glm::to_string(point) << std::endl;
 }
 /****************/
 /* Intersection */
@@ -59,32 +58,8 @@ Intersection::Intersection(Polygon& p)
     vertices.resize(p.vertices.size());
     for (int i = 0; i < p.vertices.size(); i ++)
     {
-        HybridVertex v;
-        v.owner = &p;
-        v.vertex = i;
-        v.point = p.transform(p.vertices[i]);
+        HybridVertex v( Polygon::Vertex(i, &p) );
         vertices[i] = v;
-        // std::cout << p.vertices[i].x << ", " << p.vertices[i].y << std::endl;
-    }
-    // std::cout << p.vertices.size() << std::endl;
-}
-void Intersection::append_lines_to_vector(std::vector<float> &list)
-{
-    // Loop through HybridVertices
-    std::vector<HybridVertex>::iterator next;
-    for (auto it = vertices.begin(); it != vertices.end(); it ++)
-    {
-		next = it; next ++;
-		if (next == vertices.end())
-            next = vertices.begin();
-
-        
-        glm::vec2 vec_i = it->point;
-        glm::vec2 vec_j = next->point;
-        list.push_back(vec_i.x);
-        list.push_back(vec_i.y);
-        list.push_back(vec_j.x);
-        list.push_back(vec_j.y);
     }
 }
 

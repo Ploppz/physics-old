@@ -1,10 +1,16 @@
 # Rendering Polygons #
- - Indices rather than vertice
+ - Indices rather than vertices
 
 
 # Iterating a Polygon #
-Need to iterate both Polygons and Intersections.
-Polygon::Vertex works, but keeps a pointer to the polygon in question
 
-## Structs
-We need
+# Logic #
+- `extract_intersections` takes flip_q and flip_p (rename to insideout or something?)
+    - `calculate_first_contact` (or rather `rewind_out_of`) should also flip the inside test
+    - We need some nice system for this.. e.g.  each polygon has a _level_
+- ABSOLUTE position type:
+    - cannot change position: it acts like a hole in containing polygon
+    - Impulses just propagate to parent polygon, if any
+
+# Other #
+Suspicion: alpha in how-near-edge

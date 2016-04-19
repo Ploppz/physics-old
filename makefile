@@ -11,7 +11,9 @@ OBJECTS := $(shell /home/ploppz/scripts/make/getobjects src c++ c)
 MAIN_STEM := $(shell echo $(MAIN) | sed 's/.*\/\(.*\)\.c++/\1/g')
 OBJECTS += .obj/$(MAIN_STEM).o
 ifneq "$(MAIN)" "$(DEFAULT_MAIN)"
+ifeq "$(USE_CATCH)" "true"
 	OBJECTS += .obj/catch.o
+endif
 endif
 
 

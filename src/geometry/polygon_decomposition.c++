@@ -22,6 +22,14 @@
 
 typedef bool Dir; // kinda disagrees with constants.h (used the typedef Direction before)
 
+/*
+Some useful sources I used. (not exhaustive)
+http://www.cs.uu.nl/docs/vakken/ga/slides3.pdf
+http://www.cs.unc.edu/~dm/CODE/GEM/chapter.html#Fournier84
+https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
+*/
+
+
 /* This code is a mess. But everything else than these three functions are only helper functions:
  *
 int Polygon::decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &addedLines);

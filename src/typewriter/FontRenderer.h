@@ -19,7 +19,7 @@ private:
 	int size;
 	// Structure: position 2f texcoor 2f
 	std::vector<float> buffer;
-	FontTexture &texture;
+	FontTexture texture;
     glm::vec3 color;
 
 
@@ -30,11 +30,11 @@ private:
 	GLuint VAO;
 
 public:
-	FontRenderer(int size, FontTexture &texture);
+	FontRenderer(int size, const std::string font_file_name);
 	
     void setColor(int r, int g, int b);
 	void addText(const std::string text, float x, float y, bool kerning);
 	void clearBuffer();
 	void setup();
-	void render(float width, float height);
+	void render(float center_x, float center_y, int width, int height, float zoom);
 };

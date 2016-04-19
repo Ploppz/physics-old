@@ -50,17 +50,20 @@ public:
     // size: Size of buffer, in indices.
     BufferWriter(int size)
     {
+        unmapped = false;
 		ptr = static_cast<T*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, size * sizeof(T), GL_MAP_WRITE_BIT));
         if (ptr == nullptr) assert(!"Couldn't map buffer range - possible too large range.");
         this->size = 0;
         max_size = size;
     }
     BufferWriter(const BufferWriter& copy) = delete;
+
     ~BufferWriter() {
-        end();
+        assert(unmapped);
     }
     // Write to buffer
     void write(T a) {
+        assert(!unmapped);
         if (size > max_size - 1) {
             assert(!"Buffer overflow.");
             exit(1);
@@ -70,6 +73,7 @@ public:
         size ++;
     }
     void write(T a, T b) {
+        assert(!unmapped);
         if (size > max_size - 2) {
             assert(!"Buffer overflow.");
             return;
@@ -79,6 +83,7 @@ public:
         size += 2;
     }
     void write(T a, T b, T c) {
+        assert(!unmapped);
         if (size > max_size - 3) {
             assert(!"Buffer overflow.");
             exit(1);
@@ -89,19 +94,20 @@ public:
     }
 
     T* get_ptr() {
+        assert(!unmapped);
         return ptr;
     }
     int get_current_size() {
         return size;
     }
 
-
+    void unmap() {
+        unmapped = true;
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+    }
 private:
+    bool unmapped;
     T* ptr;
     int size;
     int max_size;
-    void end() {
-        // std::cout << "UNMAP BUFFER" << std::endl;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-    }
 };
