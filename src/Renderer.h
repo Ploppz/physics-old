@@ -45,11 +45,12 @@ public:
     void write_distances_to(Polygon& subject, Polygon &other);
     void append_lines_to_vector(Polygon& p);
     void append_lines_to_vector(Intersection& intersection);
+    //
+    FontRenderer* font_renderer;
 private:
     void upload_vertices();
     
     /*** Values ***/
-    FontRenderer* font_renderer;
     BodySystem& system;
     std::vector<int> start_indices;
     int render_flags;

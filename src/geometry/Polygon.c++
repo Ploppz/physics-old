@@ -30,7 +30,7 @@ int abs_mod(int n, int range)
 }
 
 Polygon::Polygon()
-    : orientation(0) // TODO why is this -nan if not initialized??
+    : orientation{}, moment_of_inertia{}, mass{}, center_of_mass{}, CCW{} // Why is this -nan if not initialized??
 {
 }
 
@@ -69,6 +69,47 @@ glm::vec2 Polygon::centroid()
 
 	return C;
 }
+void Polygon::calculate_shape_dependent_variables()
+{
+	float A = signed_area();
+	glm::vec2 C {};
+    glm::vec2 a, b;
+	std::vector<glm::vec2>::iterator next;
+	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	{
+		next = it; next ++;
+		if (next == vertices.end())
+            next = vertices.begin();
+		C.x += (it->x + next->x) * (it->x * next->y - next->x * it->y);
+		C.y += (it->y + next->y) * (it->x * next->y - next->x * it->y);
+	}
+	C /= 6.f * A;
+
+    mass = fabs(A); 
+    CCW = (A < 0);
+    center_of_mass = C;
+
+    moment_of_inertia = calculate_moment_of_inertia();
+    std::cout << "MOMENT : " << moment_of_inertia << std::endl; 
+}
+float lengthcross (glm::vec2 a, glm::vec2 b) {
+   return (fabs(a.x*b.y - a.y*b.x));
+}
+float Polygon::calculate_moment_of_inertia()
+{
+    float sum1=0;
+    float sum2=0;
+    std::vector<glm::vec2>::iterator next;
+	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	{
+		next = it; next ++;
+        if (next == vertices.end())
+            next = vertices.begin();
+        sum1 += lengthcross(*next, *it) * (glm::dot(*next, *next) + glm::dot(*next, *it) + glm::dot(*it, *it));
+        sum2 += lengthcross(*next, *it);
+    }
+    return (mass/6*sum1/sum2);
+}
 float Polygon::radius()
 {
 	glm::vec2 c = centroid();
@@ -77,7 +118,7 @@ float Polygon::radius()
 	float d;
 	for (auto it = vertices.begin(); it != vertices.end(); it ++)
 	{
-		d = distance(c, *it); // TODO: made this relative to local coor system
+		d = distance(c, *it);
 		if (d > m) m = d;
 	}
 	return m;
@@ -187,7 +228,8 @@ bool Polygon::Vertex::operator== (Polygon::Vertex& v)
 }
 glm::vec2 Polygon::Vertex::transformed()
 {
-    return parent->transform(parent->vertices[index]);
+    glm::vec2 result = parent->transformed(index);
+    return result;
 }
 
 //////////////////////////////////////////////

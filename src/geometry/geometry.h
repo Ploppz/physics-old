@@ -8,8 +8,8 @@
 
 class Body;
 
-std::ostream &operator << (std::ostream &lhs, glm::vec2 &rhs);
-std::ostream &operator << (std::ostream &lhs, glm::vec3 &rhs);
+std::ostream &operator << (std::ostream &lhs, const glm::vec2 &rhs);
+std::ostream &operator << (std::ostream &lhs, const glm::vec3 &rhs);
 
 float angle(glm::vec2 a, glm::vec2 b, glm::vec2 c);
 
@@ -30,16 +30,10 @@ float distance_line(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
 
 // Distance from polygon (also gives the closest edge)
 float distance(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
+float distance(glm::vec2 point, Polygon& p);
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end);
 
-struct result_point_vs_polygon {
-    float distance;
-    int closest_edge;
-    float closest_edge_alpha;
-};
-// Distance from polygon (also gives the closest edge)
-result_point_vs_polygon distance(glm::vec2 point, Polygon& p); // TODO is it supposed to stay this way?
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
 
 // Midpoint of two points

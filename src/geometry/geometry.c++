@@ -124,12 +124,12 @@ float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constan
     return (line_start.x + alpha_out * line_direction.x);
 }
 
-std::ostream &operator << (std::ostream &lhs, vec2 &rhs)
+std::ostream &operator << (std::ostream &lhs, const vec2 &rhs)
 {
 	lhs << "(" << rhs.x << ", " << rhs.y << ")";
 	return lhs;
 }
-std::ostream &operator << (std::ostream &lhs, vec3 &rhs)
+std::ostream &operator << (std::ostream &lhs, const vec3 &rhs)
 {
 	lhs << "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ")";
 	return lhs;
@@ -167,6 +167,7 @@ bool inside(vec2 point, Polygon& p)
 }
 float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
 {
+    assert( ! (isnan(point.x) || isnan(point.y)));
     // PERFORMANCE incorporate the inside 
     
     // Experimental way to iterate
@@ -190,6 +191,13 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
     if (is_inside)
         min_distance = - min_distance;
     return min_distance;
+}
+float distance(vec2 point, Polygon& p)
+{
+    // PERFORMANCE: specialize function rather than reuse
+    int out_closest_edge;
+    float out_closest_edge_alpha;
+    return distance(point, p, out_closest_edge, out_closest_edge_alpha);
 }
 
 float cross(glm::vec2 a, glm::vec2 b)

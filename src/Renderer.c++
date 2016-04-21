@@ -152,7 +152,7 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     assert(start_indices.size() > 0); // The loop still loops when size == 0....... 
     for (int i = 0; i < start_indices.size() - 1; i ++) 
     {
-        position = system.get_body(i).real_position();
+        position = system.get_body(i).position();
         length = start_indices[i + 1] - start_indices[i];
 
         model = glm::translate(glm::mat4{}, glm::vec3(position, 0));

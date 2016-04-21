@@ -36,6 +36,14 @@ public:
 	std::vector<glm::vec2> vertices;
     glm::vec2 position;
     float orientation;
+    
+    /* Calculations: */
+    float moment_of_inertia;
+    float mass;
+    glm::vec2 center_of_mass;
+    bool CCW;
+
+    void calculate_shape_dependent_variables();
 
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
     glm::vec2 transformed(int vertex_index);
@@ -48,15 +56,23 @@ public:
 	float radius();
     glm::vec2 get_point(int vertex_number, float alpha);
 
-	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
-	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &added_lines);
-
-
-
-
 	// Iterating
 	int num_edges();
 	LineSegment get_edge(int index);
+
+	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
+	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &added_lines);
+
+    class Diagonal;
+private:
+	// Reverse: Go from right to left.
+    // output: diagonals
+	void monotonize(std::vector<Diagonal> &diagonals, bool reverse);
+    // input: parts
+    void triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles);
+
+    float calculate_moment_of_inertia();
+public: /** Helper classes **/
 
     ///////////////////////
     // Vertex smart-pointer
@@ -157,13 +173,6 @@ public:
         int start_index;
         int end_index;
     };
-
-private:
-	// Reverse: Go from right to left.
-    // output: diagonals
-	void monotonize(std::vector<Diagonal> &diagonals, bool reverse);
-    // input: parts
-    void triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles);
 };
 
 

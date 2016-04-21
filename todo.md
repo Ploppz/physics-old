@@ -14,3 +14,10 @@
 
 # Other #
 Suspicion: alpha in how-near-edge
+
+
+# Collision resolution discrepancies #
+ - if there was a collision last frame, 
+
+ ... does the physical response guarantee that the points will be separating?
+

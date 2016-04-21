@@ -9,6 +9,10 @@
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
 
+/** Contact
+rewind_time is positive for 'back in time'
+**/
+
 struct Contact {
     float rewind_time;
     // Collision normal in world coordinates
@@ -83,11 +87,15 @@ class BodySystem
 
     void resolve_penetration(Body b1, Body b2, Contact c);
     void physical_reaction(Body b1, Body b2, Contact c);
+    bool separating_at(Body b1, Body b2, Contact c);
 
     Contact find_earliest_contact(Body b1, Body b2, std::vector<Intersection>&, float time_since_last_update);
     Contact calculate_contact(Body b1, Body b2, Intersection& b, float time_since_last_update);
+
+    inline bool will_separate_in_future(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_to_next_update);
     inline Contact rewind_out_of(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_since_last_update);
     inline glm::vec2 relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset);
+    inline glm::vec2 velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho);
 
     /** Call tree..:
     treat_body_tree
@@ -97,7 +105,9 @@ class BodySystem
                     rewind_out_of
                         relative_pos
             resolve_penetration
+                update_body
             physical_reaction
+                
     **/
 };
 
@@ -112,13 +122,17 @@ class Body
 {
 	friend class BodySystem;
  public:
+        PolygonMode mode;
 
 	// Should invalidate it.
         Body() {mode = POLYGON_INSIDE;}
+    // General
+        void apply_impulse(glm::vec2 impulse, EdgePoint point);
+        void apply_impulse(glm::vec2 impulse, glm::vec2 point); //TODO implement? don't know if I need it
 
 	// Access to members
         glm::vec2 real_position(); 
-		inline float& mass() { return system->mass[index]; }
+		/* inline float& mass() { return system->mass[index]; } */
         inline PositionType& position_type() { return system->position_type[index]; }
 		inline glm::vec2& position() { ensure_valid(); return system->position[index]; }
 		inline glm::vec2& velocity() { ensure_valid(); return system->velocity[index]; }
@@ -132,12 +146,11 @@ class Body
 
         inline Body& parent() { ensure_valid(); return system->parent[index]; }
 
-	// Iterator TODO
+	// Iterator?
         Body& operator++ ();
         bool is_valid();
         int get_index() {return index; }
 
-        PolygonMode mode;
 
  private:
 	Body(BodySystem *system, int index);
@@ -146,3 +159,4 @@ class Body
 	BodySystem *system;
 	int index;
 };
+std::ostream& operator<< (std::ostream& out, Body b);
