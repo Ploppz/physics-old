@@ -88,25 +88,29 @@ int main()
     glfwSetScrollCallback(window, Input::scroll_callback);
     glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
 
+    srand(1013);
 
 	// 
     Polygon p, q, r;
 	int numEdges = 4;
 	float a;
+    //box
     for (int i = 0; i < numEdges; i ++) {
         float size = 1000;
-        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size, sin(-i*2.0f/numEdges * M_PI) * size));
+        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size * 2, sin(-i*2.0f/numEdges * M_PI) * size));
     }
 	numEdges = 10;
+    //big
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 100;
         float size = 200;
 		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
+    //small
 	for (int i = 0; i < numEdges; i ++) {
-		a = rand() / static_cast<float>(INT_MAX) * 100;
-        float size = 100;
-		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size/3 + a)));
+		a = rand() / static_cast<float>(INT_MAX) * 150;
+        float size = 50;
+		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
     p.calculate_shape_dependent_variables();
     q.calculate_shape_dependent_variables();
@@ -126,7 +130,7 @@ int main()
     big = world.bodies.add_body(bounding_box);
     big.shape() = q;
     big.position_type() = RELATIVE;
-    big.velocity() = glm::vec2(10, 0);
+    big.velocity() = glm::vec2(55, 0.02f);
     big.rotation() = -0.05f;
     big.rotation() = 0;
 
@@ -135,7 +139,7 @@ int main()
         small = world.bodies.add_body(bounding_box);
         small.shape() = r;
         small.position_type() = RELATIVE;
-        small.velocity() = glm::vec2(-10, 0);
+        small.velocity() = glm::vec2(-10, -0.02f);
         small.rotation() = 0.05f;
         small.rotation() = 0; 
         small.position().x = 500;
@@ -143,7 +147,7 @@ int main()
 	
     Renderer renderer(world.bodies);
     renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS);
+    /* renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); */
     renderer.set_color_1(0.1f, 0.1f, 0);
     renderer.set_color_2(0, 0.5f, 0);
     world.bodies.renderer = &renderer;
@@ -192,6 +196,7 @@ int main()
         if (Input::keys[GLFW_KEY_I])    a.velocity().y += speed/10;
         if (Input::keys[GLFW_KEY_O])    a.velocity().x += speed/10;
 
+        /* renderer.write_distances_to(big.shape(), bounding_box.shape()); */
         if (INTERACTIVE_FRAME) {
             if (Input::keys[GLFW_KEY_SPACE]) {
                 if (space_counter == 0 || space_counter > 10) {

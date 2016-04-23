@@ -52,6 +52,7 @@ class BodySystem
     // doesn't need..:
     Renderer* renderer;
     float simulation_speed = 1;
+    Contact last_contact; // for visualization
  private:
     //
 	int count;
@@ -84,6 +85,11 @@ class BodySystem
     /*** Physical and Geometric Treatment ***/
     void treat_body_tree(Body root, float delta_time);
     void treat(Body b1, Body b2, float delta_time);
+    /* Returns time since resolved collision. */
+    float resolve(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time);
+
+    void simple_move_out_of(Body b1, Body b2);
+
 
     void resolve_penetration(Body b1, Body b2, Contact c);
     void physical_reaction(Body b1, Body b2, Contact c);
@@ -93,6 +99,7 @@ class BodySystem
     Contact calculate_contact(Body b1, Body b2, Intersection& b, float time_since_last_update);
 
     inline bool will_separate_in_future(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_to_next_update);
+    inline bool separate_last_frame(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_to_next_update);
     inline Contact rewind_out_of(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_since_last_update);
     inline glm::vec2 relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset);
     inline glm::vec2 velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho);

@@ -95,6 +95,72 @@ glm::vec2 Intersection::centroid()
 
 	return C;
 }
+
+float Intersection::find_default_depth()
+{
+    int intersect1 = -1, intersect2;
+    for (int i = 0; i < vertices.size(); i ++) {
+        if (vertices[i].intersect) {
+            if (intersect1 == -1) {
+                intersect1 = i;
+            } else {
+                intersect2 = i;
+            }
+        }
+    }
+
+    return find_depth(intersect1, intersect2);
+}
+float Intersection::find_depth(int start_vertex, int end_vertex)
+{
+    /*Construct normal */
+    glm::vec2 normal = vertices[end_vertex].point - vertices[start_vertex].point;
+    normal = glm::vec2( - normal.y, normal.x );
+
+    /*Construct transformation to align normal to the x-axis*/
+    float align_transform_d[4] = {normal.x, -normal.y, normal.y, normal.x};
+    glm::mat2 align_transform = make_mat2x2(align_transform_d);
+
+    /* Invariant: the transform makes normal aligned with x-axis, thus start_vertex has maximum y */
+    /* So we descend with y-values, to find the max delta x */
+
+    Vertex end(end_vertex, this);
+    Vertex backward(start_vertex, this);
+    Vertex forward = backward;
+    bool current_is_forward = false;
+
+    glm::vec2 forward_p, forward_next_p, backward_p, backward_next_p;
+    forward_next_p  = forward.successive().point,
+    backward_next_p = backward.preceding().point;
+
+    float biggest_depth = 0;
+    do {
+        if (forward_next_p.y > backward_next_p.y) {
+            ++ forward;
+            current_is_forward = true;
+        } else {
+            -- backward;
+            current_is_forward = false;
+        }
+
+        forward_p       = forward_next_p,
+        forward_next_p  = align_transform * forward.successive().point,
+        backward_p      = backward_next_p,
+        backward_next_p = align_transform * backward.preceding().point;
+
+        if (current_is_forward) {
+            float alpha;
+            float intersect_x = intersect_horizontal(backward->point, backward.preceding().point - backward->point, forward->point.y,  alpha);
+            if (fabs(intersect_x - forward_p.x) > biggest_depth) {
+                biggest_depth = fabs(intersect_x - forward_p.x);
+            }
+            
+        }
+    //float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
+    } while (forward != end && backward != end);
+
+    return biggest_depth;
+} 
 //////////////////////////////////////////////
 //              Vertex pointer
 //////////////////////////////////////////////
@@ -139,6 +205,10 @@ Intersection::Vertex& Intersection::Vertex::operator-- ()
 bool Intersection::Vertex::operator== (Intersection::Vertex& v)
 {
     return (index == v.index && parent == v.parent);
+}
+bool Intersection::Vertex::operator!= (Intersection::Vertex& v)
+{
+    return (index != v.index || parent != v.parent);
 }
 
 

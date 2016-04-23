@@ -27,6 +27,7 @@ using namespace glm;
 BodySystem::BodySystem()
 	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
+    last_contact.rewind_time = -1;
 }
 
 void BodySystem::timestep(float delta_time)
@@ -83,45 +84,37 @@ void BodySystem::treat_body_tree(Body root, float delta_time)
     }
 }
 
-bool reacted = false;
 void BodySystem::treat(Body b1, Body b2, float delta_time)
 {
-    const bool VISUAL_DEBUG = false;
     /* just_plot_movement(b2, b1, 30, 30);  */
     std::vector<Intersection> intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(),
-                                                                                bool(b1.mode), bool(b2.mode)); 
-    if (intersections.size() == 0) {
-        std::cout << "YES" << std::endl;
-        return;
-    } else {
-        std::cout << "NO" << std::endl;
-    }
+                                                                                    bool(b1.mode), bool(b2.mode)); 
+    if (intersections.size() == 0) return;
+
+
     Contact contact = find_earliest_contact(b1, b2, intersections, delta_time);
+
+    if (contact.rewind_time != 0) last_contact = contact; 
     std::cout << "\trewind time: " << contact.rewind_time << std::endl;
+
     if (contact.rewind_time == 0) {
-        std::cout << "Ignoring collision" << std::endl;
-        return;
-    }
-
-
-    if (VISUAL_DEBUG)
-    {
-        glm::vec2 p = contact.ref_point.point_t();
-        renderer->add_dot(p);
-        renderer->add_vector(p, glm::vec2(contact.normal.x * 10, contact.normal.y * 10));
-    }
-
-    /* if (reacted) return; */
-    reacted = true;
-    /* simulation_speed = 0;
-    return;  */
-    resolve_penetration(b1, b2, contact);
-    physical_reaction(b1, b2, contact);
-    if (separating_at(b1, b2, contact)) {
-    
+        /* simple_move_out_of(b1, b2); */
+        // physical reaction = ?
     } else {
-    
+        resolve_penetration(b1, b2, contact);
+        physical_reaction(b1, b2, contact);
+        if (separating_at(b1, b2, contact)) {
+            std::cout << "now Separating" << std::endl;
+            update_body(b1.index, contact.rewind_time);
+            update_body(b2.index, contact.rewind_time); 
+            std::cout << std::boolalpha << "still Separating: " << separating_at(b1, b2, contact) << std::endl;
+        } else {
+            //
+            std::cout << "***** now Approaching ********" << std::endl;
+        }
     }
+
+
 }
 void BodySystem::resolve_penetration(Body b1, Body b2, Contact c)
 {
@@ -135,7 +128,7 @@ void BodySystem::physical_reaction(Body A, Body B, Contact c)
         std::swap(A, B);
     }
 
-    const float e = 0.1f; // coefficient of restitution
+    const float e = 0.5f; // coefficient of restitution
     glm::vec2 r_ortho_A, r_ortho_B;
     glm::vec2 v_AB = velocity_of_point(A, c.subj_point, r_ortho_A) - velocity_of_point(B, c.ref_point, r_ortho_B);
 
@@ -160,10 +153,17 @@ inline glm::vec2 BodySystem::velocity_of_point(Body b, EdgePoint p, glm::vec2 &o
 bool BodySystem::separating_at(Body A, Body B, Contact c)
 {
     if (c.ref_point.parent == &A.shape()) {
-        std::swap(A, B);
+        std::swap(A, B); /* A is subject */
     }
     glm::vec2 trash;
     glm::vec2 v_AB = velocity_of_point(A, c.subj_point, trash) - velocity_of_point(B, c.ref_point, trash);
+    /* Note to self: contact.normal should always be _out of_ reference */
+    //TODO I'm here and the normal calculation takes into account CCW, which has been flipped and
+    // it's now wrong.. question: does c.normal really reflect the _reference_?
+    if ( (glm::dot(v_AB, c.normal) < 0) ^ B.mode) {
+        return false;
+    }
+    return true;
 }
 
 
@@ -189,7 +189,7 @@ Contact BodySystem::find_earliest_contact(Body b1, Body b2, std::vector<Intersec
 Contact BodySystem::calculate_contact(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     assert(renderer);
-    renderer->append_lines_to_vector(intersection);
+    /* renderer->append_lines_to_vector(intersection); */
     /** Possibilities
      Send 'intersection' to rewind_out_of to only consider those edges?
     **/
@@ -225,9 +225,11 @@ The Intersection is used as a guide of which edges of the reference to pick.
 **/
 inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
-    const bool VISUAL_DEBUG = false;
     assert(vertex.intersect == false);
+
+    const bool VISUAL_DEBUG = false;
     const float error_threshold = 0.1f;
+
     float error;
     float time_offset = delta_time / 2.f;
     float time_step_size =  delta_time / 2.f;
@@ -239,6 +241,12 @@ inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Bo
         null_contact.rewind_time = 0;
         return null_contact;
     } */
+    if ( ! separate_last_frame(vertex, reference, subject, delta_time)) {
+        std::cout << "It was found that they were not separate last frame" << std::endl;
+        Contact null_contact;
+        null_contact.rewind_time = 0;
+        return null_contact;  
+    }
 
     
     if (VISUAL_DEBUG)
@@ -288,7 +296,15 @@ inline bool BodySystem::will_separate_in_future(HybridVertex vertex, Body refere
         it should minimize intersection depth mid-frame.  **/
     glm::vec2 next_point = relative_pos(vertex.point, reference, subject, delta_time);
     float error = distance(next_point, reference.shape());
-    return (error < 0);
+    return (error < 0) ^ reference.mode ^ subject.mode;
+}
+inline bool BodySystem::separate_last_frame(HybridVertex vertex, Body reference, Body subject, float delta_time)
+{
+    glm::vec2 next_point = relative_pos(vertex.point, reference, subject, -delta_time);
+    float error = distance(next_point, reference.shape());
+    /* std::cout << "Separation .. error  : " << error << std::endl;
+    std::cout << "Separation .. mode   : " << reference.mode << ", " << subject.mode << std::endl; */
+    return (error >= 0) ^ reference.mode ^ subject.mode;
 }
 void BodySystem::just_plot_movement(Body reference, Body subject, float total_time, int samples)
 {

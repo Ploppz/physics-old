@@ -84,6 +84,11 @@ struct Intersection
     glm::vec2 centroid();
     glm::vec2 get_point(int vertex_number, float alpha);
 
+    /** "default" depth is the depth in the direction of the
+        normal of the line between the two intersection points.
+    **/
+    float find_default_depth();
+
     class Vertex {
     public:
         Vertex(): index(0), parent(0) {};
@@ -100,6 +105,7 @@ struct Intersection
         Vertex& operator-- ();
         //
         bool operator== (Vertex& v);
+        bool operator!= (Vertex& v);
 
         HybridVertex & preceding();
         HybridVertex & successive();
@@ -109,6 +115,9 @@ struct Intersection
         Intersection *parent;
     };
 
+    private:
+
+    float find_depth(int start_vertex, int end_vertex);
 };
 
 

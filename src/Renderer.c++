@@ -64,7 +64,7 @@ void Renderer::upload_vertices()
 }
 
 Renderer::Renderer(BodySystem& system)
-    : system(system), color1(1, 1, 1), color2(0, 0, 0)
+    : system(system), color1(1, 1, 1), color2(0, 0, 0), render_flags {}
 {
 
 	/** Typewriter **/
@@ -90,7 +90,7 @@ Renderer::Renderer(BodySystem& system)
     // Triangles VBO
 	glGenBuffers(1,&triangles_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
-	glBufferData(GL_ARRAY_BUFFER, 3000, NULL, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 3000, NULL, GL_DYNAMIC_DRAW);
     // Triangles VAO
     glGenVertexArrays(1, &triangles_vao);
     glBindVertexArray(triangles_vao);
@@ -109,7 +109,7 @@ Renderer::Renderer(BodySystem& system)
     //color_vbo = uploadVertices(quad, sizeof(quad));
 	glGenBuffers(1, &color_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_DYNAMIC_DRAW);
 
     glGenVertexArrays(1, &color_vao);
     glBindVertexArray(color_vao);
@@ -130,7 +130,9 @@ glm::vec2 Renderer::center_screen_position(float center_x, float center_y, int w
 }
 void Renderer::render(float center_x, float center_y, int width, int height, float zoom)
 {
-
+    if ( system.last_contact.rewind_time != -1) {
+        render_contact(system.last_contact);
+    }
     upload_vertices();
     glClear(GL_STENCIL_BUFFER_BIT);
     glEnable(GL_STENCIL_TEST);
@@ -358,4 +360,13 @@ void Renderer::append_lines_to_vector(Intersection& intersection)
         lines_buffer.push_back(vec_j.x);
         lines_buffer.push_back(vec_j.y);
     }
+}
+void Renderer::render_contact(Contact contact)
+{
+    glm::vec2 p = contact.ref_point.point_t();
+    add_dot(p);
+    add_vector(p, glm::vec2(contact.normal.x * 10, contact.normal.y * 10));
+    p = contact.subj_point.point_t();
+    add_dot(p);
+    add_vector(p, glm::vec2(contact.normal.x * 10, contact.normal.y * 10));
 }

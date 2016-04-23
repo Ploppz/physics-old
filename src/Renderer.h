@@ -10,6 +10,7 @@
 class FontRenderer;
 class BodySystem;
 class Body;
+struct Contact;
 
 enum RenderFlags {
     POLYGON_SHOW_VERTEX_NUMBERS = 1,
@@ -45,6 +46,8 @@ public:
     void write_distances_to(Polygon& subject, Polygon &other);
     void append_lines_to_vector(Polygon& p);
     void append_lines_to_vector(Intersection& intersection);
+    // debugging..
+    void render_contact(Contact c);
     //
     FontRenderer* font_renderer;
 private:

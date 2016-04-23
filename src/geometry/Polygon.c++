@@ -86,8 +86,9 @@ void Polygon::calculate_shape_dependent_variables()
 	C /= 6.f * A;
 
     mass = fabs(A); 
-    CCW = (A < 0);
+    CCW = (A > 0);
     center_of_mass = C;
+    std::cout << "CCW: " << CCW << std::endl;
 
     moment_of_inertia = calculate_moment_of_inertia();
     std::cout << "MOMENT : " << moment_of_inertia << std::endl; 
@@ -245,6 +246,10 @@ glm::vec2 Polygon::Edge::normal_tr()
 {
     // Needs to know CCW of polygon to know the correct direction (+/-)
     glm::vec2 edge_vec = end_tr() - start_tr();
+    if (parent->CCW) {
+        /* Normal always points out of the polygon */
+        edge_vec = - edge_vec;
+    }
     return glm::normalize(glm::vec2( - edge_vec.y, edge_vec.x));
 }
 

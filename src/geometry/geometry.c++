@@ -187,7 +187,7 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
         ++ it;
     } while (it != start);
     assert (min_distance != FLT_MAX);
-    bool is_inside = inside(point, p);
+    bool is_inside = inside(point, p) ^ p.CCW;
     if (is_inside)
         min_distance = - min_distance;
     return min_distance;
