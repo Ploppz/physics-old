@@ -49,10 +49,22 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 ////////////////////////////
 // CALCULATE INTERSECTION //
 ///////////////////////////
-
 std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q, bool p_inside_out, bool q_inside_out)
 {
     std::vector<Intersect> intersects = find_intersects(p, q); // Let an intersect be an intersection vertex
+    if (intersects.size() % 2 != 0)
+        return std::vector<Intersection> {};
+    assert(intersects.size() % 2 == 0);
+
+    { // test
+        std::cout << "INTERSECTS IN : " << std::endl;
+        for (auto it = intersects.begin(); it != intersects.end(); it ++) 
+        {
+            std::cout << it->point << std::endl;
+            std::cout << "\t " << it->alpha1 << ", " << it->alpha2 << std::endl;
+        }
+        std::cout << "END OF LIST " << std::endl;
+    }
     bool p_inside_q, q_inside_p;
 
     /** LINK PARALLEL VERTICES **/
@@ -72,9 +84,10 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in p **/
     CircularList<NewVertex> p_vertices;
 
-    Side in_out = p_inside_q = inside(p.transform(p.vertices[0]), q) ^ q_inside_out;
+    Side in_out = p_inside_q = inside(p.transformed(0), q) ^ q_inside_out;
     int added_vertex_index = -1;
     int current_index = 0;
+    std::cout << "Initial in-out " << std::boolalpha << in_out << std::endl;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
     {
         current_index = it->i->edge1.get_index();
@@ -92,9 +105,10 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         in_out = !in_out;
         it->vert_p->in_out = in_out;
         p_vertices.push_back(it->vert_p);
+        std::cout << " - " << std::boolalpha << in_out << std::endl;
     }
     // just to test our logic..
-    // assert(in_out == inside(p.vertices[0], q));
+    assert(in_out == inside(p.transformed(0), q) ^ q_inside_out);
     // Add rest of vertices..
     if (sorted.size() > 0) {
         for (uint i = sorted.back().i->edge1.get_index() + 1; i  < p.vertices.size(); i ++)
@@ -110,7 +124,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in q **/
     CircularList<NewVertex> q_vertices;
 
-    in_out = q_inside_p = inside(q.transform(q.vertices[0]), p) ^ p_inside_out;
+    in_out = q_inside_p = inside(q.transformed(0), p) ^ p_inside_out;
     added_vertex_index = -1;
     current_index = 0;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
@@ -132,6 +146,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     }
     // just to test our logic..
     // assert(in_out == inside(q.vertices[0], p)); // TODO doesn't work when q[0] is inside of p
+    assert(in_out == (inside(q.transformed(0), p) ^ p_inside_out));
     // Add rest of vertices..
     if (sorted.size() > 0) {
         for (uint i = sorted.back().i->edge2.get_index() + 1; i  < q.vertices.size(); i ++)
@@ -161,7 +176,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         do {
             polygon.vertices.push_back(current->vertex);
 
-            // TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
+            // (?) TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
             if (current->intersect) {
                 assert(current->parallel);
                 current->processed = true;
@@ -187,6 +202,14 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
             result.push_back( Intersection(p) );
         else if (q_inside_p)
             result.push_back( Intersection(q) );
+    }
+    std::cout << "Found this: " << std::endl;
+    for (auto it = result.begin(); it != result.end(); it ++)
+    {
+        for (auto vert = it->vertices.begin(); vert != it->vertices.end(); vert ++)
+        {
+            std::cout << vert->point << std::endl;
+        }
     }
 
     return result;

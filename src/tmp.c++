@@ -65,3 +65,7 @@ bool file_exists(const std::string &name)
 		return false;
 	}   
 }
+void assert_not_equal(glm::vec2 a, glm::vec2 b)
+{
+    assert(a.x != b.x && a.y != b.y);
+}

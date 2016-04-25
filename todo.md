@@ -1,3 +1,7 @@
+# Currently WIP #
+ - extract_intersection erroneous on intersect points of very small differences
+ - but.. look at notes
+
 # Rendering Polygons #
  - Indices rather than vertices
 

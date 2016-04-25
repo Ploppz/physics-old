@@ -88,6 +88,9 @@ struct Intersection
         normal of the line between the two intersection points.
     **/
     float find_default_depth();
+    glm::vec2 find_normal_towards(Polygon* p);
+
+    Polygon* edge_owner(int edge_start_index);
 
     class Vertex {
     public:
@@ -116,8 +119,9 @@ struct Intersection
     };
 
     private:
-
+    int clamp_index(int index);
     float find_depth(int start_vertex, int end_vertex);
+
 };
 
 

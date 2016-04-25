@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <iostream>
+#include <list>
 
 #include "geometry/Polygon.h"
 #include "glutils.h"
@@ -88,15 +89,18 @@ class BodySystem
     /* Returns time since resolved collision. */
     float resolve(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time);
 
-    void simple_move_out_of(Body b1, Body b2);
+    std::list<Contact> simple_move_out_of(Body b1, Body b2, std::vector<Intersection>&);
+    Contact simple_make_contact(Body b1, Body b2, Intersection& i);
 
 
     void resolve_penetration(Body b1, Body b2, Contact c);
     void physical_reaction(Body b1, Body b2, Contact c);
     bool separating_at(Body b1, Body b2, Contact c);
 
-    Contact find_earliest_contact(Body b1, Body b2, std::vector<Intersection>&, float time_since_last_update);
-    Contact calculate_contact(Body b1, Body b2, Intersection& b, float time_since_last_update);
+    Contact find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>&, float time_since_last_update);
+    Contact calculate_contact_by_rewinding(Body b1, Body b2, Intersection& b, float time_since_last_update);
+
+    bool not_rewindable(Body b1, Body b2, Intersection& intersection, float time_since_last_update);
 
     inline bool will_separate_in_future(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_to_next_update);
     inline bool separate_last_frame(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_to_next_update);
@@ -136,6 +140,8 @@ class Body
     // General
         void apply_impulse(glm::vec2 impulse, EdgePoint point);
         void apply_impulse(glm::vec2 impulse, glm::vec2 point); //TODO implement? don't know if I need it
+
+        void update_polygon_state();
 
 	// Access to members
         glm::vec2 real_position(); 

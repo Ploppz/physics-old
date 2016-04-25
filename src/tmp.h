@@ -14,3 +14,5 @@ void addToBuffer(LineSegment e, BufferWriter<float> &buffer, float, float, float
 float randFloat();
 glm::vec3 randomColor();
 bool file_exists(const std::string &name);
+
+void assert_not_equal(glm::vec2, glm::vec2);

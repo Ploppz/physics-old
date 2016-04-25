@@ -13,6 +13,7 @@ should BS work with Body or int?
 #include <glm/gtx/matrix_transform_2d.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <algorithm>
+#include <list>
 
 #include "BodySystem.h"
 #include "glutils.h"
@@ -37,6 +38,7 @@ void BodySystem::timestep(float delta_time)
         
         update_body(i, delta_time);
         
+        Body(this, i).update_polygon_state();
         /* shape[i].position = position[i];
         shape[i].orientation = orientation[i]; */
 	}
@@ -61,6 +63,7 @@ void BodySystem::update_body(int index, float delta_time)
 
 void BodySystem::treat_body_tree(Body root, float delta_time)
 {
+    std::cout << "*** TREAT BODY TREE ***" << std::endl;
     // Children can't go outside of parent polygon:
     root.mode = POLYGON_OUTSIDE;
     for (int i = 0; i < children[root.index].size(); i ++)
@@ -86,19 +89,21 @@ void BodySystem::treat_body_tree(Body root, float delta_time)
 
 void BodySystem::treat(Body b1, Body b2, float delta_time)
 {
+    std::cout << "** TREAT **" << std::endl << std::endl;
     /* just_plot_movement(b2, b1, 30, 30);  */
-    std::vector<Intersection> intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(),
-                                                                                    bool(b1.mode), bool(b2.mode)); 
+    std::vector<Intersection> intersections =
+        Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     if (intersections.size() == 0) return;
 
 
-    Contact contact = find_earliest_contact(b1, b2, intersections, delta_time);
+    Contact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
     if (contact.rewind_time != 0) last_contact = contact; 
-    std::cout << "\trewind time: " << contact.rewind_time << std::endl;
+    std::cout << "\trewind time: " << contact.rewind_time << std::endl; 
 
     if (contact.rewind_time == 0) {
-        /* simple_move_out_of(b1, b2); */
+        std::cout << "SIMPLE DISPLACEMENT "<<std::endl;
+        simple_move_out_of(b1, b2, intersections); 
         // physical reaction = ?
     } else {
         resolve_penetration(b1, b2, contact);
@@ -149,6 +154,38 @@ inline glm::vec2 BodySystem::velocity_of_point(Body b, EdgePoint p, glm::vec2 &o
     return b.velocity() + b.rotation() * out_r_ortho;
 }
 
+std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
+{
+    std::list<Contact> results;
+    /* for (auto it = intersections.begin(); it != intersections.end(); it ++) {
+    
+    } */
+    int count = 0;
+    do {
+        count ++;
+        if (count > 20) {
+            std::cout << "Reached max. iterations" << std::endl;
+            break;
+        }
+        std::cout << "SimpleMoveOutOf iteration" << std::endl;
+
+        Intersection& i = intersections[0];
+        float depth = i.find_default_depth();
+        std::cout << "depth = " << depth << std::endl;
+        glm::vec2 b1_direction_of_projection = - i.find_normal_towards(&b1.shape());
+        /* The bodies are displaced weighed by their mass */
+        b1.position() += b1_direction_of_projection * (b2.shape().mass * depth) / (b1.shape().mass + b2.shape().mass);
+        b2.position() -= b1_direction_of_projection * (b1.shape().mass * depth) / (b1.shape().mass + b2.shape().mass);
+
+        b1.update_polygon_state();
+        b2.update_polygon_state();
+
+        std::cout << "=== Start extraction ... ===" << std::endl;
+        intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+        std::cout << "Stop extraction ... " << std::endl;
+    } while (intersections.size() > 0);
+    return results;
+}
 
 bool BodySystem::separating_at(Body A, Body B, Contact c)
 {
@@ -168,8 +205,20 @@ bool BodySystem::separating_at(Body A, Body B, Contact c)
 
 
 
-Contact BodySystem::find_earliest_contact(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
+Contact BodySystem::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
 {
+
+    /** First check whether any one vertex cannot be rewound **/
+    for (auto it = intersections.begin(); it != intersections.end(); it ++)
+    {
+        if (not_rewindable(b1, b2, *it, delta_time)) {
+            Contact null_contact;
+            null_contact.rewind_time = 0;
+            return null_contact;
+        }
+    }
+
+    /** **/
     Contact earliest_contact;
     earliest_contact.rewind_time = 0;
 
@@ -179,14 +228,24 @@ Contact BodySystem::find_earliest_contact(Body b1, Body b2, std::vector<Intersec
 
     for (auto it = intersections.begin(); it != intersections.end(); it ++)
     {
-        Contact c = calculate_contact(b1, b2, *it, delta_time);
+        Contact c = calculate_contact_by_rewinding(b1, b2, *it, delta_time);
         if (c.rewind_time > earliest_contact.rewind_time)
             earliest_contact = c;
     }
     return earliest_contact;
 }
+bool BodySystem::not_rewindable(Body b1, Body b2, Intersection& intersection, float delta_time)
+{
+    for (auto it = intersection.vertices.begin(); it != intersection.vertices.end(); it ++)
+    {
+        if (!separate_last_frame(*it, b1, b2, delta_time)) {
+            return false;
+        }
+    }
+    return true;
+}
 
-Contact BodySystem::calculate_contact(Body b1, Body b2, Intersection& intersection, float delta_time)
+Contact BodySystem::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     assert(renderer);
     /* renderer->append_lines_to_vector(intersection); */
@@ -426,6 +485,11 @@ void Body::apply_impulse(glm::vec2 impulse, EdgePoint point)
 void Body::apply_impulse(glm::vec2 impulse, glm::vec2 point)
 {
     assert(!"Needs implemenation.");
+}
+void Body::update_polygon_state()
+{
+    shape().position = position();
+    shape().orientation = orientation();
 }
 vec2 Body::real_position()
 {

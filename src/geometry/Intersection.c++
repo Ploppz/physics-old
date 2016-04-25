@@ -3,6 +3,7 @@
 #include "geometry.h"
 #include "../LinkedList.h"
 #include "../Renderer.h"
+#include "../tmp.h"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -96,6 +97,64 @@ glm::vec2 Intersection::centroid()
 	return C;
 }
 
+glm::vec2 Intersection::find_normal_towards(Polygon* p) // or.. find direction of intersect wrt
+{
+    // PERFORMANCE does a lot of similar things as find_depth etc,
+    int intersect1 = -1, intersect2;
+    for (int i = 0; i < vertices.size(); i ++) {
+        if (vertices[i].intersect) {
+            if (intersect1 == -1) {
+                intersect1 = i;
+            } else {
+                intersect2 = i;
+            }
+        }
+    }
+    /* PERFORMANCE don't know whether we need to normalize */
+    glm::vec2 normal = glm::normalize(vertices[intersect2].point - vertices[intersect1].point);
+    normal = glm::vec2( - normal.y, normal.x );
+    // normal points to the left 
+    // found with assumption that Polygon p lies to the left of (intersect2 - intersect1)
+    /* check if polygon is left of the line .. */
+    glm::vec2 next_edge = Vertex(intersect1, this).successive().point - Vertex(intersect1, this)->point;
+    glm::vec2 prev_edge = Vertex(intersect1, this).preceding().point - Vertex(intersect1, this)->point;
+    if (leftof(next_edge, prev_edge)) {
+        if (edge_owner(intersect1) != p) {
+            normal = - normal;
+        }
+    } else {
+        if (edge_owner(intersect1) == p) {
+            normal = - normal;
+        }
+    }
+    return normal;
+}
+Polygon* Intersection::edge_owner(int edge_start_index)
+{
+    HybridVertex v1 = vertices[edge_start_index];
+    HybridVertex v2 = vertices[clamp_index(edge_start_index + 1)];
+
+    if ( ! v1.intersect) {
+        return v1.owner;
+    } else if ( ! v2.intersect) {
+        return v2.owner;
+    } else {
+        /* Find the polygon whose _same single edge_ is present in the two intersections */
+        if (v1.edge1_index == v2.edge1_index || v1.edge1_index == v2.edge2_index) {
+            return v1.edge1_owner;
+        } else {
+            /* Fair assumption that now, v1.edge2_index must be the same as any of v2's edges */
+            assert (v1.edge2_index == v2.edge1_index || v1.edge2_index == v2.edge2_index);
+            return v1.edge2_owner;
+        }
+    }
+}
+int Intersection::clamp_index(int index)
+{
+    if (index < 0) index += vertices.size();
+    index %= vertices.size();
+    return index;
+}
 float Intersection::find_default_depth()
 {
     int intersect1 = -1, intersect2;
@@ -113,8 +172,12 @@ float Intersection::find_default_depth()
 }
 float Intersection::find_depth(int start_vertex, int end_vertex)
 {
+    assert(start_vertex != end_vertex);
+    assert_not_equal(vertices[end_vertex].point, vertices[start_vertex].point);
+    std::cout << " * find_depth * " << std::endl;
     /*Construct normal */
-    glm::vec2 normal = vertices[end_vertex].point - vertices[start_vertex].point;
+    /* PERFORMANCE don't know whether we need to normalize */
+    glm::vec2 normal = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
     normal = glm::vec2( - normal.y, normal.x );
 
     /*Construct transformation to align normal to the x-axis*/
@@ -129,32 +192,45 @@ float Intersection::find_depth(int start_vertex, int end_vertex)
     Vertex forward = backward;
     bool current_is_forward = false;
 
-    glm::vec2 forward_p, forward_next_p, backward_p, backward_next_p;
-    forward_next_p  = forward.successive().point,
-    backward_next_p = backward.preceding().point;
+    glm::vec2   forward_p = align_transform * forward->point,
+                backward_p = align_transform * backward->point,
+                forward_next_p  = align_transform * forward.successive().point,
+                backward_next_p = align_transform * backward.preceding().point;
 
     float biggest_depth = 0;
     do {
         if (forward_next_p.y > backward_next_p.y) {
             ++ forward;
             current_is_forward = true;
+            forward_p       = forward_next_p;
+            forward_next_p  = align_transform * forward.successive().point;
         } else {
             -- backward;
             current_is_forward = false;
+            backward_p      = backward_next_p;
+            backward_next_p = align_transform * backward.preceding().point;
         }
+        std::cout << "current if forward: " << std::boolalpha << current_is_forward << std::endl;
+        std::cout << "\t " << forward.get_index() << ", " << backward.get_index() << std::endl;
 
-        forward_p       = forward_next_p,
-        forward_next_p  = align_transform * forward.successive().point,
-        backward_p      = backward_next_p,
-        backward_next_p = align_transform * backward.preceding().point;
 
         if (current_is_forward) {
             float alpha;
-            float intersect_x = intersect_horizontal(backward->point, backward.preceding().point - backward->point, forward->point.y,  alpha);
+            std::cout << "intersect_horizontal " << backward_p << ", " << backward_next_p << ", " << forward_p.y << std::endl;
+            float intersect_x = intersect_horizontal(backward_p, backward_next_p - backward_p, forward_p.y,  alpha);
+            std::cout << "alpha=" << alpha << std::endl;
             if (fabs(intersect_x - forward_p.x) > biggest_depth) {
                 biggest_depth = fabs(intersect_x - forward_p.x);
             }
-            
+        } else {
+            float alpha;
+            std::cout << "intersect_horizontal " << forward_p << ", " << forward_next_p << ", " << backward_p.y << std::endl;
+            float intersect_x = intersect_horizontal(forward_p, forward_next_p - forward_p, backward_p.y,  alpha);
+            std::cout << "alpha=" << alpha << std::endl;
+            if (fabs(intersect_x - backward_p.x) > biggest_depth) {
+                biggest_depth = fabs(intersect_x - backward_p.x);
+            }
+        
         }
     //float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
     } while (forward != end && backward != end);

@@ -10,6 +10,7 @@
  *  Collide with boundaries of window
  */
 
+#include <fenv.h>
 /* std */
 #include <iostream>
 #include <cassert>
@@ -79,6 +80,7 @@ FontRenderer *fontRenderer;
 
 int main()
 {
+    feenableexcept(FE_ALL_EXCEPT & ~FE_INEXACT);
     // srand (time(NULL));
     // Input::Init();
 

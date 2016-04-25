@@ -104,7 +104,7 @@ bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b, vec2& poi
     if (cross_vec == 0) return false; // This means colinear (if also cross(a_diff, line2_vec) == 0) OR parallel (else)
     alpha1 = cross(a_diff, line2_vec) / cross_vec; //TODO wrong order??
     alpha2 = cross(a_diff, line1_vec) / cross_vec;
-    if (alpha1 >= 0 && alpha2 >= 0 && alpha1 <= 1 && alpha2 <= 1) {
+    if (alpha1 > 0 && alpha2 > 0 && alpha1 < 1 && alpha2 < 1) {
         point_of_intersection = line1_a + (line1_vec * alpha1);
         return true;
     }
