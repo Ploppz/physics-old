@@ -123,6 +123,12 @@ float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constan
     alpha_out = (y_constant - line_start.y)/line_direction.y;
     return (line_start.x + alpha_out * line_direction.x);
 }
+float intersect_vertical(vec2 line_start, vec2 line_direction, float x_constant, float &alpha_out)
+{
+    // Returns x value of intersection
+    alpha_out = (x_constant - line_start.x)/line_direction.x;
+    return (line_start.y + alpha_out * line_direction.y);
+}
 
 std::ostream &operator << (std::ostream &lhs, const vec2 &rhs)
 {

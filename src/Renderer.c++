@@ -188,11 +188,15 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
 
     glUniform2f(uni_center, 0, 0);
     glUniform1f(uni_orientation, 0);
-    /* BufferWriter<float> buffer(lines_vbo_size); */
-    BufferWriter<float> buffer(lines_buffer.size()); 
+
+    //
+    const int size_float_buffer = lines_buffer.size() + system.auxilliary_lines.size();
+    BufferWriter<float> buffer(size_float_buffer); 
+    std::cout << "SIZE " << system.auxilliary_lines.size() << std::endl;
     for (float f : lines_buffer) buffer.write(f);
+    for (float f : system.auxilliary_lines) buffer.write(f);
     // Draw
-    glDrawArrays(GL_LINES, 0, lines_buffer.size() / 2);
+    glDrawArrays(GL_LINES, 0, size_float_buffer / 2);
     lines_buffer.clear(); 
     buffer.unmap();
 /** Draw text **/

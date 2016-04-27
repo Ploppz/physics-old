@@ -104,8 +104,8 @@ int main()
 	numEdges = 10;
     //big
 	for (int i = 0; i < numEdges; i ++) {
-		a = rand() / static_cast<float>(INT_MAX) * 100;
-        float size = 200;
+		a = rand() / static_cast<float>(INT_MAX) * 200;
+        float size = 100;
 		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
     //small

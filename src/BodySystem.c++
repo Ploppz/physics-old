@@ -2,7 +2,6 @@
 update_body could be a member function of Body?
 should BS work with Body or int?
 **/
-#include "Renderer.h"
 #include <cmath>
 #include <glm/glm.hpp>
 #include <vector>
@@ -15,6 +14,9 @@ should BS work with Body or int?
 #include <algorithm>
 #include <list>
 
+#include "Renderer.h"
+#include "geometry/linestrip/LineStrip.h"
+#include "geometry/linestrip/LineStripSeries.h"
 #include "BodySystem.h"
 #include "glutils.h"
 #include "typewriter/FontRenderer.h"
@@ -33,6 +35,7 @@ BodySystem::BodySystem()
 
 void BodySystem::timestep(float delta_time)
 {
+    auxilliary_lines.clear();
 	for (int i = 0; i < count; i ++)
 	{
         
@@ -95,6 +98,37 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
         Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     if (intersections.size() == 0) return;
 
+    if (true) /* Test: visualize 'shadow' */
+    {
+        for (auto it = intersections.begin(); it != intersections.end(); it ++)
+        {
+            Contact c = it->get_contact(&b2.shape()); /* why b2? */
+            {
+                LineStrip linestrip = it->cast_internal_shadow(c.normal, &b1.shape(), *renderer);
+                LineStripSeries<LEFT> series(linestrip);
+                series.make_y_monotone();
+                series.append_lines_to_vector(auxilliary_lines);
+            } { /* TODO: error when following code is run */
+                /* LineStrip linestrip = it->cast_internal_shadow(c.normal, &b2.shape(), *renderer);
+                LineStripSeries<LEFT> series(linestrip);
+                series.make_y_monotone();
+                series.append_lines_to_vector(auxilliary_lines); */
+            }
+        }
+        return;
+    }
+    if (true) /* Test: only simple move out */
+    {
+        std::list<Contact> contacts = simple_move_out_of(b1, b2, intersections); 
+        for (auto it = contacts.begin(); it != contacts.end(); it ++) {
+            physical_reaction(b1, b2, *it);
+            last_contact.rewind_time = 1;
+            last_contact.subj_point = it->subj_point;
+            last_contact.ref_point = it->ref_point;
+            last_contact.normal = it->normal;
+        }
+        return;
+    }
 
     Contact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
@@ -104,7 +138,7 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
     if (contact.rewind_time == 0) {
         std::cout << "SIMPLE DISPLACEMENT "<<std::endl;
         simple_move_out_of(b1, b2, intersections); 
-        // physical reaction = ?
+        // physical reaction
     } else {
         resolve_penetration(b1, b2, contact);
         physical_reaction(b1, b2, contact);
@@ -133,7 +167,7 @@ void BodySystem::physical_reaction(Body A, Body B, Contact c)
         std::swap(A, B);
     }
 
-    const float e = 0.5f; // coefficient of restitution
+    const float e = 1; // coefficient of restitution
     glm::vec2 r_ortho_A, r_ortho_B;
     glm::vec2 v_AB = velocity_of_point(A, c.subj_point, r_ortho_A) - velocity_of_point(B, c.ref_point, r_ortho_B);
 
@@ -157,25 +191,29 @@ inline glm::vec2 BodySystem::velocity_of_point(Body b, EdgePoint p, glm::vec2 &o
 std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
 {
     std::list<Contact> results;
+    for (auto it = intersections.begin(); it != intersections.end(); it ++)
+    {
+        results.push_back(it->get_contact(&b1.shape()));
+    }
     /* for (auto it = intersections.begin(); it != intersections.end(); it ++) {
     
     } */
     int count = 0;
     do {
-        count ++;
-        if (count > 20) {
+        if (count >= 1) {
             std::cout << "Reached max. iterations" << std::endl;
             break;
         }
+        count ++;
         std::cout << "SimpleMoveOutOf iteration" << std::endl;
 
         Intersection& i = intersections[0];
-        float depth = i.find_default_depth();
-        std::cout << "depth = " << depth << std::endl;
-        glm::vec2 b1_direction_of_projection = - i.find_normal_towards(&b1.shape());
-        /* The bodies are displaced weighed by their mass */
-        b1.position() += b1_direction_of_projection * (b2.shape().mass * depth) / (b1.shape().mass + b2.shape().mass);
-        b2.position() -= b1_direction_of_projection * (b1.shape().mass * depth) / (b1.shape().mass + b2.shape().mass);
+        IntersectionContact contact = i.get_contact(&b1.shape());
+
+        std::cout << "\tResulting depth: " << contact.depth << std::endl;
+        /* The bodies are displaced weighed by their mass. contact.normal is assumed to be*/
+        b1.position() += contact.normal * (b2.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
+        b2.position() -= contact.normal * (b1.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
 
         b1.update_polygon_state();
         b2.update_polygon_state();
@@ -184,6 +222,7 @@ std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<
         intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
         std::cout << "Stop extraction ... " << std::endl;
     } while (intersections.size() > 0);
+    std::cout << "SimpleMoveOutOf iterations: " << count << std::endl;
     return results;
 }
 

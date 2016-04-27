@@ -97,33 +97,23 @@ glm::vec2 Intersection::centroid()
 	return C;
 }
 
-glm::vec2 Intersection::find_normal_towards(Polygon* p) // or.. find direction of intersect wrt
+glm::vec2 Intersection::find_normal_wrt(Polygon* p, int start_vertex, int end_vertex) // or.. find direction of intersect wrt
 {
-    // PERFORMANCE does a lot of similar things as find_depth etc,
-    int intersect1 = -1, intersect2;
-    for (int i = 0; i < vertices.size(); i ++) {
-        if (vertices[i].intersect) {
-            if (intersect1 == -1) {
-                intersect1 = i;
-            } else {
-                intersect2 = i;
-            }
-        }
-    }
     /* PERFORMANCE don't know whether we need to normalize */
-    glm::vec2 normal = glm::normalize(vertices[intersect2].point - vertices[intersect1].point);
+    glm::vec2 normal = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
     normal = glm::vec2( - normal.y, normal.x );
-    // normal points to the left 
-    // found with assumption that Polygon p lies to the left of (intersect2 - intersect1)
-    /* check if polygon is left of the line .. */
-    glm::vec2 next_edge = Vertex(intersect1, this).successive().point - Vertex(intersect1, this)->point;
-    glm::vec2 prev_edge = Vertex(intersect1, this).preceding().point - Vertex(intersect1, this)->point;
+
+    /*  normal points to the left 
+        found with assumption that Polygon p lies to the left of (end_vertex - start_vertex)
+        check if polygon is left of the line .. */
+    glm::vec2 next_edge = Vertex(start_vertex, this).successive().point - Vertex(start_vertex, this)->point;
+    glm::vec2 prev_edge = Vertex(start_vertex, this).preceding().point - Vertex(start_vertex, this)->point;
     if (leftof(next_edge, prev_edge)) {
-        if (edge_owner(intersect1) != p) {
+        if (edge_owner(start_vertex) == p) {
             normal = - normal;
         }
     } else {
-        if (edge_owner(intersect1) == p) {
+        if (edge_owner(start_vertex) != p) {
             normal = - normal;
         }
     }
@@ -155,33 +145,32 @@ int Intersection::clamp_index(int index)
     index %= vertices.size();
     return index;
 }
-float Intersection::find_default_depth()
+IntersectionContact Intersection::get_contact(Polygon* subject)
 {
-    int intersect1 = -1, intersect2;
+    IntersectionContact contact;
+    int start_vertex = -1, end_vertex;
     for (int i = 0; i < vertices.size(); i ++) {
         if (vertices[i].intersect) {
-            if (intersect1 == -1) {
-                intersect1 = i;
+            if (start_vertex == -1) {
+                start_vertex = i;
             } else {
-                intersect2 = i;
+                end_vertex = i;
             }
         }
     }
+    if (vertices[end_vertex].point == vertices[start_vertex].point) {
+        exit(0);
+    }
 
-    return find_depth(intersect1, intersect2);
-}
-float Intersection::find_depth(int start_vertex, int end_vertex)
-{
-    assert(start_vertex != end_vertex);
-    assert_not_equal(vertices[end_vertex].point, vertices[start_vertex].point);
-    std::cout << " * find_depth * " << std::endl;
-    /*Construct normal */
+    /* Construct normal */
     /* PERFORMANCE don't know whether we need to normalize */
-    glm::vec2 normal = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
-    normal = glm::vec2( - normal.y, normal.x );
+    contact.normal = find_normal_wrt(subject, start_vertex, end_vertex);
 
+    /* PERFORMANCE this is used in calculation of normal... also: don't know whether it should be normalized. */
+    glm::vec2 tangent = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
     /*Construct transformation to align normal to the x-axis*/
-    float align_transform_d[4] = {normal.x, -normal.y, normal.y, normal.x};
+    /* This transform makes start_vertex leftmost and end_vertex rightmost */
+    float align_transform_d[4] = {tangent.x, -tangent.y, tangent.y, tangent.x};
     glm::mat2 align_transform = make_mat2x2(align_transform_d);
 
     /* Invariant: the transform makes normal aligned with x-axis, thus start_vertex has maximum y */
@@ -191,52 +180,147 @@ float Intersection::find_depth(int start_vertex, int end_vertex)
     Vertex backward(start_vertex, this);
     Vertex forward = backward;
     bool current_is_forward = false;
+    bool forward_is_subject = ( edge_owner(forward.get_index()) == subject );
 
     glm::vec2   forward_p = align_transform * forward->point,
                 backward_p = align_transform * backward->point,
                 forward_next_p  = align_transform * forward.successive().point,
                 backward_next_p = align_transform * backward.preceding().point;
 
-    float biggest_depth = 0;
+    std::cout << "Forward x: " << forward_p.x << ", " << forward_next_p.x << std::endl;
+    std::cout << "Backward x: " << backward_p.x << ", " << backward_next_p.x << std::endl;
+    contact.depth = 0;
     do {
-        if (forward_next_p.y > backward_next_p.y) {
+        if (forward_next_p.x < backward_next_p.x) {
+            std::cout << "Advance forward " << std::endl;
             ++ forward;
             current_is_forward = true;
             forward_p       = forward_next_p;
             forward_next_p  = align_transform * forward.successive().point;
         } else {
+            std::cout << "Advance backward " << std::endl;
             -- backward;
             current_is_forward = false;
             backward_p      = backward_next_p;
             backward_next_p = align_transform * backward.preceding().point;
         }
-        std::cout << "current if forward: " << std::boolalpha << current_is_forward << std::endl;
-        std::cout << "\t " << forward.get_index() << ", " << backward.get_index() << std::endl;
-
+        std::cout << "Forward x: " << forward_p.x << ", " << forward_next_p.x << std::endl;
+        std::cout << "Backward x: " << backward_p.x << ", " << backward_next_p.x << std::endl;
 
         if (current_is_forward) {
             float alpha;
-            std::cout << "intersect_horizontal " << backward_p << ", " << backward_next_p << ", " << forward_p.y << std::endl;
-            float intersect_x = intersect_horizontal(backward_p, backward_next_p - backward_p, forward_p.y,  alpha);
-            std::cout << "alpha=" << alpha << std::endl;
-            if (fabs(intersect_x - forward_p.x) > biggest_depth) {
-                biggest_depth = fabs(intersect_x - forward_p.x);
+            float intersect_y = intersect_vertical(backward_p, backward_next_p - backward_p, forward_p.x,  alpha);
+            std::cout << ":alpha = " << alpha << std::endl;
+            // assert(alpha >= 0 && alpha <= 1);
+            if (alpha < 0 || alpha > 0) {
+                continue;
+            }
+            if (fabs(intersect_y - forward_p.y) > contact.depth) {
+                contact.depth = fabs(intersect_y - forward_p.y);
+                //
+                contact.subj_point = EdgePoint(forward->vertex, forward->alpha, forward->owner);
+                Vertex backward_minus_one = backward; -- backward_minus_one;
+                contact.ref_point = interpolate(backward_minus_one, backward, alpha);
+                //
+                if (forward->owner != subject)
+                    std::swap(contact.subj_point, contact.ref_point);
             }
         } else {
             float alpha;
-            std::cout << "intersect_horizontal " << forward_p << ", " << forward_next_p << ", " << backward_p.y << std::endl;
-            float intersect_x = intersect_horizontal(forward_p, forward_next_p - forward_p, backward_p.y,  alpha);
-            std::cout << "alpha=" << alpha << std::endl;
-            if (fabs(intersect_x - backward_p.x) > biggest_depth) {
-                biggest_depth = fabs(intersect_x - backward_p.x);
+            float intersect_y = intersect_vertical(forward_p, forward_next_p - forward_p, backward_p.x,  alpha);
+            std::cout << "alpha = " << alpha << std::endl;
+            // assert(alpha >= 0 && alpha <= 1);
+            if (alpha < 0 || alpha > 0) {
+                continue;
+            }
+            if (fabs(intersect_y - backward_p.y) > contact.depth) {
+                contact.depth = fabs(intersect_y - backward_p.y);
+                //
+                contact.subj_point = EdgePoint(backward->vertex, backward->alpha, backward->owner);
+                Vertex forward_minus_one = forward; -- forward_minus_one;
+                contact.ref_point = interpolate(forward_minus_one, forward, alpha);
+                //
+                if (backward->owner != subject)
+                    std::swap(contact.subj_point, contact.ref_point);
             }
         
         }
     //float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
     } while (forward != end && backward != end);
 
-    return biggest_depth;
+    std::cout << "ref edgepoint: " <<  contact.ref_point.alpha << std::endl;
+    std::cout << "subj edgepoint: " << contact.subj_point.alpha << std::endl;
+    return contact;
 } 
+
+bool index_is_next_given_range(int index, int next_index, int range)
+{
+    int anticipated_next_index = (index + 1) % range;
+    return anticipated_next_index == next_index;
+}
+Polygon* Intersection::find_parent_of_intersection_edge(Vertex v1, Vertex v2)
+{
+    /* Assumption: Both vertices are intersects */
+    int v1_first_owner_index1 = v1->edge1_index;
+    int v1_first_owner_index2;
+    if (v1->edge1_owner == v2->edge1_owner) {
+        if (index_is_next_given_range(v1->edge1_index, v2->edge1_index, v1->edge1_owner->vertices.size()) )
+            return v1->edge1_owner;
+        else // condition must be true for the other polygon
+            return v1->edge2_owner;
+    } else {
+        if (index_is_next_given_range(v1->edge1_index, v2->edge2_index, v1->edge1_owner->vertices.size()) )
+            return v1->edge1_owner;
+        else // condition must be true for the other polygon
+            return v1->edge2_owner;
+    }
+}
+EdgePoint Intersection::interpolate(Vertex v1, Vertex v2, float alpha)
+{
+    EdgePoint e1, e2;
+    if (v1->intersect) {
+        if (v2->intersect) {
+            Polygon* edge_parent = find_parent_of_intersection_edge(v1, v2);
+            if (v1->edge1_owner == edge_parent) {
+                e1 = EdgePoint(v1->edge1_index, v1->alpha1, edge_parent);
+            } else {
+                e1 = EdgePoint(v1->edge2_index, v1->alpha2, edge_parent);
+            }
+            if (v2->edge1_owner == edge_parent) {
+                e2 = EdgePoint(v2->edge1_index, v2->alpha1, edge_parent);
+            } else {
+                e2 = EdgePoint(v2->edge2_index, v2->alpha2, edge_parent);
+            }
+        } else {
+            e2 = EdgePoint(v2->vertex, v2->alpha, v2->owner);
+
+            if (v1->edge1_owner == v2->owner)
+                e1 = EdgePoint(v1->edge1_index, v1->alpha1, v2->owner);
+            else // v2->edge2_owner == v2->owner
+                e1 = EdgePoint(v1->edge2_index, v1->alpha2, v2->owner);
+        }
+    } else {
+        e1 = EdgePoint(v1->vertex, v1->alpha, v1->owner);
+        if (v2->intersect) {
+            if (v2->edge1_owner == v1->owner)
+                e2 = EdgePoint(v2->edge1_index, v2->alpha1, v1->owner);
+            else // v2->edge2_owner == v1->owner
+                e2 = EdgePoint(v2->edge2_index, v2->alpha2, v1->owner);
+        } else {
+            e2 = EdgePoint(v2->vertex, v2->alpha, v2->owner);
+        }
+    }
+    assert(e1.parent == e2.parent);
+    assert(e1.index == e2.index || e2.alpha == 0);
+
+    /* Now, actually interpolate the EdgePoints ... */
+    float alpha1 = e1.alpha;
+    float alpha2 = e2.alpha;
+    if (e2.index == e1.index) alpha2 = 1;
+    float new_alpha = alpha1 + alpha * (alpha2 - alpha1);
+    return EdgePoint(e1.index, new_alpha, e1.parent);
+    
+}
 //////////////////////////////////////////////
 //              Vertex pointer
 //////////////////////////////////////////////
@@ -286,27 +370,4 @@ bool Intersection::Vertex::operator!= (Intersection::Vertex& v)
 {
     return (index != v.index || parent != v.parent);
 }
-
-
-///////////
-EdgePoint::EdgePoint(int index, float alpha, Polygon* parent)
-    :alpha(alpha), parent(parent)
-{
-    if (index < 0) index += parent->vertices.size();
-    this->index = index % parent->vertices.size();
-}
-glm::vec2 EdgePoint::point()
-{
-    int next_index = (index + 1) % parent->vertices.size();
-    return (1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index];
-}
-glm::vec2 EdgePoint::point_t()
-{
-    int next_index = (index + 1) % parent->vertices.size();
-    // return parent->transform((1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index]);
-    return parent->transform(parent->vertices[index] + alpha * (parent->vertices[next_index] - parent->vertices[index]));
-
-}
-/////////// Vertex of Line Strip
-// TODO there are a lot of copies of this class for different kinds of geometric things... make template class?
 

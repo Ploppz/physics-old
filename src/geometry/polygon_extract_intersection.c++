@@ -49,12 +49,12 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 ////////////////////////////
 // CALCULATE INTERSECTION //
 ///////////////////////////
+
 std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q, bool p_inside_out, bool q_inside_out)
 {
     std::vector<Intersect> intersects = find_intersects(p, q); // Let an intersect be an intersection vertex
-    if (intersects.size() % 2 != 0)
+    if (intersects.size() % 2 != 0 || intersects.size() == 0)
         return std::vector<Intersection> {};
-    assert(intersects.size() % 2 == 0);
 
     { // test
         std::cout << "INTERSECTS IN : " << std::endl;
@@ -108,7 +108,7 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         std::cout << " - " << std::boolalpha << in_out << std::endl;
     }
     // just to test our logic..
-    assert(in_out == inside(p.transformed(0), q) ^ q_inside_out);
+    assert(in_out == (inside(p.transformed(0), q) ^ q_inside_out));
     // Add rest of vertices..
     if (sorted.size() > 0) {
         for (uint i = sorted.back().i->edge1.get_index() + 1; i  < p.vertices.size(); i ++)
@@ -173,8 +173,14 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         Direction direction = (Direction)current->in_out;
 
         // This is the start of a new polygon.
+        bool invalid = false;
+        glm::vec2 prev_added_point(0);
         do {
+            if (length_squared(current->vertex.point - prev_added_point) < 0.0001f) {
+                invalid = true;
+            }
             polygon.vertices.push_back(current->vertex);
+            prev_added_point = current->vertex.point;
 
             // (?) TODO Shouldn't be possible for the new polygon to consist of only two non-adjacent intersection points
             if (current->intersect) {
@@ -195,7 +201,9 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
             }
         } while (current != start);
 
-        result.push_back(polygon);
+        if (! invalid) {
+            result.push_back(polygon);
+        }
     }
     if (sorted.size() == 0) {
         if (p_inside_q)

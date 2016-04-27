@@ -22,6 +22,8 @@ struct Contact {
     // Collision incident points along the polygons
     EdgePoint ref_point;
     EdgePoint subj_point;
+    Contact() {};
+    Contact(IntersectionContact other) : rewind_time(0), normal(other.normal), ref_point(other.ref_point), subj_point(other.subj_point) {};
 };
 
 enum PositionType { ABSOLUTE, RELATIVE };
@@ -54,6 +56,8 @@ class BodySystem
     Renderer* renderer;
     float simulation_speed = 1;
     Contact last_contact; // for visualization
+
+    std::vector<float> auxilliary_lines;
  private:
     //
 	int count;

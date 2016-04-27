@@ -13,6 +13,7 @@ std::ostream &operator << (std::ostream &lhs, const glm::vec3 &rhs);
 
 float angle(glm::vec2 a, glm::vec2 b, glm::vec2 c);
 
+float length_squared(glm::vec2 v);
 inline glm::vec2 unit_vector(float angle) {
     return glm::vec2(cos(angle), sin(angle));
 }
@@ -52,6 +53,7 @@ bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec
 bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec2 line2_b, glm::vec2& point_of_intersection, float& alpha1, float& alpha2);
 // return the x value of the intersection between a line and a constant y value
 float intersect_horizontal(glm::vec2 line_start, glm::vec2 line_direction, float y_constant, float &alpha_out);
+float intersect_vertical(glm::vec2 line_start, glm::vec2 line_direction, float x_constant, float &alpha_out);
 
 bool inside(glm::vec2 point, Polygon& p);
 float cross(glm::vec2 a, glm::vec2 b);

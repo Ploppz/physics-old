@@ -1,6 +1,9 @@
 #pragma once
 #include "Polygon.h"
 #include "constants.h"
+#include "EdgePoint.h"
+
+class LineStrip;
 
 struct Intersect;
 
@@ -57,21 +60,13 @@ struct HybridVertex
     float alpha2;
 };
 
-/* Algorithm */
-struct EdgePoint {
-    EdgePoint() {};
-    EdgePoint(int index, float alpha, Polygon* parent);
-    void set(int index, float alpha) {this->index = index; this->alpha = alpha; }
-    void set(int index, float alpha, Polygon* parent) {this->index = index; this->alpha = alpha; this->parent = parent; }
 
-    glm::vec2 point();
-    glm::vec2 point_t(); //transformed point
-
-    int index;
-    float alpha;
-    Polygon* parent;
+struct IntersectionContact {
+    float depth;
+    glm::vec2 normal;
+    EdgePoint subj_point;
+    EdgePoint ref_point;
 };
-
 
 struct Intersection
 {
@@ -84,13 +79,15 @@ struct Intersection
     glm::vec2 centroid();
     glm::vec2 get_point(int vertex_number, float alpha);
 
-    /** "default" depth is the depth in the direction of the
-        normal of the line between the two intersection points.
-    **/
-    float find_default_depth();
-    glm::vec2 find_normal_towards(Polygon* p);
+    glm::vec2 find_normal_wrt(Polygon* not_reference, int start_vertex, int end_vertex);
+
+    IntersectionContact get_contact(Polygon* subject);
 
     Polygon* edge_owner(int edge_start_index);
+
+    LineStrip cast_internal_shadow(glm::vec2 direction, Polygon* subject, Renderer &renderer);
+
+    
 
     class Vertex {
     public:
@@ -121,6 +118,9 @@ struct Intersection
     private:
     int clamp_index(int index);
     float find_depth(int start_vertex, int end_vertex);
+
+    EdgePoint interpolate(Vertex v1, Vertex v2, float alpha);
+    Polygon * find_parent_of_intersection_edge(Vertex v1, Vertex v2);
 
 };
 
