@@ -120,6 +120,7 @@ bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b)
 float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
 {
     // Returns x value of intersection
+    assert(line_direction.y != 0);
     alpha_out = (y_constant - line_start.y)/line_direction.y;
     return (line_start.x + alpha_out * line_direction.x);
 }

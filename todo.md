@@ -1,6 +1,5 @@
 # Currently WIP #
- - extract_intersection erroneous on intersect points of very small differences
- - but.. look at notes
+ - Look at Intersection::manifold from abandoned branch
 
 # Rendering Polygons #
  - Indices rather than vertices
@@ -9,7 +8,7 @@
 # Iterating a Polygon #
 
 # Logic #
-- `extract_intersections` takes flip_q and flip_p (rename to insideout or something?)
+- `extract_intersections` takes `flip_q` and `flip_p` (rename to insideout or something?)
     - `calculate_first_contact` (or rather `rewind_out_of`) should also flip the inside test
     - We need some nice system for this.. e.g.  each polygon has a _level_
 - ABSOLUTE position type:

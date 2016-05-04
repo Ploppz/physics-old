@@ -136,7 +136,7 @@ int main()
     big.rotation() = -0.05f;
     big.rotation() = 0;
 
-#define SMALL_POLYGON_EXISTS false
+#define SMALL_POLYGON_EXISTS true
     if (SMALL_POLYGON_EXISTS) {
         small = world.bodies.add_body(bounding_box);
         small.shape() = r;
@@ -149,7 +149,7 @@ int main()
 	
     Renderer renderer(world.bodies);
     renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-    /* renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); */
+    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
     renderer.set_color_1(0.1f, 0.1f, 0);
     renderer.set_color_2(0, 0.5f, 0);
     world.bodies.renderer = &renderer;

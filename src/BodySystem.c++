@@ -95,24 +95,33 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
     std::cout << "** TREAT **" << std::endl << std::endl;
     /* just_plot_movement(b2, b1, 30, 30);  */
     std::vector<Intersection> intersections =
-        Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+    Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     if (intersections.size() == 0) return;
 
-    if (true) /* Test: visualize 'shadow' */
+    if (false) /* Test: visualize 'shadow' */
     {
         for (auto it = intersections.begin(); it != intersections.end(); it ++)
         {
-            Contact c = it->get_contact(&b2.shape()); /* why b2? */
+            renderer->append_lines_to_vector(*it);
+            glm::vec2 normal = it->find_normal_wrt(&b2.shape());
+            renderer->add_vector(glm::vec2(0), -normal * 60.f);
+            if (1)
             {
-                LineStrip linestrip = it->cast_internal_shadow(c.normal, &b1.shape(), *renderer);
+                normal = it->find_normal_wrt(&b2.shape());
+                if (b1.mode == POLYGON_OUTSIDE) normal = - normal; 
+                LineStrip linestrip = it->cast_internal_shadow(normal, &b1.shape(), *renderer);
                 LineStripSeries<LEFT> series(linestrip);
                 series.make_y_monotone();
                 series.append_lines_to_vector(auxilliary_lines);
-            } { /* TODO: error when following code is run */
-                /* LineStrip linestrip = it->cast_internal_shadow(c.normal, &b2.shape(), *renderer);
+            }
+            if (1)
+            { /* TODO: error when following code is run */
+                normal = it->find_normal_wrt(&b1.shape());
+                if (b2.mode == POLYGON_OUTSIDE) normal = - normal; 
+                LineStrip linestrip = it->cast_internal_shadow(normal, &b2.shape(), *renderer);
                 LineStripSeries<LEFT> series(linestrip);
                 series.make_y_monotone();
-                series.append_lines_to_vector(auxilliary_lines); */
+                series.append_lines_to_vector(auxilliary_lines); 
             }
         }
         return;
@@ -167,11 +176,11 @@ void BodySystem::physical_reaction(Body A, Body B, Contact c)
         std::swap(A, B);
     }
 
-    const float e = 1; // coefficient of restitution
+    const float restitution = 0.5f; // coefficient of restitution
     glm::vec2 r_ortho_A, r_ortho_B;
     glm::vec2 v_AB = velocity_of_point(A, c.subj_point, r_ortho_A) - velocity_of_point(B, c.ref_point, r_ortho_B);
 
-    float impulse = - (1 + e) * glm::dot(v_AB, c.normal) /
+    float impulse = - (1 + restitution) * glm::dot(v_AB, c.normal) /
                     (  (1.f/A.shape().mass + 1.f/B.shape().mass) * glm::dot(c.normal, c.normal)
                         + std::pow(glm::dot(r_ortho_A, c.normal), 2) / A.shape().moment_of_inertia
                         + std::pow(glm::dot(r_ortho_B, c.normal), 2) / B.shape().moment_of_inertia  );
@@ -193,14 +202,12 @@ std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<
     std::list<Contact> results;
     for (auto it = intersections.begin(); it != intersections.end(); it ++)
     {
-        results.push_back(it->get_contact(&b1.shape()));
+        results.push_back(it->get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
+                                            &b2.shape(), b2.mode == POLYGON_OUTSIDE, *renderer));
     }
-    /* for (auto it = intersections.begin(); it != intersections.end(); it ++) {
-    
-    } */
     int count = 0;
     do {
-        if (count >= 1) {
+        if (count >= 10) {
             std::cout << "Reached max. iterations" << std::endl;
             break;
         }
@@ -208,12 +215,13 @@ std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<
         std::cout << "SimpleMoveOutOf iteration" << std::endl;
 
         Intersection& i = intersections[0];
-        IntersectionContact contact = i.get_contact(&b1.shape());
+        IntersectionContact contact = i.get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
+                                            &b2.shape(), b2.mode == POLYGON_OUTSIDE, *renderer);
 
         std::cout << "\tResulting depth: " << contact.depth << std::endl;
         /* The bodies are displaced weighed by their mass. contact.normal is assumed to be*/
-        b1.position() += contact.normal * (b2.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
-        b2.position() -= contact.normal * (b1.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
+        b1.position() -= contact.normal * (b2.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
+        b2.position() += contact.normal * (b1.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
 
         b1.update_polygon_state();
         b2.update_polygon_state();

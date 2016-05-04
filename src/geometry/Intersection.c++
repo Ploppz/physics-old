@@ -1,5 +1,6 @@
 #include "Polygon.h"
 #include "Intersection.h"
+#include "linestrip/LineStripSeries.h"
 #include "geometry.h"
 #include "../LinkedList.h"
 #include "../Renderer.h"
@@ -97,6 +98,25 @@ glm::vec2 Intersection::centroid()
 	return C;
 }
 
+// TODO: Fundamental flaw with following approach:
+// - not always only 2 intersects. may be 4 or any even number.
+
+
+glm::vec2 Intersection::find_normal_wrt(Polygon* p) {
+
+    int start_vertex = -1, end_vertex;
+    for (int i = 0; i < vertices.size(); i ++) {
+        if (vertices[i].intersect) {
+            if (start_vertex == -1) {
+                start_vertex = i;
+            } else {
+                end_vertex = i;
+            }
+        }
+    }
+    assert(vertices[end_vertex].point != vertices[start_vertex].point);
+    return find_normal_wrt(p, start_vertex, end_vertex);
+}
 glm::vec2 Intersection::find_normal_wrt(Polygon* p, int start_vertex, int end_vertex) // or.. find direction of intersect wrt
 {
     /* PERFORMANCE don't know whether we need to normalize */
@@ -108,15 +128,20 @@ glm::vec2 Intersection::find_normal_wrt(Polygon* p, int start_vertex, int end_ve
         check if polygon is left of the line .. */
     glm::vec2 next_edge = Vertex(start_vertex, this).successive().point - Vertex(start_vertex, this)->point;
     glm::vec2 prev_edge = Vertex(start_vertex, this).preceding().point - Vertex(start_vertex, this)->point;
+
+    /* Check if next edge is left of the (start_vertex, end_vertex) line */
     if (leftof(next_edge, prev_edge)) {
         if (edge_owner(start_vertex) == p) {
+            /* This means that p is at the left op (start_vertex, end_vertex) */
             normal = - normal;
         }
     } else {
         if (edge_owner(start_vertex) != p) {
+            /* Same */
             normal = - normal;
         }
     }
+    /* Conclusion: normal points _away_ from the boundary of Polygon* p */
     return normal;
 }
 Polygon* Intersection::edge_owner(int edge_start_index)
@@ -145,112 +170,166 @@ int Intersection::clamp_index(int index)
     index %= vertices.size();
     return index;
 }
-IntersectionContact Intersection::get_contact(Polygon* subject)
+
+struct ManifoldData {
+    float depth = 0;
+    // Data for the collision vertex:
+    EdgePoint vertex_point; // don't need alpha
+    // Data for the collision edge:
+    EdgePoint edge_point;
+
+};
+/* IntersectionContact Intersection::get_contact(Polygon* subject) */
+IntersectionContact Intersection::get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer
+)
 {
-    IntersectionContact contact;
-    int start_vertex = -1, end_vertex;
-    for (int i = 0; i < vertices.size(); i ++) {
-        if (vertices[i].intersect) {
-            if (start_vertex == -1) {
-                start_vertex = i;
+    // normal should be in the direction to move subject out of reference
+    vec2 normal = find_normal_wrt(subject);
+    const bool DEBUG = true;
+    // std::cout << " ---------------- " << std::endl;
+    //TODO simplifying assumption: the line strips are both CCW or both CW
+#define v normal
+#define manifold_debug false
+#define R false
+#define S true
+    float align_transform_d[4] = {v.x, -v.y, v.y, v.x}; //note: column major
+    mat2 align_transform = make_mat2x2(align_transform_d);
+    mat2 align_inverse = glm::inverse(align_transform);
+    /* Extract linstrips */
+    float factor;
+    if (ref_outside) factor = -1;
+    else factor = 1;
+    LineStripSeries<LEFT> r_strip = cast_internal_shadow(normal * factor, reference, renderer);
+    if (subj_outside) factor = -1;
+    else factor = 1;
+    LineStripSeries<RIGHT> s_strip = cast_internal_shadow(-normal * factor, subject, renderer);
+    r_strip.set_align_matrix(align_transform);
+    s_strip.set_align_matrix(align_transform);
+
+    r_strip.make_y_monotone();
+    s_strip.make_y_monotone();
+    /**/
+    /*** Task: Find the line of longest distance in direction v, between the two line strips ***/
+    /*** So after transformation, scan lines in x direction ***/
+    /*** (After transformation, the lines start and end at the same y values) ***/
+    // TODO depending on CCW: We need to know in what direction (+/-) we are moving in the loop
+    
+    /* Goal: */
+    ManifoldData max_manifold;
+    max_manifold.depth = 0;
+    /**/
+
+    /* We have a series of LineStrips to iterate through.. */
+
+    if (DEBUG) {
+        /* std::cout << "Reference: " << r_it->start.index << std::endl;
+        std::cout << "Subject: " << s_it->start.index << std::endl;  */
+    }
+    LineStripSeries<LEFT>::Vertex<true> r(&r_strip); // TODO set to end
+    LineStripSeries<RIGHT>::Vertex<false> s(&s_strip); // TODO set to start
+    std::cout << "CHECK 1 " <<s.parent->get_parent() << std::endl;
+    std::cout << "CHECK 2 " <<r.parent->get_parent() << std::endl;
+    LineStripSeries<LEFT>::Vertex<true> r_next = r; ++ r_next;
+    LineStripSeries<RIGHT>::Vertex<false> s_next = s; ++ s_next;
+    vec2 r_vec, s_vec;
+    vec2 r_vec_next, s_vec_next;
+    vec2 r_vec_best, s_vec_best;
+    bool current = R;
+    int ctr = 0;
+    bool break_next_loop = false;
+    bool max_manifold_found = false; // debug
+    while (true) {
+        r_vec_next = r_next.entry_point();
+        s_vec_next = s_next.entry_point();
+        r_vec = r.exit_point();
+        s_vec = s.exit_point();
+        r_vec_best = r.best_point();
+        s_vec_best = s.best_point();
+        /* Debug */
+        std::cout << ".. get_contact iter " << std::endl;
+        /* Treat */
+        float alpha;
+        float intersect_x;
+        if (current == R) {
+            intersect_x = intersect_horizontal(s_vec, s_vec_next - s_vec, r_vec.y, alpha);
+            vec2 projected_point = s_vec + alpha * (s_vec_next - s_vec);
+
+            if (manifold_debug) renderer.add_vector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+
+            float depth = glm::length(projected_point - r_vec_best);
+            std::cout << "DEPTH " << depth << std::endl;
+            if (depth > max_manifold.depth) {
+                max_manifold.depth = depth;
+                max_manifold.vertex_point = r.to_edge_point(0);
+                max_manifold.edge_point = s.to_edge_point(alpha);
+                max_manifold_found = true;
+            }
+        } else {
+            intersect_x = intersect_horizontal(r_vec, r_vec_next - r_vec, s_vec.y, alpha);
+            vec2 projected_point = r_vec + alpha * (r_vec_next - r_vec);
+
+            if (manifold_debug) renderer.add_vector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+
+            float depth = glm::length(projected_point - s_vec_best);
+            std::cout << "DEPTH " << depth << std::endl;
+            if (depth > max_manifold.depth) {
+                max_manifold.depth = depth;
+                max_manifold.vertex_point = s.to_edge_point(0);
+                max_manifold.edge_point = r.to_edge_point(alpha);
+                max_manifold_found = true;
+            }
+        }
+
+
+        //TODO need a new way to break here
+        if (break_next_loop) break;
+        /** Advance **/
+
+
+        /* Advance some vertex on current LineStrip - break loop if necessary */
+        if (r_vec_next.y > s_vec_next.y) { // We are moving downwards (temporary solution), so pick r because it comes first
+            ++ r;
+            if (!r.at_end()) { // TODO do we need these if's ?
+                r_next = r; ++ r_next;
             } else {
-                end_vertex = i;
+                break_next_loop = true;
             }
-        }
-    }
-    if (vertices[end_vertex].point == vertices[start_vertex].point) {
-        exit(0);
-    }
-
-    /* Construct normal */
-    /* PERFORMANCE don't know whether we need to normalize */
-    contact.normal = find_normal_wrt(subject, start_vertex, end_vertex);
-
-    /* PERFORMANCE this is used in calculation of normal... also: don't know whether it should be normalized. */
-    glm::vec2 tangent = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
-    /*Construct transformation to align normal to the x-axis*/
-    /* This transform makes start_vertex leftmost and end_vertex rightmost */
-    float align_transform_d[4] = {tangent.x, -tangent.y, tangent.y, tangent.x};
-    glm::mat2 align_transform = make_mat2x2(align_transform_d);
-
-    /* Invariant: the transform makes normal aligned with x-axis, thus start_vertex has maximum y */
-    /* So we descend with y-values, to find the max delta x */
-
-    Vertex end(end_vertex, this);
-    Vertex backward(start_vertex, this);
-    Vertex forward = backward;
-    bool current_is_forward = false;
-    bool forward_is_subject = ( edge_owner(forward.get_index()) == subject );
-
-    glm::vec2   forward_p = align_transform * forward->point,
-                backward_p = align_transform * backward->point,
-                forward_next_p  = align_transform * forward.successive().point,
-                backward_next_p = align_transform * backward.preceding().point;
-
-    std::cout << "Forward x: " << forward_p.x << ", " << forward_next_p.x << std::endl;
-    std::cout << "Backward x: " << backward_p.x << ", " << backward_next_p.x << std::endl;
-    contact.depth = 0;
-    do {
-        if (forward_next_p.x < backward_next_p.x) {
-            std::cout << "Advance forward " << std::endl;
-            ++ forward;
-            current_is_forward = true;
-            forward_p       = forward_next_p;
-            forward_next_p  = align_transform * forward.successive().point;
+            current = R;
         } else {
-            std::cout << "Advance backward " << std::endl;
-            -- backward;
-            current_is_forward = false;
-            backward_p      = backward_next_p;
-            backward_next_p = align_transform * backward.preceding().point;
+            ++ s;
+            if (!s.at_end()) {
+                s_next = s; ++ s_next;
+            } else {
+                break_next_loop = true;
+            }
+            current = S;
         }
-        std::cout << "Forward x: " << forward_p.x << ", " << forward_next_p.x << std::endl;
-        std::cout << "Backward x: " << backward_p.x << ", " << backward_next_p.x << std::endl;
+        // REMEMBER to also process the very end 
+    }
+    assert(max_manifold_found);
+    IntersectionContact result;
+    /*
+     * Collision normal is in world coordinates.
+     * Collision points are EdgePoints - so local to each polygon
+     */
+    std::cout << "Parent comparision: " << subject << ", " << reference << ", " <<max_manifold.edge_point.parent << std::endl;
+    Polygon::Edge collision_edge(max_manifold.edge_point.index, max_manifold.edge_point.parent);
+    vec2 edge_direction = collision_edge.end_tr() - collision_edge.start_tr();
+    vec2 collision_normal = normalize(vec2(-edge_direction.y, edge_direction.x));
 
-        if (current_is_forward) {
-            float alpha;
-            float intersect_y = intersect_vertical(backward_p, backward_next_p - backward_p, forward_p.x,  alpha);
-            std::cout << ":alpha = " << alpha << std::endl;
-            // assert(alpha >= 0 && alpha <= 1);
-            if (alpha < 0 || alpha > 0) {
-                continue;
-            }
-            if (fabs(intersect_y - forward_p.y) > contact.depth) {
-                contact.depth = fabs(intersect_y - forward_p.y);
-                //
-                contact.subj_point = EdgePoint(forward->vertex, forward->alpha, forward->owner);
-                Vertex backward_minus_one = backward; -- backward_minus_one;
-                contact.ref_point = interpolate(backward_minus_one, backward, alpha);
-                //
-                if (forward->owner != subject)
-                    std::swap(contact.subj_point, contact.ref_point);
-            }
-        } else {
-            float alpha;
-            float intersect_y = intersect_vertical(forward_p, forward_next_p - forward_p, backward_p.x,  alpha);
-            std::cout << "alpha = " << alpha << std::endl;
-            // assert(alpha >= 0 && alpha <= 1);
-            if (alpha < 0 || alpha > 0) {
-                continue;
-            }
-            if (fabs(intersect_y - backward_p.y) > contact.depth) {
-                contact.depth = fabs(intersect_y - backward_p.y);
-                //
-                contact.subj_point = EdgePoint(backward->vertex, backward->alpha, backward->owner);
-                Vertex forward_minus_one = forward; -- forward_minus_one;
-                contact.ref_point = interpolate(forward_minus_one, forward, alpha);
-                //
-                if (backward->owner != subject)
-                    std::swap(contact.subj_point, contact.ref_point);
-            }
-        
-        }
-    //float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
-    } while (forward != end && backward != end);
+    result.subj_point = max_manifold.vertex_point;
+    result.ref_point = max_manifold.edge_point;
+    result.normal = collision_normal;
+    result.depth = length( result.subj_point.point_t() - result.ref_point.point_t() );
 
-    std::cout << "ref edgepoint: " <<  contact.ref_point.alpha << std::endl;
-    std::cout << "subj edgepoint: " << contact.subj_point.alpha << std::endl;
-    return contact;
+    // std::cout << "Index: " << max_manifold.edge_point.index << std::endl;
+    // std::cout << "Alpha: " << max_manifold.edge_point.alpha << std::endl;
+    vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
+
+    renderer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
+
+    return result;
+#undef v
 } 
 
 bool index_is_next_given_range(int index, int next_index, int range)

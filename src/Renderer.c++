@@ -192,7 +192,6 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     //
     const int size_float_buffer = lines_buffer.size() + system.auxilliary_lines.size();
     BufferWriter<float> buffer(size_float_buffer); 
-    std::cout << "SIZE " << system.auxilliary_lines.size() << std::endl;
     for (float f : lines_buffer) buffer.write(f);
     for (float f : system.auxilliary_lines) buffer.write(f);
     // Draw

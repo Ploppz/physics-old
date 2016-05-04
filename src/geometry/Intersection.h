@@ -79,9 +79,11 @@ struct Intersection
     glm::vec2 centroid();
     glm::vec2 get_point(int vertex_number, float alpha);
 
+    /* Direction to move not_reference back from the intersection */
     glm::vec2 find_normal_wrt(Polygon* not_reference, int start_vertex, int end_vertex);
+    glm::vec2 find_normal_wrt(Polygon* not_reference);
 
-    IntersectionContact get_contact(Polygon* subject);
+    IntersectionContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer);
 
     Polygon* edge_owner(int edge_start_index);
 
