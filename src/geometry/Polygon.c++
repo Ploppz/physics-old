@@ -137,6 +137,7 @@ glm::vec2 Polygon::transform(glm::vec2 point)
 }
 glm::vec2 Polygon::transformed(int vertex_index)
 {
+    vertex_index = (vertex_index + vertices.size()) % vertices.size();
     glm::vec2 point = vertices[vertex_index];
     return transform(point);
 }
@@ -242,6 +243,12 @@ glm::vec2 Polygon::Vertex::transformed()
 Polygon::Edge::Edge(int index, Polygon *parent)
     :index(index % parent->vertices.size()), parent(parent) { }
 
+Polygon::Edge Polygon::first_edge() {
+    return Edge(0, this);
+}
+Polygon::Edge Polygon::last_edge() {
+    return -- first_edge();
+}
 glm::vec2 Polygon::Edge::normal_tr()
 {
     // Needs to know CCW of polygon to know the correct direction (+/-)

@@ -26,18 +26,22 @@ const bool LineStrip::operator== (const LineStrip& other)
 ///////////////////
 /*** LineStrip ***/
 ///////////////////
+void LineStrip::swap_start_and_end()
+{
+    std::swap(start, end);
+}
 
 template <>
-void LineStrip::set_start<false>(EdgePoint value) { start = value; }
+void LineStrip::set_start<false>(const EdgePoint value) { start = value; }
 
 template <>
-void LineStrip::set_end<false>(EdgePoint value) { end = value; }
+void LineStrip::set_end<false>(const EdgePoint value) { end = value; }
 
 template <>
-void LineStrip::set_start<true>(EdgePoint value) { end = value; }
+void LineStrip::set_start<true>(const EdgePoint value) { end = value; }
 
 template <>
-void LineStrip::set_end<true>(EdgePoint value) { start = value; }
+void LineStrip::set_end<true>(const EdgePoint value) { start = value; }
 
 template<>
 EdgePoint LineStrip::get_start<false>() { return start; }

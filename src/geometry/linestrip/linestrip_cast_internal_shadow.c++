@@ -4,6 +4,12 @@
 
 using namespace glm;
 
+/* OLD METHOD. New and more general and hopefully robust: Intersection::cast_shadow_on(Polygon)  */
+
+
+
+
+
 /* [1] - performance: */
 // the old method is probably more efficient: loop only once but if firt vertex is in the field of interest, loop backward to find starting point
 

@@ -4,7 +4,6 @@
 // External
 class Polygon;
 
-
 struct EdgePoint {
     EdgePoint() {};
     EdgePoint(Polygon* parent) : parent(parent){};

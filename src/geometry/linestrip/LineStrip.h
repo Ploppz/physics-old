@@ -32,12 +32,13 @@ class LineStrip
         assert(start.parent == end.parent);
     } 
 
+    void swap_start_and_end();
 
     template <bool reverse>
-    void set_start(EdgePoint value);
+    void set_start(const EdgePoint value);
 
     template <bool reverse>
-    void set_end(EdgePoint value);
+    void set_end(const EdgePoint value);
 
     template <bool reverse>
     EdgePoint get_start();

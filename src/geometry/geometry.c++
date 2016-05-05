@@ -211,3 +211,9 @@ float cross(glm::vec2 a, glm::vec2 b)
 {
     return (a.x * b.y - a.y * b.x);
 }
+mat2 rotate_coor_system(vec2 new_x_axis)
+{
+    float align_transform_d[4] = {new_x_axis.x, -new_x_axis.y, new_x_axis.y, new_x_axis.x}; //note: column major
+    mat2 align_transform = make_mat2x2(align_transform_d);
+    return align_transform;
+}

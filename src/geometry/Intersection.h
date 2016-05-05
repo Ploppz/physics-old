@@ -87,6 +87,8 @@ struct Intersection
 
     Polygon* edge_owner(int edge_start_index);
 
+    LineStrip cast_shadow_on(Polygon* polygon, glm::vec2 direction);
+    /* Old: */
     LineStrip cast_internal_shadow(glm::vec2 direction, Polygon* subject, Renderer &renderer);
 
     

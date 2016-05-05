@@ -57,6 +57,9 @@ public:
     glm::vec2 get_point(int vertex_number, float alpha);
 
 	// Iterating
+    class Edge;
+    Edge first_edge();
+    Edge last_edge();
 	int num_edges();
 	LineSegment get_edge(int index);
 

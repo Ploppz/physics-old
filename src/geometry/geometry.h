@@ -59,3 +59,6 @@ bool inside(glm::vec2 point, Polygon& p);
 float cross(glm::vec2 a, glm::vec2 b);
 
 int sign(float x);
+
+// transformation which rotates to align new_x_axis with the x axis
+glm::mat2 rotate_coor_system(glm::vec2 new_x_axis);
