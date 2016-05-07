@@ -15,6 +15,7 @@ struct NewVertex {
         this->in_out = in_out;
 
         vertex = HybridVertex(i);
+        // std::cout << "Creating NewVertex 1, alphas: " << vertex.alpha << ", " << vertex.alpha2 << ";" << std::endl;
     }
     NewVertex(Polygon::Vertex vert, Side in_out) {
         point = vert.transformed();
@@ -22,6 +23,7 @@ struct NewVertex {
         this->in_out = in_out;
 
         vertex = HybridVertex(vert);
+        // std::cout << "Creating NewVertex 2, alphas: " << vertex.alpha << ", " << vertex.alpha2 << ";" << std::endl;
     }
 
     glm::vec2 point;

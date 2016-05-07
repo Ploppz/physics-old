@@ -1,5 +1,6 @@
 # Currently WIP #
- - Look at Intersection::manifold from abandoned branch
+- Review and (visually) test cast_shadow_on()
+- Implement new, robust LineStripSeries depth algorithm
 
 # Rendering Polygons #
  - Indices rather than vertices

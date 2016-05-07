@@ -61,6 +61,8 @@ class BodySystem
  private:
     //
 	int count;
+    // Just for drawing...
+    void add_vector(glm::vec2 point, glm::vec2 vec);
 
     // Body data
 	std::vector<float> mass;

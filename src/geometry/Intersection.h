@@ -17,8 +17,8 @@ struct Intersect
 {
     Intersect(Polygon::Edge edge1, Polygon::Edge edge2);
     Polygon::Edge edge1, edge2;
-    glm::vec2 point;
     float alpha1, alpha2; // How far along the edges the point resides
+    glm::vec2 point;
 
     // Lessthan function -- choose which to compare, edge1 or edge2
     enum Which { FIRST, SECOND};
@@ -41,16 +41,16 @@ struct HybridVertex
     HybridVertex(Polygon::Vertex v);
     glm::vec2 point; // only a sort of cache - can be calculated any time
     union {
-        Polygon* owner;
-        Polygon* edge1_owner;
+        Polygon* owner,
+               * edge1_owner;
     };
     union {
-        int vertex;
-        int edge1_index;
+        int vertex,
+            edge1_index;
     };
     union {
-        float alpha;
-        float alpha1;
+        float alpha,
+              alpha1;
     };
 
     // For intersects only:
@@ -79,9 +79,9 @@ struct Intersection
     glm::vec2 centroid();
     glm::vec2 get_point(int vertex_number, float alpha);
 
-    /* Direction to move not_reference back from the intersection */
-    glm::vec2 find_normal_wrt(Polygon* not_reference, int start_vertex, int end_vertex);
-    glm::vec2 find_normal_wrt(Polygon* not_reference);
+    /* Direction where the polygon is on the Intersection */
+    glm::vec2 find_normal_wrt(Polygon* polygon, int start_vertex, int end_vertex);
+    glm::vec2 find_normal_wrt(Polygon* polygon);
 
     IntersectionContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer);
 
@@ -91,6 +91,8 @@ struct Intersection
     /* Old: */
     LineStrip cast_internal_shadow(glm::vec2 direction, Polygon* subject, Renderer &renderer);
 
+    void append_lines_to_vector(std::vector<float>& buffer);
+    void append_lines_to_vector2(std::vector<float>& buffer);
     
 
     class Vertex {
@@ -127,6 +129,7 @@ struct Intersection
     Polygon * find_parent_of_intersection_edge(Vertex v1, Vertex v2);
 
 };
+std::ostream& operator<< (std::ostream&, Intersection&);
 
 
 

@@ -1,6 +1,7 @@
 #include "LineStrip.h"
 void LineStrip::append_lines_to_vector(std::vector<float> &list, float r, float g, float b)
 {
+    // atm: no support for colors
     Vertex<false> it(Vertex<false>::START_INDEX, this);
     Vertex<false> prev = it;
     while (true) {
@@ -8,10 +9,10 @@ void LineStrip::append_lines_to_vector(std::vector<float> &list, float r, float 
         glm::vec2 vec_j = it.point_t();
         list.push_back(vec_i.x);
         list.push_back(vec_i.y);
-        list.push_back(r); list.push_back(g); list.push_back(b);
+        /* list.push_back(r); list.push_back(g); list.push_back(b); */
         list.push_back(vec_j.x);
         list.push_back(vec_j.y);
-        list.push_back(r); list.push_back(g); list.push_back(b);
+        /* list.push_back(r); list.push_back(g); list.push_back(b); */
         if (it.at_end()) break;
         prev = it;
         ++ it;

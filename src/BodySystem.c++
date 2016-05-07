@@ -98,31 +98,20 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
     Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     if (intersections.size() == 0) return;
 
-    if (false) /* Test: visualize 'shadow' */
+    if (true) /* Test: visualize 'shadow' */
     {
         for (auto it = intersections.begin(); it != intersections.end(); it ++)
         {
-            renderer->append_lines_to_vector(*it);
-            glm::vec2 normal = it->find_normal_wrt(&b2.shape());
-            renderer->add_vector(glm::vec2(0), -normal * 60.f);
-            if (1)
-            {
-                normal = it->find_normal_wrt(&b2.shape());
-                if (b1.mode == POLYGON_OUTSIDE) normal = - normal; 
-                LineStrip linestrip = it->cast_internal_shadow(normal, &b1.shape(), *renderer);
-                LineStripSeries<LEFT> series(linestrip);
-                series.make_y_monotone();
-                series.append_lines_to_vector(auxilliary_lines);
-            }
-            if (1)
-            { /* TODO: error when following code is run */
-                normal = it->find_normal_wrt(&b1.shape());
-                if (b2.mode == POLYGON_OUTSIDE) normal = - normal; 
-                LineStrip linestrip = it->cast_internal_shadow(normal, &b2.shape(), *renderer);
-                LineStripSeries<LEFT> series(linestrip);
-                series.make_y_monotone();
-                series.append_lines_to_vector(auxilliary_lines); 
-            }
+            std::cout << *it << std::endl;
+            // it->append_lines_to_vector(auxilliary_lines);
+            glm::vec2 normal = it->find_normal_wrt(&b1.shape());
+            add_vector(glm::vec2(0), normal * 15.f);
+            std::cout << "*** Cast shadow on b1 ***" << std::endl;
+            LineStrip ls1 = it->cast_shadow_on(&b1.shape(), normal);
+            std::cout << "*** Cast shadow on b2 ***" << std::endl;
+            LineStrip ls2 = it->cast_shadow_on(&b2.shape(), - normal);
+            ls1.append_lines_to_vector(auxilliary_lines, 1, 1, 1);
+            ls2.append_lines_to_vector(auxilliary_lines, 1, 1, 1); 
         }
         return;
     }
@@ -572,4 +561,30 @@ std::ostream& operator<< (std::ostream& out, Body b)
         << "\nrotation\t=\t" << b.rotation()
         << std::endl;
     return out;
+}
+
+void BodySystem::add_vector(glm::vec2 point, glm::vec2 vec)
+{
+    const int radius = 4;
+    const float arrow_angle = 2.4f;
+
+    float vec_angle = atan2(vec.y, vec.x);
+    glm::vec2 a1 = glm::vec2(cos(vec_angle - arrow_angle) * radius, sin(vec_angle - arrow_angle) * radius);
+    glm::vec2 a2 = glm::vec2(cos(vec_angle + arrow_angle) * radius, sin(vec_angle + arrow_angle) * radius);
+
+    auxilliary_lines.push_back(point.x);
+    auxilliary_lines.push_back(point.y);
+    auxilliary_lines.push_back(point.x + vec.x);
+    auxilliary_lines.push_back(point.y + vec.y);
+
+    auxilliary_lines.push_back(point.x + vec.x);
+    auxilliary_lines.push_back(point.y + vec.y);
+    auxilliary_lines.push_back(point.x + vec.x + a1.x);
+    auxilliary_lines.push_back(point.y + vec.y + a1.y);
+
+    auxilliary_lines.push_back(point.x + vec.x);
+    auxilliary_lines.push_back(point.y + vec.y);
+    auxilliary_lines.push_back(point.x + vec.x + a2.x);
+    auxilliary_lines.push_back(point.y + vec.y + a2.y);
+
 }

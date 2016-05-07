@@ -80,7 +80,8 @@ FontRenderer *fontRenderer;
 
 int main()
 {
-    feenableexcept(FE_ALL_EXCEPT & ~FE_INEXACT);
+    feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     // srand (time(NULL));
     // Input::Init();
 

@@ -1,5 +1,6 @@
 #include "EdgePoint.h"
 #include "Polygon.h"
+#include "geometry.h"
 
 EdgePoint::EdgePoint(int index, float alpha, Polygon* parent)
     :alpha(alpha), parent(parent)

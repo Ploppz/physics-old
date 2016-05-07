@@ -41,6 +41,8 @@ HybridVertex::HybridVertex(Intersect& i)
     edge1_index = i.edge1.get_index();
     edge2_owner = i.edge2.get_parent();
     edge2_index = i.edge2.get_index();
+    alpha1 = i.alpha1;
+    alpha2 = i.alpha2;
     intersect = true;
     //
     point = i.point;
@@ -49,6 +51,7 @@ HybridVertex::HybridVertex(Polygon::Vertex v)
 {
     owner = v.get_parent();
     vertex = v.get_index();
+    alpha = 0;
     intersect = false;
     point = v.transformed();
 }
@@ -123,7 +126,7 @@ glm::vec2 Intersection::find_normal_wrt(Polygon* p, int start_vertex, int end_ve
     glm::vec2 normal = glm::normalize(vertices[end_vertex].point - vertices[start_vertex].point);
     normal = glm::vec2( - normal.y, normal.x );
 
-    /*  normal points to the left 
+    /*  normal points to the left of (end_vertex - start_vertex)
         found with assumption that Polygon p lies to the left of (end_vertex - start_vertex)
         check if polygon is left of the line .. */
     glm::vec2 next_edge = Vertex(start_vertex, this).successive().point - Vertex(start_vertex, this)->point;
@@ -131,12 +134,12 @@ glm::vec2 Intersection::find_normal_wrt(Polygon* p, int start_vertex, int end_ve
 
     /* Check if next edge is left of the (start_vertex, end_vertex) line */
     if (leftof(next_edge, prev_edge)) {
-        if (edge_owner(start_vertex) == p) {
+        if (edge_owner(start_vertex) != p) {
             /* This means that p is at the left op (start_vertex, end_vertex) */
             normal = - normal;
         }
     } else {
-        if (edge_owner(start_vertex) != p) {
+        if (edge_owner(start_vertex) == p) {
             /* Same */
             normal = - normal;
         }
@@ -450,3 +453,65 @@ bool Intersection::Vertex::operator!= (Intersection::Vertex& v)
     return (index != v.index || parent != v.parent);
 }
 
+
+
+std::ostream& operator<< (std::ostream& out, Intersection& I)
+{
+    out << "Intersection: " << std::endl;
+    for (int i = 0; i < I.vertices.size(); i ++)
+    {
+        HybridVertex v = I.vertices[i];
+        out << "\t" << i << ": ";
+        out << "(" << v.edge1_index << ", " << v.alpha1 << ")";
+        if (v.intersect) {
+            out << " intersects (" << v.edge2_index << ", " << v.alpha2 << ")";
+        }
+        out << std::endl;
+    }
+    return out;
+}
+void Intersection::append_lines_to_vector(std::vector<float>& buffer)
+{
+    // Loop through HybridVertices
+    std::vector<HybridVertex>::iterator next;
+    for (auto it = vertices.begin(); it != vertices.end(); it ++)
+    {
+		next = it; next ++;
+		if (next == vertices.end())
+            next = vertices.begin();
+
+        
+        glm::vec2 vec_i = it->point;
+        glm::vec2 vec_j = next->point;
+        buffer.push_back(vec_i.x);
+        buffer.push_back(vec_i.y);
+        buffer.push_back(vec_j.x);
+        buffer.push_back(vec_j.y);
+    }
+}
+glm::vec2 calculate_point(HybridVertex v) {
+    Polygon::Edge edge(v.vertex, v.owner);
+    return (1.f - v.alpha) * edge.start_tr() + v.alpha * edge.end_tr();
+}
+void Intersection::append_lines_to_vector2(std::vector<float>& buffer)
+{
+    // Loop through HybridVertices
+    std::vector<HybridVertex>::iterator next;
+    for (auto it = vertices.begin(); it != vertices.end(); it ++)
+    {
+		next = it; next ++;
+		if (next == vertices.end())
+            next = vertices.begin();
+
+        
+        std::cout << "Start: " << it->vertex << ", " << it->alpha << std::endl;
+        glm::vec2 vec_i = calculate_point(*it);
+        glm::vec2 vec_j = calculate_point(*next);
+        // vec_i = it->point;
+        // vec_j = next->point;
+        buffer.push_back(vec_i.x);
+        buffer.push_back(vec_i.y);
+        buffer.push_back(vec_j.x);
+        buffer.push_back(vec_j.y);
+    }
+}
