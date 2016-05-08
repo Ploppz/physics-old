@@ -1,6 +1,8 @@
 # Currently WIP #
-- Review and (visually) test cast_shadow_on()
-- Implement new, robust LineStripSeries depth algorithm
+x Review and (visually) test `cast_shadow_on()`
+x Implement new, robust LineStripSeries depth algorithm
+- Crashes when one polygon is OUTSIDE mode
+- Intersection extraction: When 2 Intersections have Intersects on the same edge, the algorithm only makes 1!
 
 # Rendering Polygons #
  - Indices rather than vertices

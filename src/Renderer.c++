@@ -364,7 +364,7 @@ void Renderer::append_lines_to_vector(Intersection& intersection)
         lines_buffer.push_back(vec_j.y);
     }
 }
-void Renderer::render_contact(Contact contact)
+void Renderer::render_contact(TimeContact contact)
 {
     glm::vec2 p = contact.ref_point.point_t();
     add_dot(p);

@@ -112,11 +112,11 @@ LSS::LineStripSeries(LineStrip to_copy)
 template <Direction x_bias>
 void LineStripSeries<x_bias>::make_y_monotone()
 {
-    std::cout << "\n\n" << std::endl;
-    std::cout << "### Input: " << *this << std::endl;
-    std::cout << "### Monotonizing Forward ###" << std::endl;
+    /* std::cout << "\n\n" << std::endl;
+    std::cout << "### Input: " << *this << std::endl; */
+    /* std::cout << "### Monotonizing Forward ###" << std::endl; */
     make_y_monotone_direction<false>();
-    std::cout << "### Monotonizing Backward ###" << std::endl;
+    /* std::cout << "### Monotonizing Backward ###" << std::endl; */
     make_y_monotone_direction<true>();
     
 }

@@ -54,6 +54,7 @@ class LineStrip
 
     const bool operator== (const LineStrip& other);
 
+
  private:
     EdgePoint start, end;
     Polygon* parent; // each EdgePoint also has one - questionable if needed

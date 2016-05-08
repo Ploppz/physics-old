@@ -61,7 +61,7 @@ struct HybridVertex
 };
 
 
-struct IntersectionContact {
+struct DepthContact {
     float depth;
     glm::vec2 normal;
     EdgePoint subj_point;
@@ -83,7 +83,11 @@ struct Intersection
     glm::vec2 find_normal_wrt(Polygon* polygon, int start_vertex, int end_vertex);
     glm::vec2 find_normal_wrt(Polygon* polygon);
 
-    IntersectionContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer);
+    
+    /* new */
+    DepthContact get_contact(Polygon* reference, Polygon* subject, Renderer& renderer);
+    /* old */
+    DepthContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer);
 
     Polygon* edge_owner(int edge_start_index);
 
@@ -94,6 +98,7 @@ struct Intersection
     void append_lines_to_vector(std::vector<float>& buffer);
     void append_lines_to_vector2(std::vector<float>& buffer);
     
+    int num_intersects();
 
     class Vertex {
     public:

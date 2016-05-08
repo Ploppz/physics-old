@@ -10,7 +10,7 @@
 class FontRenderer;
 class BodySystem;
 class Body;
-struct Contact;
+struct TimeContact;
 
 enum RenderFlags {
     POLYGON_SHOW_VERTEX_NUMBERS = 1,
@@ -47,7 +47,7 @@ public:
     void append_lines_to_vector(Polygon& p);
     void append_lines_to_vector(Intersection& intersection);
     // debugging..
-    void render_contact(Contact c);
+    void render_contact(TimeContact c);
     //
     FontRenderer* font_renderer;
 private:

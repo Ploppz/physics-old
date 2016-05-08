@@ -98,7 +98,8 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
     Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     if (intersections.size() == 0) return;
 
-    if (true) /* Test: visualize 'shadow' */
+    std::cout << "INTERSECTION COUNT: " << intersections.size() << std::endl;
+    if (false) /* Test: visualize 'shadow' */
     {
         for (auto it = intersections.begin(); it != intersections.end(); it ++)
         {
@@ -115,9 +116,25 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
         }
         return;
     }
+    if (true) /* Test: get_contact */
+    {
+        for (auto it = intersections.begin(); it != intersections.end(); it ++)
+        {
+            glm::vec2 normal = it->find_normal_wrt(&b1.shape());
+            LineStrip ls1 = it->cast_shadow_on(&b1.shape(), normal);
+            LineStrip ls2 = it->cast_shadow_on(&b2.shape(), - normal);
+            ls1.append_lines_to_vector(auxilliary_lines, 1, 1, 1);
+            ls2.append_lines_to_vector(auxilliary_lines, 1, 1, 1); 
+            /* continue; */
+
+            DepthContact contact = it->get_contact(&b1.shape(), &b2.shape(), *renderer);
+            add_vector(contact.subj_point.point_t(), contact.ref_point.point_t() - contact.subj_point.point_t());
+        }
+        return;
+    }
     if (true) /* Test: only simple move out */
     {
-        std::list<Contact> contacts = simple_move_out_of(b1, b2, intersections); 
+        std::list<TimeContact> contacts = simple_move_out_of(b1, b2, intersections); 
         for (auto it = contacts.begin(); it != contacts.end(); it ++) {
             physical_reaction(b1, b2, *it);
             last_contact.rewind_time = 1;
@@ -128,7 +145,7 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
         return;
     }
 
-    Contact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
+    TimeContact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
     if (contact.rewind_time != 0) last_contact = contact; 
     std::cout << "\trewind time: " << contact.rewind_time << std::endl; 
@@ -153,12 +170,12 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
 
 
 }
-void BodySystem::resolve_penetration(Body b1, Body b2, Contact c)
+void BodySystem::resolve_penetration(Body b1, Body b2, TimeContact c)
 {
     update_body(b1.index, -c.rewind_time);
     update_body(b2.index, -c.rewind_time);
 }
-void BodySystem::physical_reaction(Body A, Body B, Contact c)
+void BodySystem::physical_reaction(Body A, Body B, TimeContact c)
 {
     /* Maybe inconsistent: but we try to keep A the subject here */
     if (c.ref_point.parent == &A.shape()) {
@@ -174,9 +191,6 @@ void BodySystem::physical_reaction(Body A, Body B, Contact c)
                         + std::pow(glm::dot(r_ortho_A, c.normal), 2) / A.shape().moment_of_inertia
                         + std::pow(glm::dot(r_ortho_B, c.normal), 2) / B.shape().moment_of_inertia  );
     A.apply_impulse(impulse * c.normal, c.subj_point);
-    /* std::cout << "A mass " << A.shape().mass << std::endl;
-    std::cout << "A inv mass " << A.shape().mass << std::endl;
-    std::cout << "Impulse:  " << impulse << std::endl; */
     B.apply_impulse( - impulse * c.normal, c.ref_point);
 }
 inline glm::vec2 BodySystem::velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho)
@@ -186,9 +200,9 @@ inline glm::vec2 BodySystem::velocity_of_point(Body b, EdgePoint p, glm::vec2 &o
     return b.velocity() + b.rotation() * out_r_ortho;
 }
 
-std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
+std::list<TimeContact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
 {
-    std::list<Contact> results;
+    std::list<TimeContact> results;
     for (auto it = intersections.begin(); it != intersections.end(); it ++)
     {
         results.push_back(it->get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
@@ -204,7 +218,7 @@ std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<
         std::cout << "SimpleMoveOutOf iteration" << std::endl;
 
         Intersection& i = intersections[0];
-        IntersectionContact contact = i.get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
+        DepthContact contact = i.get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
                                             &b2.shape(), b2.mode == POLYGON_OUTSIDE, *renderer);
 
         std::cout << "\tResulting depth: " << contact.depth << std::endl;
@@ -223,7 +237,7 @@ std::list<Contact> BodySystem::simple_move_out_of(Body b1, Body b2, std::vector<
     return results;
 }
 
-bool BodySystem::separating_at(Body A, Body B, Contact c)
+bool BodySystem::separating_at(Body A, Body B, TimeContact c)
 {
     if (c.ref_point.parent == &A.shape()) {
         std::swap(A, B); /* A is subject */
@@ -241,21 +255,21 @@ bool BodySystem::separating_at(Body A, Body B, Contact c)
 
 
 
-Contact BodySystem::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
+TimeContact BodySystem::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
 {
 
     /** First check whether any one vertex cannot be rewound **/
     for (auto it = intersections.begin(); it != intersections.end(); it ++)
     {
         if (not_rewindable(b1, b2, *it, delta_time)) {
-            Contact null_contact;
+            TimeContact null_contact;
             null_contact.rewind_time = 0;
             return null_contact;
         }
     }
 
     /** **/
-    Contact earliest_contact;
+    TimeContact earliest_contact;
     earliest_contact.rewind_time = 0;
 
     if (intersections.size() == 0) {
@@ -264,7 +278,7 @@ Contact BodySystem::find_earliest_contact_by_rewinding(Body b1, Body b2, std::ve
 
     for (auto it = intersections.begin(); it != intersections.end(); it ++)
     {
-        Contact c = calculate_contact_by_rewinding(b1, b2, *it, delta_time);
+        TimeContact c = calculate_contact_by_rewinding(b1, b2, *it, delta_time);
         if (c.rewind_time > earliest_contact.rewind_time)
             earliest_contact = c;
     }
@@ -281,7 +295,7 @@ bool BodySystem::not_rewindable(Body b1, Body b2, Intersection& intersection, fl
     return true;
 }
 
-Contact BodySystem::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
+TimeContact BodySystem::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     assert(renderer);
     /* renderer->append_lines_to_vector(intersection); */
@@ -289,19 +303,19 @@ Contact BodySystem::calculate_contact_by_rewinding(Body b1, Body b2, Intersectio
      Send 'intersection' to rewind_out_of to only consider those edges?
     **/
 
-    /* Find the Contact with the highest rewind time */
-    Contact best_contact;
+    /* Find the TimeContact with the highest rewind time */
+    TimeContact best_contact;
     best_contact.rewind_time = 0;
     for (auto it = intersection.vertices.begin(); it != intersection.vertices.end(); it ++)
     {
         if ( ! (it->intersect)) {
             if (it->owner == &b1.shape()) {
-                Contact current_contact = rewind_out_of(*it, b2, b1, delta_time);
+                TimeContact current_contact = rewind_out_of(*it, b2, b1, delta_time);
                 if (current_contact.rewind_time > best_contact.rewind_time) {
                     best_contact = current_contact;
                 }
             } else if (it->owner == &b2.shape()) {
-                Contact current_contact = rewind_out_of(*it, b1, b2, delta_time);
+                TimeContact current_contact = rewind_out_of(*it, b1, b2, delta_time);
                 if (current_contact.rewind_time > best_contact.rewind_time) {
                     best_contact = current_contact;
                 }
@@ -318,7 +332,7 @@ at what time `point`, belonging to `subject`, no longer is inside `reference`
 The Intersection is used as a guide of which edges of the reference to pick.
  -> In the future, we may want to check all edges or find a smarter way to select edges.
 **/
-inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
+inline TimeContact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
     assert(vertex.intersect == false);
 
@@ -338,7 +352,7 @@ inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Bo
     } */
     if ( ! separate_last_frame(vertex, reference, subject, delta_time)) {
         std::cout << "It was found that they were not separate last frame" << std::endl;
-        Contact null_contact;
+        TimeContact null_contact;
         null_contact.rewind_time = 0;
         return null_contact;  
     }
@@ -377,7 +391,7 @@ inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Bo
     if (error < 0) {
         std::cout << "They are still a bit inside" << std::endl;
     }
-    Contact result;
+    TimeContact result;
     result.rewind_time = time_offset;
     result.normal = Polygon::Edge(closest_edge, &reference.shape()).normal_tr();
     result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());

@@ -62,6 +62,7 @@ EdgePoint LineStrip::get_end<true>() { return start; }
 template <>
 EdgePoint LineStrip::Vertex<false>::to_edge_point(float alpha)
 {
+    std::cout << " ================ to_edge_point " << *parent << " .. index = " << index << " .. alpha = " << alpha <<std::endl;
     if (index == START_INDEX) {
         if (parent->start.index == parent->end.index) {
             // START to END
@@ -91,13 +92,14 @@ EdgePoint LineStrip::Vertex<false>::to_edge_point(float alpha)
 template <>
 EdgePoint LineStrip::Vertex<true>::to_edge_point(float alpha)
 {
+    std::cout << " ================ to_edge_point " << *parent << " .. index = " << index << " .. alpha = " << alpha <<std::endl;
     if (index == START_INDEX) {
         if (alpha == 0) {
             return parent->start;
         } else {
             assert(!"Trying to move past START_INDEX in LineStrip::Vertex::to_edge_point_reverse");
         }
-    } else if (index == END_INDEX) {
+    } else if (index == END_INDEX && parent->end.alpha != 0) {
         if (parent->end.index == parent->start.index) {
             // END to START
             return EdgePoint(parent->end.index,
@@ -105,19 +107,26 @@ EdgePoint LineStrip::Vertex<true>::to_edge_point(float alpha)
                     parent->parent);
         } else {
             // END to INTERMEDIATE
+            std::cout << "END TO INTERMEDIATE .. " << parent->end.alpha << " - "
+                << parent->end.alpha * alpha << std::endl;
             return EdgePoint(parent->end.index,
                     parent->end.alpha - parent->end.alpha * alpha,
                     parent->parent);
         }
     } else {
-        int next_index = index - 1;
-        if (index < 0) index += parent->parent->vertices.size();
+        int next_index;
+        if (index == END_INDEX) {
+            next_index = parent->end.index - 1;
+        } else {
+            next_index = index - 1;
+        }
+        if (next_index < 0) next_index += parent->parent->vertices.size();
         if (next_index == parent->start.index) {
             // INTERMEDIATE to START
-            return EdgePoint(index - 1, parent->start.alpha + (1 - parent->start.alpha) * (1 - alpha), parent->parent);
+            return EdgePoint(next_index, parent->start.alpha + (1 - parent->start.alpha) * (1 - alpha), parent->parent);
         } else {
             // INTERMEDIATE to INTERMEDIATE
-            return EdgePoint(index - 1, 1 - alpha, parent->parent);
+            return EdgePoint(next_index, 1 - alpha, parent->parent);
         }
     }
 }
