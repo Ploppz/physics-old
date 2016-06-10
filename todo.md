@@ -2,7 +2,13 @@
 x Review and (visually) test `cast_shadow_on()`
 x Implement new, robust LineStripSeries depth algorithm
 - Crashes when one polygon is OUTSIDE mode
+  - before anything else: get_contact needs to properly decide which direction each LineStripSeries::Vertex should go
 - Intersection extraction: When 2 Intersections have Intersects on the same edge, the algorithm only makes 1!
+
+
+- 4 Intersects:
+  - not sure but I think shadow casting is off  --- might appear like it casts the wrong way?
+  - ... OF COURSE: normal is still way wrong
 
 # Rendering Polygons #
  - Indices rather than vertices

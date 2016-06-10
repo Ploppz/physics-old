@@ -196,8 +196,14 @@ struct ManifoldData {
 /* CCW sensitive ! */
 DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Renderer& renderer)
 {
-    const bool DEBUG = false;
+    const bool DEBUG = true;
     //assert(num_intersects() == 2); /* Logic: not implemented solution */
+    std::cout << " NUM INTERSECTS:  " << num_intersects() << std::endl;
+    if (num_intersects() > 2) {
+        DepthContact dc;
+        dc.depth = 0;
+        return dc;
+    }
     std::cout << "GET CONTACT"  << std::endl;
     /* TODO it's critical which way normal points, because we already decided how to iterate the LSSes */
     glm::vec2 normal = find_normal_wrt(reference);
@@ -269,7 +275,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
 
 
                 float depth = glm::length(projected_point - r_vec_best);
-                if (DEBUG) std::cout << "DEPTH " << depth << std::endl;
+                std::cout << "DEPTH " << depth << std::endl;
                 if (DEBUG) std::cout << "-  Alpha: " << alpha << std::endl;
                 if (depth > max_manifold.depth) {
                     if (DEBUG) std::cout << "-  Used " << std::endl;
@@ -284,7 +290,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
 
 
                 float depth = glm::length(projected_point - s_vec_best);
-                if (DEBUG) std::cout << "DEPTH " << depth << std::endl;
+                std::cout << "DEPTH " << depth << std::endl;
                 if (DEBUG) std::cout << "-  Alpha: " << alpha << std::endl;
                 if (depth > max_manifold.depth) {
                     if (DEBUG) std::cout << "-  Used " << std::endl;

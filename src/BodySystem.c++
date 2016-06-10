@@ -128,7 +128,8 @@ void BodySystem::treat(Body b1, Body b2, float delta_time)
             /* continue; */
 
             DepthContact contact = it->get_contact(&b1.shape(), &b2.shape(), *renderer);
-            add_vector(contact.subj_point.point_t(), contact.ref_point.point_t() - contact.subj_point.point_t());
+            if (contact.depth > 0)
+                add_vector(contact.subj_point.point_t(), contact.ref_point.point_t() - contact.subj_point.point_t());
         }
         return;
     }

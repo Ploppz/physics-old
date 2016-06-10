@@ -83,7 +83,11 @@ struct Intersection
     glm::vec2 find_normal_wrt(Polygon* polygon, int start_vertex, int end_vertex);
     glm::vec2 find_normal_wrt(Polygon* polygon);
 
-    
+    /* get_contact:
+     * - construct normal from two intersects
+     * - project out of each other in that direction
+     * - returns depth=0 if erroneous/unimplemented case
+     */
     /* new */
     DepthContact get_contact(Polygon* reference, Polygon* subject, Renderer& renderer);
     /* old */
