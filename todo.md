@@ -10,6 +10,13 @@ x Implement new, robust LineStripSeries depth algorithm
   - not sure but I think shadow casting is off  --- might appear like it casts the wrong way?
   - ... OF COURSE: normal is still way wrong
 
+
+
+  .. MakeFile:
+  rm .depend
+  make
+  .. why does it remake all targets?
+
 # Rendering Polygons #
  - Indices rather than vertices
 

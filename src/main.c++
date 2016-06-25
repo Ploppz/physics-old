@@ -35,12 +35,14 @@
 
 /* files */
 #include "tmp.h"
-#include "Renderer.h"
+#include "render/Renderer.h"
 #include "shaders.h"
 #include "glutils.h"
+#include "Body.h"
 #include "BodySystem.h"
 #include "World.h"
 #include "Input.h"
+#include "error_handling.h"
 #include "geometry/Intersection.h"
 #include "geometry/Polygon.h"
 #include "geometry/geometry.h"
@@ -75,158 +77,162 @@ GLfloat rectangle[] = {
 
 
 // TODO: Problems with bufferRef garbage. Maybe this is the problem? Make default constructor etc
-FontRenderer *fontRenderer;
+/* For debugging */
+FontRenderer *g_font_renderer;
+Renderer *g_renderer;
 
 
 int main()
 {
-    feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
-    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-    // srand (time(NULL));
-    // Input::Init();
+	// feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
+	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+	// srand (time(NULL));
+	// Input::Init();
 
 	GLFWwindow *window;
 	GLFW_boilerPlate(&window, error_callback);
 	glfwSetKeyCallback(window, Input::key_callback);
-    glfwSetScrollCallback(window, Input::scroll_callback);
-    glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
+	glfwSetScrollCallback(window, Input::scroll_callback);
+	glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
 
-    srand(1013);
+	srand(1013);
 
 	// 
-    Polygon p, q, r;
+	Polygon p, q, r;
 	int numEdges = 4;
 	float a;
-    //box
-    for (int i = 0; i < numEdges; i ++) {
-        float size = 1000;
-        p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size * 2, sin(-i*2.0f/numEdges * M_PI) * size));
-    }
+	//box
+	for (int i = 0; i < numEdges; i ++) {
+		float size = 1000;
+		p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size * 2, sin(-i*2.0f/numEdges * M_PI) * size));
+	}
 	numEdges = 10;
-    //big
+	//big
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 200;
-        float size = 100;
+		float size = 100;
 		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
-    //small
+	//small
 	for (int i = 0; i < numEdges; i ++) {
 		a = rand() / static_cast<float>(INT_MAX) * 150;
-        float size = 50;
+		float size = 50;
 		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
 	} 
-    p.calculate_shape_dependent_variables();
-    q.calculate_shape_dependent_variables();
-    r.calculate_shape_dependent_variables();
+	p.calculate_shape_dependent_variables();
+	q.calculate_shape_dependent_variables();
+	r.calculate_shape_dependent_variables();
 
 	World world;
-    Body big, small, bounding_box;
+	Body big, small, bounding_box;
 
-    bounding_box = world.bodies.add_body();
-    bounding_box.shape() = p;
-    bounding_box.position_type() = ABSOLUTE;
-    bounding_box.rotation() = 0.03f;
-    // bounding_box.rotation() = 0;
-    // bounding_box.velocity() = glm::vec2(-4,  0);
-    bounding_box.mode = POLYGON_OUTSIDE;
+	bounding_box = world.bodies.add_body();
+	bounding_box.shape() = p;
+	bounding_box.position_type() = ABSOLUTE;
+	bounding_box.rotation() = 0.03f;
+	// bounding_box.rotation() = 0;
+	// bounding_box.velocity() = glm::vec2(-4,  0);
+	bounding_box.mode = POLYGON_OUTSIDE;
 
-    big = world.bodies.add_body(bounding_box);
-    big.shape() = q;
-    big.position_type() = RELATIVE;
-    big.velocity() = glm::vec2(55, 0.02f);
-    big.rotation() = -0.05f;
-    big.rotation() = 0;
+	big = world.bodies.add_body(bounding_box);
+	big.shape() = q;
+	big.position_type() = RELATIVE;
+	big.velocity() = glm::vec2(55, 0.02f);
+	big.rotation() = -0.05f;
+	big.rotation() = 0;
 
 #define SMALL_POLYGON_EXISTS true
-    if (SMALL_POLYGON_EXISTS) {
-        small = world.bodies.add_body(bounding_box);
-        small.shape() = r;
-        small.position_type() = RELATIVE;
-        small.velocity() = glm::vec2(-10, -0.02f);
-        small.rotation() = 0.05f;
-        small.rotation() = 0; 
-        small.position().x = 500;
-    }
+	if (SMALL_POLYGON_EXISTS) {
+		small = world.bodies.add_body(bounding_box);
+		small.shape() = r;
+		small.position_type() = RELATIVE;
+		small.velocity() = glm::vec2(-10, -0.02f);
+		small.rotation() = 0.05f;
+		small.rotation() = 0; 
+		small.position().x = 500;
+	}
 	
-    Renderer renderer(world.bodies);
-    renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
-    renderer.set_color_1(0.1f, 0.1f, 0);
-    renderer.set_color_2(0, 0.5f, 0);
-    world.bodies.renderer = &renderer;
+	Renderer renderer(world.bodies);
+	g_renderer = &renderer;
+	g_font_renderer = renderer.get_font_renderer();
+	renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
+	renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
+	renderer.set_color_1(0.1f, 0.1f, 0);
+	renderer.set_color_2(0, 0.5f, 0);
 
 	int width, height;
-    float zoom = 1;
-    float center_x = 0, center_y = 0;
+	float zoom = 1;
+	float center_x = 0, center_y = 0;
 	double ratio, timer;
 
 	double mouseX, mouseY;
 	
-    /** CONFIG **/
-    const bool INTERACTIVE_FRAME = true;
-    const int FRAME_DURATION_MS = 20;
-    const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
-    const float speed = 12; // this is in fact acceleration
-    /** **/
+	/** CONFIG **/
+	const bool INTERACTIVE_FRAME = true;
+	const int FRAME_DURATION_MS = 20;
+	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
+	const float speed = 12; // this is in fact acceleration
+	/** **/
 
-    int space_counter = 0;
+	int space_counter = 0;
 	while (!glfwWindowShouldClose(window))
 	{
-        /** Handle input **/
+		/** Handle input **/
 
-        Input::UpdateMouse(window);
+		Input::UpdateMouse(window);
 
-        zoom *= (-Input::scroll / 10.f + 1);
-        Input::scroll = 0;
-        center_x -= Input::mouse_drag_x * zoom;
-        center_y -= Input::mouse_drag_y * zoom;
-        /** **/
+		zoom *= (-Input::scroll / 10.f + 1);
+		Input::scroll = 0;
+		center_x -= Input::mouse_drag_x * zoom;
+		center_y -= Input::mouse_drag_y * zoom;
+		/** **/
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-        Body& a = big;
-        if (SMALL_POLYGON_EXISTS) {
-            Body& b = small; 
-            if (Input::keys[GLFW_KEY_UP]) b.position().y += speed;
-            if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= speed; 
-            if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += speed; 
-            if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= speed;  
-        }
-        //
-        if (Input::keys[GLFW_KEY_N])    a.velocity().x -= speed/10;
-        if (Input::keys[GLFW_KEY_E])    a.velocity().y -= speed/10;
-        if (Input::keys[GLFW_KEY_I])    a.velocity().y += speed/10;
-        if (Input::keys[GLFW_KEY_O])    a.velocity().x += speed/10;
+		Body& a = big;
+		if (SMALL_POLYGON_EXISTS) {
+			Body& b = small; 
+			if (Input::keys[GLFW_KEY_UP]) b.position().y += speed;
+			if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= speed; 
+			if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += speed; 
+			if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= speed;  
+		}
+		//
+		if (Input::keys[GLFW_KEY_N])	a.velocity().x -= speed/10;
+		if (Input::keys[GLFW_KEY_E])	a.velocity().y -= speed/10;
+		if (Input::keys[GLFW_KEY_I])	a.velocity().y += speed/10;
+		if (Input::keys[GLFW_KEY_O])	a.velocity().x += speed/10;
 
-        /* renderer.write_distances_to(big.shape(), bounding_box.shape()); */
-        if (INTERACTIVE_FRAME) {
-            if (Input::keys[GLFW_KEY_SPACE]) {
-                if (space_counter == 0 || space_counter > 10) {
-                    world.timestep(DELTA_TIME);
-                }
-                space_counter ++;
-            } else {
-                space_counter = 0;
-            }
-        }
-        /* a.velocity() *= 0.95f; */
+		/* renderer.write_distances_to(big.shape(), bounding_box.shape()); */
+		if (INTERACTIVE_FRAME) {
+			if (Input::keys[GLFW_KEY_SPACE]) {
+				if (space_counter == 0 || space_counter > 10) {
+					world.timestep(DELTA_TIME);
+				}
+				space_counter ++;
+			} else {
+				space_counter = 0;
+			}
+		}
+		/* a.velocity() *= 0.95f; */
 
-        if ( ! INTERACTIVE_FRAME ) {
-            world.timestep(DELTA_TIME);
-        }
-        /* std::vector<Intersection> intersections = Polygon::extract_intersections(bounding_box.shape(), big.shape(), false, false);
-        if (intersections.size() > 0)
-            renderer.append_lines_to_vector(intersections[0]); */
+		if ( ! INTERACTIVE_FRAME ) {
+			world.timestep(DELTA_TIME);
+			// what I had to do every time step.. can World do it?? ..... clear the buffer. nope
+		}
+		/* std::vector<Intersection> intersections = Polygon::extract_intersections(bounding_box.shape(), big.shape(), false, false);
+		if (intersections.size() > 0)
+			renderer.append_lines_to_vector(intersections[0]); */
 
-        
+		
 
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
 
-        renderer.render(center_x, center_y, width, height, zoom);
+		renderer.render(center_x, center_y, width, height, zoom);
 
 
 

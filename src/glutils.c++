@@ -165,7 +165,7 @@ void setSingleFormat(const char *name, int numComponents, char ctype, GLsizei st
 			case 'i': type = GL_INT;            typeSize = sizeof(GLint);		break;
 			case 'I': type = GL_UNSIGNED_INT;   typeSize = sizeof(GLuint);		break;
 			case 'f': type = GL_FLOAT;          typeSize = sizeof(GLfloat);		break;
-			default:  type = 0;                 break;
+			default:  type = 0;                 assert(!"Unknown type."); break;
 		}
 	// printf("Setting format..    %s, %d%c, %d, %d", name, numComponents, ctype, stride, offset);
 	std::cout << std::endl;
@@ -256,6 +256,7 @@ void APIENTRY openglCallbackFunction(GLenum source,
                                            const void* userParam)
 {
 	using namespace std;
+    if (type == GL_DEBUG_TYPE_OTHER) return;
  
     cout << "---------------------opengl-callback-start------------" << endl;
     cout << "message: "<< message << endl;

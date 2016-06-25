@@ -3,8 +3,8 @@
 #include <ft2build.h>
 #ifdef FT_FREETYPE_H
 #include FT_FREETYPE_H
-#else
-#warning "Not including."
+// #else
+// #warning "Not including."
 #endif
 
 #include <string>

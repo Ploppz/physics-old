@@ -15,33 +15,43 @@ std::ostream& operator << (std::ostream& lhs, A rhs)
     return lhs;
 };
 
+void a()
+{
+    DebugBegin();
+    dout << "a called" << newl;
+}
+void b()
+{
+    DebugBegin();
+    dout << "b called" << newl;
+    a();
+}
+void c()
+{
+    DebugBegin();
+    dout << "c called" << newl;
+    b();
+    b();
+}
 void lala()
 {
-    Debug::begin();
-    int a = 3;
-    dout << "lala test" << a << " 2 .. " << 1 << newl;
-    Debug::begin();
-    Debug::begin();
-    dout << "hei";
-    Debug::end();
-    Debug::begin();
-    dout << "hoi";
-    Debug::end();
-    Debug::begin();
-    dout << "hi";
-    Debug::end();
-    Debug::end();
-
-    Debug::end();
+    DebugBegin();
+    dout << "lala called" << newl;
+    c();
+    dout << "lala: test" << newl;
+    b();
+    a();
 }
 
 int main()
 {
-    Debug::begin();
+    Debug::set_color1(brown);
+    Debug::set_color2(gray);
+
+    DebugBegin();
     dout << "one test bla" << newl;
     lala();
     A a;
     a.x = 3;
     dout << a << newl;
-    Debug::end();
 }

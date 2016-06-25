@@ -1,3 +1,4 @@
+#pragma once
 #include "FontTexture.h"
 #include <string>
 #include <GL/glew.h>

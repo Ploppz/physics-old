@@ -1,3 +1,4 @@
+#pragma once
 // Test arena for physics
 // Test case:
 // no friction, no gravity, bounded by window size

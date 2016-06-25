@@ -62,7 +62,6 @@ EdgePoint LineStrip::get_end<true>() { return start; }
 template <>
 EdgePoint LineStrip::Vertex<false>::to_edge_point(float alpha)
 {
-    std::cout << " ================ to_edge_point " << *parent << " .. index = " << index << " .. alpha = " << alpha <<std::endl;
     if (index == START_INDEX) {
         if (parent->start.index == parent->end.index) {
             // START to END
@@ -92,7 +91,7 @@ EdgePoint LineStrip::Vertex<false>::to_edge_point(float alpha)
 template <>
 EdgePoint LineStrip::Vertex<true>::to_edge_point(float alpha)
 {
-    std::cout << " ================ to_edge_point " << *parent << " .. index = " << index << " .. alpha = " << alpha <<std::endl;
+    // std::cout << " ================ to_edge_point " << *parent << " .. index = " << index << " .. alpha = " << alpha <<std::endl; 
     if (index == START_INDEX) {
         if (alpha == 0) {
             return parent->start;
@@ -107,8 +106,8 @@ EdgePoint LineStrip::Vertex<true>::to_edge_point(float alpha)
                     parent->parent);
         } else {
             // END to INTERMEDIATE
-            std::cout << "END TO INTERMEDIATE .. " << parent->end.alpha << " - "
-                << parent->end.alpha * alpha << std::endl;
+            /* std::cout << "END TO INTERMEDIATE .. " << parent->end.alpha << " - "
+                << parent->end.alpha * alpha << std::endl; */
             return EdgePoint(parent->end.index,
                     parent->end.alpha - parent->end.alpha * alpha,
                     parent->parent);

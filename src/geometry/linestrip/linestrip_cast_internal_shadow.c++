@@ -4,6 +4,9 @@
 
 using namespace glm;
 
+class Renderer;
+extern Renderer *renderer;
+
 /* OLD METHOD. New and more general and hopefully robust: Intersection::cast_shadow_on(Polygon)  */
 
 
@@ -20,7 +23,7 @@ using namespace glm;
 /* General notes */
 // Does not consider CCW...
 //
-LineStrip Intersection::cast_internal_shadow(glm::vec2 direction, Polygon* subject, Renderer &renderer)
+LineStrip Intersection::cast_internal_shadow(glm::vec2 direction, Polygon* subject)
 {
     const bool DEBUG = false;
     direction = normalize(direction);
@@ -47,7 +50,7 @@ LineStrip Intersection::cast_internal_shadow(glm::vec2 direction, Polygon* subje
             y_max_vertex = Vertex(i, this);
         }
     }
-    // renderer.add_dot(align_inverse * vec2(y_min_x, y_max));
+    // renderer->add_dot(align_inverse * vec2(y_min_x, y_max));
 
     float alpha;
 

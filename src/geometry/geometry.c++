@@ -172,6 +172,10 @@ bool inside(vec2 point, Polygon& p)
     }
     return counter % 2 == 1;
 }
+
+/**
+ * CCW: Positive on the outside, negative on the inside
+**/
 float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
 {
     assert( ! (isnan(point.x) || isnan(point.y)));

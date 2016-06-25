@@ -2,6 +2,7 @@
 #include "Polygon.h"
 #include "constants.h"
 #include "EdgePoint.h"
+#include "../algorithm/Contact.h"
 
 class LineStrip;
 
@@ -61,13 +62,6 @@ struct HybridVertex
 };
 
 
-struct DepthContact {
-    float depth;
-    glm::vec2 normal;
-    EdgePoint subj_point;
-    EdgePoint ref_point;
-};
-
 struct Intersection
 {
     std::vector<HybridVertex> vertices;
@@ -86,18 +80,20 @@ struct Intersection
     /* get_contact:
      * - construct normal from two intersects
      * - project out of each other in that direction
+     * - "subj" = polygon of vertex, "ref" = polygon of edge in collision
+     * - normal points out of "ref"
      * - returns depth=0 if erroneous/unimplemented case
      */
     /* new */
-    DepthContact get_contact(Polygon* reference, Polygon* subject, Renderer& renderer);
+    DepthContact get_contact(Polygon* reference, Polygon* subject);
     /* old */
-    DepthContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer);
+    DepthContact get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside);
 
     Polygon* edge_owner(int edge_start_index);
 
     LineStrip cast_shadow_on(Polygon* polygon, glm::vec2 direction);
     /* Old: */
-    LineStrip cast_internal_shadow(glm::vec2 direction, Polygon* subject, Renderer &renderer);
+    LineStrip cast_internal_shadow(glm::vec2 direction, Polygon* subject);
 
     void append_lines_to_vector(std::vector<float>& buffer);
     void append_lines_to_vector2(std::vector<float>& buffer);

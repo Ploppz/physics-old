@@ -1,10 +1,14 @@
+/** src **/
 #include "Polygon.h"
 #include "Intersection.h"
 #include "linestrip/LineStripSeries.h"
 #include "geometry.h"
-#include "../LinkedList.h"
-#include "../Renderer.h"
-#include "../tmp.h"
+#include <debug.h>
+#include <LinkedList.h>
+#include <render/Renderer.h>
+#include <tmp.h>
+/****/
+#include <error_handling.h>
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -13,6 +17,7 @@
 
 using namespace glm;
 
+extern Renderer *g_renderer;
 
 
 ////////////////////
@@ -25,7 +30,7 @@ Intersect::Intersect(Polygon::Edge edge1, Polygon::Edge edge2)
     bool result = intersect(edge1.start_tr(), edge1.end_tr(),
             edge2.start_tr(), edge2.end_tr(), point, alpha1, alpha2);
     if (!result) {
-        std::cout << "Error: edges do not actually overlap (" << edge1.get_index() << ", " << edge2.get_index() << ")" << std::endl;
+        runtime_fatal(Formatter() << "Error: edges do not actually overlap (" << edge1.get_index() << ", " << edge2.get_index() << ")");
     }
 }
 
@@ -194,17 +199,17 @@ struct ManifoldData {
 };
 
 /* CCW sensitive ! */
-DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Renderer& renderer)
+DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject)
 {
-    const bool DEBUG = true;
+    const bool DEBUG = false;
     //assert(num_intersects() == 2); /* Logic: not implemented solution */
-    std::cout << " NUM INTERSECTS:  " << num_intersects() << std::endl;
+    if (DEBUG) std::cout << " NUM INTERSECTS:  " << num_intersects() << std::endl;
     if (num_intersects() > 2) {
         DepthContact dc;
         dc.depth = 0;
         return dc;
     }
-    std::cout << "GET CONTACT"  << std::endl;
+    if (DEBUG) std::cout << "GET CONTACT"  << std::endl;
     /* TODO it's critical which way normal points, because we already decided how to iterate the LSSes */
     glm::vec2 normal = find_normal_wrt(reference);
     mat2 align_transform = rotate_coor_system(-normal);
@@ -275,7 +280,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
 
 
                 float depth = glm::length(projected_point - r_vec_best);
-                std::cout << "DEPTH " << depth << std::endl;
+                if (DEBUG) std::cout << "DEPTH " << depth << std::endl;
                 if (DEBUG) std::cout << "-  Alpha: " << alpha << std::endl;
                 if (depth > max_manifold.depth) {
                     if (DEBUG) std::cout << "-  Used " << std::endl;
@@ -290,7 +295,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
 
 
                 float depth = glm::length(projected_point - s_vec_best);
-                std::cout << "DEPTH " << depth << std::endl;
+                if (DEBUG) std::cout << "DEPTH " << depth << std::endl;
                 if (DEBUG) std::cout << "-  Alpha: " << alpha << std::endl;
                 if (depth > max_manifold.depth) {
                     if (DEBUG) std::cout << "-  Used " << std::endl;
@@ -347,6 +352,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
     Polygon::Edge collision_edge(max_manifold.edge_point.index, max_manifold.edge_point.parent);
     vec2 edge_direction = collision_edge.end_tr() - collision_edge.start_tr();
     vec2 collision_normal = normalize(vec2(-edge_direction.y, edge_direction.x));
+    if (max_manifold.edge_point.parent->CCW) collision_normal = - collision_normal;
 
     result.subj_point = max_manifold.vertex_point;
     result.ref_point = max_manifold.edge_point;
@@ -360,16 +366,17 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject, Ren
     // std::cout << "Alpha: " << max_manifold.edge_point.alpha << std::endl;
     vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
 
-    renderer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
+    g_renderer->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
 
     return result;
 
 }
-DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside, Renderer& renderer)
+DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Polygon* subject, bool subj_outside)
 {
+    DebugBegin();
     // normal should be in the direction to move subject out of reference
     vec2 normal = find_normal_wrt(subject);
-    const bool DEBUG = true;
+    const bool DEBUG = false;
     // std::cout << " ---------------- " << std::endl;
     //TODO simplifying assumption: the line strips are both CCW or both CW
 #define v normal
@@ -383,10 +390,10 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
     float factor;
     if (ref_outside) factor = -1;
     else factor = 1;
-    LineStripSeries<LEFT> r_strip = cast_internal_shadow(normal * factor, reference, renderer);
+    LineStripSeries<LEFT> r_strip = cast_internal_shadow(normal * factor, reference);
     if (subj_outside) factor = -1;
     else factor = 1;
-    LineStripSeries<RIGHT> s_strip = cast_internal_shadow(-normal * factor, subject, renderer);
+    LineStripSeries<RIGHT> s_strip = cast_internal_shadow(-normal * factor, subject);
     r_strip.set_align_matrix(align_transform);
     s_strip.set_align_matrix(align_transform);
 
@@ -411,8 +418,8 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
     }
     LineStripSeries<LEFT>::Vertex<true> r(&r_strip); // TODO set to end
     LineStripSeries<RIGHT>::Vertex<false> s(&s_strip); // TODO set to start
-    std::cout << "CHECK 1 " <<s.parent->get_parent() << std::endl;
-    std::cout << "CHECK 2 " <<r.parent->get_parent() << std::endl;
+    if (DEBUG) dout << "CHECK 1 " <<s.parent->get_parent() << newl;
+    if (DEBUG) dout << "CHECK 2 " <<r.parent->get_parent() << newl;
     LineStripSeries<LEFT>::Vertex<true> r_next = r; ++ r_next;
     LineStripSeries<RIGHT>::Vertex<false> s_next = s; ++ s_next;
     vec2 r_vec, s_vec;
@@ -429,7 +436,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
         r_vec_best = r.best_point();
         s_vec_best = s.best_point();
         /* Debug */
-        std::cout << ".. get_contact iter " << std::endl;
+        dout << ".. get_contact iter " << newl;
         /* Treat */
         float alpha;
         float intersect_x;
@@ -437,10 +444,10 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
             intersect_x = intersect_horizontal(s_vec, s_vec_next - s_vec, r_vec.y, alpha);
             vec2 projected_point = s_vec + alpha * (s_vec_next - s_vec);
 
-            if (manifold_debug) renderer.add_vector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+            if (manifold_debug) g_renderer->extra_line_buffer.add_vector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
 
             float depth = glm::length(projected_point - r_vec_best);
-            std::cout << "DEPTH " << depth << std::endl;
+            dout << "DEPTH " << depth << newl;
             if (depth > max_manifold.depth) {
                 max_manifold.depth = depth;
                 max_manifold.vertex_point = r.to_edge_point(0);
@@ -451,10 +458,10 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
             intersect_x = intersect_horizontal(r_vec, r_vec_next - r_vec, s_vec.y, alpha);
             vec2 projected_point = r_vec + alpha * (r_vec_next - r_vec);
 
-            if (manifold_debug) renderer.add_vector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+            if (manifold_debug) g_renderer->extra_line_buffer.add_vector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
 
             float depth = glm::length(projected_point - s_vec_best);
-            std::cout << "DEPTH " << depth << std::endl;
+            dout << "DEPTH " << depth << newl;
             if (depth > max_manifold.depth) {
                 max_manifold.depth = depth;
                 max_manifold.vertex_point = s.to_edge_point(0);
@@ -495,7 +502,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
      * Collision normal is in world coordinates.
      * Collision points are EdgePoints - so local to each polygon
      */
-    std::cout << "Parent comparision: " << subject << ", " << reference << ", " <<max_manifold.edge_point.parent << std::endl;
+    dout << "Parent comparision: " << subject << ", " << reference << ", " <<max_manifold.edge_point.parent << newl;
     Polygon::Edge collision_edge(max_manifold.edge_point.index, max_manifold.edge_point.parent);
     vec2 edge_direction = collision_edge.end_tr() - collision_edge.start_tr();
     vec2 collision_normal = normalize(vec2(-edge_direction.y, edge_direction.x));
@@ -509,7 +516,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
     // std::cout << "Alpha: " << max_manifold.edge_point.alpha << std::endl;
     vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
 
-    renderer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
+    g_renderer->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
 
     return result;
 #undef v

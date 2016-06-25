@@ -188,15 +188,11 @@ void LineStripSeries<x_bias>::make_y_monotone_direction()
 template <Direction x_bias>
 void LineStripSeries<x_bias>::append_lines_to_vector(std::vector<float> &list)
 {
-    /* std::cout << "RENDER ** LineStripSeries" << std::endl; */
     Vertex<false> curr(this);
     curr.set_to_start();
     Vertex<false> next = curr;
     ++ next;
     while (true) {
-        /* std::cout << "\t at " << *(curr.linestrip_it.iterator) << std::endl;
-        std::cout << "\t\t" << curr.vertex.get_index() << std::endl;
-        std::cout << ".. " << curr.exit_point() << ", " << next.entry_point() << std::endl; */
         glm::vec2 vec_i = curr.exit_point();
         glm::vec2 vec_j = next.entry_point();
 
@@ -210,7 +206,6 @@ void LineStripSeries<x_bias>::append_lines_to_vector(std::vector<float> &list)
         curr = next;
         ++ next;
     }
-    /* std::cout << "END RENDER ** LineStripSeries" << std::endl; */
 }
 
 

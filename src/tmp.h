@@ -1,10 +1,10 @@
-#include "BodySystem.h"
 #include "glutils.h"
 
 #include <vector>
 #include <glm/glm.hpp>
 
 // Temporary place for code
+typedef std::pair<glm::vec2, glm::vec2> LineSegment;
 
 
 unsigned int addToBuffer(LineSegment e, float *buffer, int offset);

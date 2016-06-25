@@ -1,7 +1,5 @@
 #pragma once
 
-// class POLYGON
-
 #include "constants.h"
 #include "../glutils.h"
 #include <glm/glm.hpp>
@@ -27,21 +25,17 @@ struct Triangle
 
 class Polygon
 {
-public:
+ /** STATIC **/
+ public:
     static std::vector<Intersect> find_intersects(Polygon& a, Polygon& b);
     static std::vector<Intersection> extract_intersections(Polygon& p, Polygon& q, bool flip_p_logic, bool flip_q_logic);
-public:
+
+    class Edge;
+    class Diagonal;
+ /** METHODS **/
+ public:
 	Polygon();
 
-	std::vector<glm::vec2> vertices;
-    glm::vec2 position;
-    float orientation;
-    
-    /* Calculations: */
-    float moment_of_inertia;
-    float mass;
-    glm::vec2 center_of_mass;
-    bool CCW;
 
     void calculate_shape_dependent_variables();
 
@@ -57,7 +51,6 @@ public:
     glm::vec2 get_point(int vertex_number, float alpha);
 
 	// Iterating
-    class Edge;
     Edge first_edge();
     Edge last_edge();
 	int num_edges();
@@ -66,8 +59,7 @@ public:
 	// Monotonize, Triangulate, decompose into convex pieces --- returns #diagonals that are from step 1
 	int decompose(std::vector<Triangle> &triangles, std::vector<LineSegment> &added_lines);
 
-    class Diagonal;
-private:
+ private:
 	// Reverse: Go from right to left.
     // output: diagonals
 	void monotonize(std::vector<Diagonal> &diagonals, bool reverse);
@@ -75,6 +67,22 @@ private:
     void triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles);
 
     float calculate_moment_of_inertia();
+
+ /** MEMBERS **/
+ public:
+	std::vector<glm::vec2> vertices;
+    glm::vec2 position;
+    float orientation;
+    
+    /* Calculations: */
+    float moment_of_inertia;
+    float mass;
+    glm::vec2 center_of_mass;
+    bool CCW;
+
+
+
+
 public: /** Helper classes **/
 
     ///////////////////////

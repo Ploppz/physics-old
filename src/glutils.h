@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include "error_handling.h"
+
 
 void GLFW_boilerPlate(GLFWwindow **window, GLFWerrorfun error_callback);
 /* Creates view matrix which really only offsets. */
@@ -52,7 +54,8 @@ public:
     {
         unmapped = false;
 		ptr = static_cast<T*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, size * sizeof(T), GL_MAP_WRITE_BIT));
-        if (ptr == nullptr) assert(!"Couldn't map buffer range - possible too large range.");
+        if (ptr == nullptr)
+            runtime_fatal("Couldn't map buffer range - possible too large range.");
         this->size = 0;
         max_size = size;
     }
@@ -65,9 +68,7 @@ public:
     void write(T a) {
         assert(!unmapped);
         if (size > max_size - 1) {
-            assert(!"Buffer overflow.");
-            exit(1);
-            return;
+            runtime_fatal("Buffer overflow.");
         }
         *ptr = a; ptr ++;   
         size ++;
@@ -75,8 +76,7 @@ public:
     void write(T a, T b) {
         assert(!unmapped);
         if (size > max_size - 2) {
-            assert(!"Buffer overflow.");
-            return;
+            runtime_fatal("Buffer overflow.");
         }
         // std::cout << "WRITE " << size << " vs " << max_size << std::endl;
         *(ptr ++) = a; *(ptr ++) = b;
@@ -85,9 +85,7 @@ public:
     void write(T a, T b, T c) {
         assert(!unmapped);
         if (size > max_size - 3) {
-            assert(!"Buffer overflow.");
-            exit(1);
-            return;
+            runtime_fatal("Buffer overflow.");
         }
         *(ptr ++) = a; *(ptr ++) = b; *(ptr ++) = c;
         size += 3;

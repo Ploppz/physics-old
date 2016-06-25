@@ -1,0 +1,9 @@
+Fix shaders.h
+  g++ -MM -MG src/render/Renderer.c++ | perl -pe 's#\b([\w.+\/]+)shaders\.h\b#src\/shaders.h#g'
+prefix .obj
+  g++ -MM -MG src/BodySystem.c++ | perl -pe 's#(.*):#.obj\/\1:#g'
+ensure prefix src
+  g++ -MM -MG src/BodySystem.c++ | perl -pe 's# \K(?!src\/|\\)#src\/#g'
+
+
+perl -pe 's#(.*):#.obj\/\1:#g ; s# \K(?!src\/|\\)#src\/#g ; s#\b([\w.+\/]+)shaders\.h\b#src\/shaders.h#g'
