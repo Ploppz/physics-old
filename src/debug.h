@@ -25,6 +25,8 @@ class Debug
     Debug(bool condition, const std::string& function, const std::string& file, int line);
     ~Debug();
 
+    void fatal(const std::string& message);
+
     Debug& operator << (const manipulator);
 
     template <typename T>

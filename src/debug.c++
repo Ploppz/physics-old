@@ -4,10 +4,11 @@
 #include <vector>
 #include <limits>
 
+// (?)
 // all overloaded <<, write to string stream, then iteratively call the overload for char
-// TODO: don't write empty boxes..
-// ... will need some sort of FIFO
-// might not need wrote_since_beginning
+// TODO: global dout
+// TODO: prefer merging end & beginning when it's possible, but when there are multiple ends
+//  - so then merge only with the last end
 
 #include "debug.h"
 #include "color.h"
@@ -183,6 +184,14 @@ Debug& Debug::operator << (const manipulator m)
 {
     (*m)(*this);
     return *this;
+}
+void Debug::fatal(const std::string& message)
+{
+    *this << Red << "Fatal error: " << nocolor << message;
+    if (!next_is_newline)
+        *this << newl;
+    *this << Red << "Exiting." << nocolor << newl;
+    exit(1);
 }
 
 void newl(Debug& stream)
