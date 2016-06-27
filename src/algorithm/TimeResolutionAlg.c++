@@ -1,8 +1,26 @@
+#include <glm/glm.hpp>
+/* std */
+#include <list>
+/* src */
 #include "TimeResolutionAlg.h"
-#include "../render/Renderer.h"
 #include "Body.h"
 #include <debug.h>
+#include <geometry/geometry.h>
+#include <render/Renderer.h>
 
+struct SpeedBackup {
+    SpeedBackup(Body& b1, Body& b2) : b1(b1), b2(b2) {}
+    void backup() {
+        b1.velocity() = pre_velocity_b1; b2.velocity() = pre_velocity_b2;
+        b1.rotation() = pre_rotation_b1; b2.rotation() = pre_rotation_b2;
+    }
+    Body& b1;
+    Body& b2;
+    glm::vec2 pre_velocity_b1 = b1.velocity();
+    glm::vec2 pre_velocity_b2 = b2.velocity();
+    float pre_rotation_b1 = b1.rotation();
+    float pre_rotation_b2 = b2.rotation();
+};
 
 extern Renderer *g_renderer;
 
@@ -21,38 +39,157 @@ bool TimeResolutionAlg::done()
 void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
 {
     DebugBegin();
-    std::vector<Intersection> intersections =
-            Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
-    if (intersections.size() == 0){
+    std::vector<Intersection> intersections;
+    intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+
+    if (intersections.size() == 0) {
+        dout << gray << "[No intersections.]" << newl;
         return;
     }
 
-	TimeContact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
+    SpeedBackup speed_backup(b1, b2);
 
-	/* if (contact.rewind_time != 0) last_contact = contact;  */
-	dout << "rewind time: " << contact.rewind_time << newl; 
+    /* TODO: If speed is too low, break without backuping? */
+    while (false) {
+        TimeContact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
-	if (contact.rewind_time == 0) {
-		dout << "SIMPLE DISPLACEMENT, WHICH DOESN'T WORK "<< newl;
-		simple_move_out_of(b1, b2, intersections); 
-		// physical reaction
-	} else {
-		resolve_penetration(b1, b2, contact);
-		physical_reaction(b1, b2, contact);
-		if (separating_at(b1, b2, contact)) {
-			dout << "now Separating" << newl;
-			b1.update(contact.rewind_time);
-			b2.update(contact.rewind_time); 
-			dout << "still Separating: " << std::boolalpha << separating_at(b1, b2, contact) << newl;
-		} else {
-			//
-			dout << "***** now Approaching ********" << newl;
-		}
-	}
+        if (contact.rewind_time == 0) {
+            speed_backup.backup();
+            break;
+        }
+
+        dout << "Rewinding with rewind time = " << contact.rewind_time << newl; 
+        _rewind(b1, b2, contact.rewind_time);
+        physical_reaction(b1, b2, contact);
+        if (separating_at(b1, b2, contact)) {
+            dout << green << " -> Now Separating" << nocolor << newl;
+            unwind(b1, b2, contact.rewind_time);
+        } else {
+            dout << Red << " -> Now Approaching ********************************" << nocolor << newl;
+        }
+        intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+        if (intersections.size() == 0) {
+            dout << green << "Success" << newl;
+            return;
+        
+        }
+    }
+
+    /* Rewinding failed -> revert and try again with Depth Resolution */
+    /* Assumption is that at the previous frame, the polygons were *not overlapping* */
+    /* And of course since it uses rewinding to check that, velocities/rotations must not be
+     * changed earlier in the function.*/
+    dout << " -> Rewinding failed... trying Depth Resolution" << newl << newl;
+    treat_by_depth(b1, b2, delta_time);
 }
 
+void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
+{
+    DebugBegin();
+    Placement b1_placement(b1, delta_time);
+    Placement b2_placement(b2, delta_time);
+    std::list<DepthContact> contacts_resolved;
+    std::vector<Intersection> intersections;
+    do {
+        intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+        DepthContact deepest_contact;
+        deepest_contact.depth = 0;
+        for (Intersection& i : intersections)
+        {
+            for (HybridVertex& vertex : i.vertices)
+            {
+                if (!vertex.intersect) {
+                    DepthContact contact = linear_find_contact(b1, b2, vertex, b1_placement, b2_placement);
+                    if (contact.depth > deepest_contact.depth) {
+                        deepest_contact = contact;
+                    }
+                }
+            }
+        }
+        if (deepest_contact.depth == 0) return; // part of tolerant debugging
+        resolve_by_depth(b1, b2, deepest_contact);
+        contacts_resolved.push_back(deepest_contact); 
+        break;
+    } while (intersections.size() > 0);
+    intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+    if (intersections.size() > 0)
+        dout << red << " .. Still intersections." << newl;
 
-/** Private **/
+    for (DepthContact& contact : contacts_resolved)
+    {
+        dout << "Physical reaction" << newl;
+        physical_reaction(b1, b2, contact);
+    }
+}
+DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex, Placement subj_past_placement, Placement ref_past_placement)
+{
+    DebugBegin();
+    dout << " " << newl;
+    /* Ensure that subject is the owner of the vertex */
+    if (&subject.shape() != vertex.owner) {
+        std::swap(subject, reference);
+        std::swap(subj_past_placement, ref_past_placement);
+    }
+
+    /* Current point,          transformed to the coordinate system of _reference_ */
+    glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
+    /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
+    glm::vec2 past_point_detransformed = transform(subject.shape().vertices[vertex.vertex],
+            subj_past_placement.position, subj_past_placement.orientation);
+    past_point_detransformed = detransform(past_point_detransformed,
+            ref_past_placement.position, ref_past_placement.orientation);
+
+    /* Find intersect between the 'sweep line' and the reference Body */
+    // NOTE/TODO: actually only need edge number of intersection. should it only return an int?
+    EdgePoint intersect;
+    bool intersect_happened =
+        intersect_segment_polygon_model(past_point_detransformed, point_detransformed, reference.shape(), intersect);
+
+
+    { // DEBUG
+        g_renderer->extra_line_buffer.add_dot(past_point_detransformed);
+        g_renderer->extra_line_buffer.add_dot(point_detransformed);
+        if (past_point_detransformed == point_detransformed)
+            dout << "THE POINTS ARE THE SAME" << newl;
+        g_renderer->extra_line_buffer.append_model_lines_to_vector(reference.shape());
+    }
+    if (!intersect_happened) {
+        // dout.fatal(Formatter() << "Intersect didn't happen, but is expected. Most likely because polygons were already colliding a frame back in time, violating an assumption.");  
+        dout << red << "No intersect - normally " << Red << "fatal." << newl;
+        DepthContact null_contact; null_contact.depth = 0;
+        return null_contact; // tolerance only for debugging
+    }
+
+    Polygon::Edge edge_of_intersect(intersect.index, intersect.parent);
+
+    /* Find normal and depth by looking only at what edge is involved */
+    DepthContact result;
+
+    result.depth =
+        distance_line_segment(vertex.point, edge_of_intersect.start_tr(), edge_of_intersect.end_tr());
+    result.normal = edge_of_intersect.normal_tr();
+
+    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    result.ref_point = intersect;
+
+    result.ensure_normal_toward_subject();
+    return result;
+}
+void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact contact)
+{
+    /* Assumption: contact: normal points from ref_point to subj_point */
+    /* Ensure that subject and contact.subj_point refer to the same polygon */
+    if (&subject.shape() != contact.subj_point.parent)
+        std::swap(subject, reference);
+    {
+        /* g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.normal * contact.depth); */
+    }
+    subject.position() -= 0.5f * contact.normal * contact.depth;
+    reference.position() += 0.5f * contact.normal * contact.depth;
+    subject.update_polygon_state();
+    reference.update_polygon_state();
+}
+
 
 
 TimeContact TimeResolutionAlg::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
@@ -203,10 +340,15 @@ inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body re
 
 
 
-void TimeResolutionAlg::resolve_penetration(Body b1, Body b2, TimeContact c)
+void TimeResolutionAlg::_rewind(Body b1, Body b2, float time)
 {
-	b1.update(-c.rewind_time);
-	b2.update(-c.rewind_time);
+	b1.update(-time);
+	b2.update(-time);
+}
+void TimeResolutionAlg::unwind(Body b1, Body b2, float time)
+{
+	b1.update(time);
+	b2.update(time);
 }
 void TimeResolutionAlg::physical_reaction(Body A, Body B, TimeContact c)
 {
@@ -249,6 +391,7 @@ inline glm::vec2 TimeResolutionAlg::velocity_of_point(Body b, EdgePoint p, glm::
 	return b.velocity() + b.rotation() * out_r_ortho;
 }
 
+/* Why list? Dunno. */
 std::list<TimeContact> TimeResolutionAlg::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
 {
     DebugBegin();
@@ -280,7 +423,7 @@ std::list<TimeContact> TimeResolutionAlg::simple_move_out_of(Body b1, Body b2, s
 		b2.update_polygon_state();
 
 		dout << "=== Start extraction ... ===" << newl;
-		intersections = Polygon::extract_intersections(   b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+		intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
 		dout << "Stop extraction ... " << newl;
 	} while (intersections.size() > 0);
 	dout << "SimpleMoveOutOf iterations: " << count << newl;
@@ -365,3 +508,11 @@ glm::vec2 TimeResolutionAlg::relative_pos(glm::vec2 point, Body reference, Body 
 	// PERFORMANCE notice the repeated use of the angle ref.rotation() * time... ^
 	return relative_pos;
 }
+
+
+
+
+//////////////////////////////////////////////
+
+Placement::Placement(Body b, float rewind_time)
+        : position(b.position() - rewind_time * b.velocity()), orientation(b.orientation() - rewind_time * b.rotation()) {}

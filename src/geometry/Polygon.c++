@@ -133,7 +133,15 @@ glm::vec2 Polygon::transform(glm::vec2 point)
     float s = sin(orientation);
     return glm::vec2(   c * point.x - s * point.y + position.x,
                         s * point.x + c * point.y + position.y);
-
+}
+glm::vec2 Polygon::detransform(glm::vec2 point)
+{
+    // translate back, rotate back
+    point -= position;
+    float c = cos(orientation);
+    float s = sin(orientation);
+    return glm::vec2(   + c * point.x + s * point.y,
+                        - s * point.x + c * point.y);
 }
 glm::vec2 Polygon::transformed(int vertex_index)
 {

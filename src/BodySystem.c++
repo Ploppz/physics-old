@@ -53,7 +53,7 @@ void BodySystem::timestep(float delta_time)
 		resolution_alg.init();
 
 		do {
-        dout << "ITER" << newl;
+        dout << "Iteration" << newl;
         resolution_alg.iteration_start();
 		for (Body p : top_level_bodies)
 		{

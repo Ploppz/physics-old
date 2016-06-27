@@ -1,6 +1,7 @@
 # Currently WIP #
-x Review and (visually) test `cast_shadow_on()`
-x Implement new, robust LineStripSeries depth algorithm
+
+- Consider making a Placement struct instead of PlacementBackup, which also e.g. Polygon can use, and Body::placement() can return
+
 - Crashes when one polygon is OUTSIDE mode
   - before anything else: get_contact needs to properly decide which direction each LineStripSeries::Vertex should go
 - Intersection extraction: When 2 Intersections have Intersects on the same edge, the algorithm only makes 1!
@@ -11,11 +12,11 @@ x Implement new, robust LineStripSeries depth algorithm
   - ... OF COURSE: normal is still way wrong
 
 
-
   .. MakeFile:
   rm .depend
   make
   .. why does it remake all targets?
+  - altering TimeResolutionAlg.h -> lots of recompilation
 
 # Rendering Polygons #
  - Indices rather than vertices

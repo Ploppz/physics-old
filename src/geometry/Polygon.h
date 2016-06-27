@@ -40,6 +40,7 @@ class Polygon
     void calculate_shape_dependent_variables();
 
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
+    glm::vec2 detransform(glm::vec2 point); // Transform from world to model coordinates
     glm::vec2 transformed(int vertex_index);
     glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
 

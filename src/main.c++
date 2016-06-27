@@ -169,7 +169,7 @@ int main()
 	
 	/** CONFIG **/
 	const bool INTERACTIVE_FRAME = true;
-	const int FRAME_DURATION_MS = 20;
+	const int FRAME_DURATION_MS = 10;
 	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
 	const float speed = 12; // this is in fact acceleration
 	/** **/

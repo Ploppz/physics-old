@@ -3,7 +3,8 @@
 #include <sstream>
 #include <string>
 
-void runtime_fatal(std::string message);
+#define runtime_fatal(message) _runtime_fatal(message, __FILE__, __FUNCTION__ , __LINE__);
+void _runtime_fatal(std::string message, const std::string& file, const std::string& function, int line);
 void logic_fatal(std::string message);
 
 

@@ -17,6 +17,8 @@ class LineBuffer
     void write_vertex_numbers(Polygon& p);
     void write_distances_to(Polygon& subject, Polygon &other);
     void append_lines_to_vector(Polygon& p);
+    // untransformed
+    void append_model_lines_to_vector(Polygon& p);
     void append_lines_to_vector(Intersection& intersection);
     void append_velocity_lines_to_buffer(Body body);
     // Functions to help visualize things.

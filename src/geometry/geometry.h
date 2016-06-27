@@ -7,6 +7,7 @@
 #include "Polygon.h"
 
 class Body;
+struct EdgePoint;
 
 std::ostream &operator << (std::ostream &lhs, const glm::vec2 &rhs);
 std::ostream &operator << (std::ostream &lhs, const glm::vec3 &rhs);
@@ -55,6 +56,10 @@ bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec
 float intersect_horizontal(glm::vec2 line_start, glm::vec2 line_direction, float y_constant, float &alpha_out);
 float intersect_vertical(glm::vec2 line_start, glm::vec2 line_direction, float x_constant, float &alpha_out);
 
+/* Intersect between segment and untransformed polygon */
+// Note: only returns the first result found
+bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, Polygon& p, EdgePoint& result);
+
 bool inside(glm::vec2 point, Polygon& p);
 float cross(glm::vec2 a, glm::vec2 b);
 
@@ -62,3 +67,6 @@ int sign(float x);
 
 // transformation which rotates to align new_x_axis with the x axis
 glm::mat2 rotate_coor_system(glm::vec2 new_x_axis);
+
+glm::vec2 transform(glm::vec2 position, glm::vec2 translation, float orientation);
+glm::vec2 detransform(glm::vec2 position, glm::vec2 translation, float orientation);

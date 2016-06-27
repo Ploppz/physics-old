@@ -52,8 +52,20 @@ void LineBuffer::append_lines_to_vector(Polygon& p)
 {
     for (uint i = 0; i < p.vertices.size(); i ++) {
         int j = i + 1; j %= p.vertices.size();
-        glm::vec2 vec_i = p.transform(p.vertices[i]);
-        glm::vec2 vec_j = p.transform(p.vertices[j]);
+        glm::vec2 vec_i = p.transformed(i);
+        glm::vec2 vec_j = p.transformed(j);
+        buffer.push_back(vec_i.x);
+        buffer.push_back(vec_i.y);
+        buffer.push_back(vec_j.x);
+        buffer.push_back(vec_j.y);
+    }
+}
+void LineBuffer::append_model_lines_to_vector(Polygon& p)
+{
+    for (uint i = 0; i < p.vertices.size(); i ++) {
+        int j = i + 1; j %= p.vertices.size();
+        glm::vec2 vec_i = p.vertices[i];
+        glm::vec2 vec_j = p.vertices[j];
         buffer.push_back(vec_i.x);
         buffer.push_back(vec_i.y);
         buffer.push_back(vec_j.x);

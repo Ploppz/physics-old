@@ -9,7 +9,6 @@
 #include "geometry/Intersection.h"
 
 class Body;
-
 /** Call tree..:
 treat_body_tree
     treat
@@ -23,6 +22,12 @@ treat_body_tree
             
 **/
 
+/* only used in a private method... also look in todo.md */
+struct Placement {
+    Placement(Body b, float rewind_time);
+    glm::vec2 position;
+    float orientation;
+};
 
 class TimeResolutionAlg
 {
@@ -32,10 +37,15 @@ class TimeResolutionAlg
     void treat(Body, Body, float delta_time);
     bool done();
  public: /*private..*/
-    void resolve(Body, Body, DepthContact);
+    void treat_by_depth(Body, Body, float delta_time);
+    void resolve_by_depth(Body, Body, DepthContact contact);
+    /* Uses previous frame to find incident edge & vertex, then simply calculates normal & depth */
+    DepthContact linear_find_contact(Body subject, Body reference, HybridVertex& vertex,
+                            Placement subj_past_placement, Placement ref_past_placement);
 
 
-	void resolve_penetration(Body b1, Body b2, TimeContact c);
+	void _rewind(Body b1, Body b2, float time);
+    void unwind(Body b1, Body b2, float time);
 	void physical_reaction(Body b1, Body b2, TimeContact c);
 	bool separating_at(Body b1, Body b2, TimeContact c);
 
@@ -49,6 +59,9 @@ class TimeResolutionAlg
 	inline TimeContact rewind_out_of(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_since_last_update);
 	static glm::vec2 relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset);
 	inline glm::vec2 velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho);
+
+
+    // Unfinished, basic fallback in case Time method fails.
 	std::list<TimeContact> simple_move_out_of(Body b1, Body b2, std::vector<Intersection>&);
 
  /** MEMBERS **/

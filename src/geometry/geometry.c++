@@ -3,7 +3,10 @@
 #include <cfloat>
 #include <algorithm>
 
+/* src */
+#include <debug.h>
 #include "geometry.h"
+#include "EdgePoint.h"
 
 using namespace glm;
 
@@ -131,6 +134,29 @@ float intersect_vertical(vec2 line_start, vec2 line_direction, float x_constant,
     return (line_start.y + alpha_out * line_direction.y);
 }
 
+bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, Polygon& p, EdgePoint &result)
+{
+    float alpha1, alpha2;
+    vec2 point_of_intersection;
+    // PERFORMANCE can loop with less transformation calculations..
+    Polygon::Edge start(0, &p);
+    Polygon::Edge it(0, &p);
+    do {
+        bool intersecting = intersect(line_start, line_end, it.start(), it.end(), // in
+                point_of_intersection, alpha1, alpha2); // out
+        if (intersecting) {
+            result.parent = &p;
+            result.index = it.get_index();
+            result.alpha = alpha2;
+            return true;
+        }
+        ++ it;
+    } while (it != start);
+
+    /* No intersection */
+    return false;
+}
+
 std::ostream &operator << (std::ostream &lhs, const vec2 &rhs)
 {
 	lhs << "(" << rhs.x << ", " << rhs.y << ")";
@@ -220,4 +246,19 @@ mat2 rotate_coor_system(vec2 new_x_axis)
     float align_transform_d[4] = {new_x_axis.x, -new_x_axis.y, new_x_axis.y, new_x_axis.x}; //note: column major
     mat2 align_transform = make_mat2x2(align_transform_d);
     return align_transform;
+}
+glm::vec2 transform(glm::vec2 position, glm::vec2 translation, float orientation)
+{
+    float c = cos(orientation);
+    float s = sin(orientation);
+    return glm::vec2(   c * position.x - s * position.y + translation.x,
+                        s * position.x + c * position.y + translation.y);
+}
+glm::vec2 detransform(glm::vec2 position, glm::vec2 translation, float orientation)
+{
+    position -= translation;
+    float c = cos(orientation);
+    float s = sin(orientation);
+    return glm::vec2(   + c * position.x + s * position.y,
+                        - s * position.x + c * position.y);
 }
