@@ -30,7 +30,7 @@ int abs_mod(int n, int range)
 }
 
 Polygon::Polygon()
-    : orientation{}, moment_of_inertia{}, mass{}, center_of_mass{}, CCW{} // Why is this -nan if not initialized??
+    : orientation{}, moment_of_inertia{}, mass{}, center_of_mass{}, CCW{}
 {
 }
 

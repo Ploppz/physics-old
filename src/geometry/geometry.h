@@ -15,6 +15,7 @@ std::ostream &operator << (std::ostream &lhs, const glm::vec3 &rhs);
 float angle(glm::vec2 a, glm::vec2 b, glm::vec2 c);
 
 float length_squared(glm::vec2 v);
+bool zero_length(glm::vec2 v);
 inline glm::vec2 unit_vector(float angle) {
     return glm::vec2(cos(angle), sin(angle));
 }
@@ -30,9 +31,12 @@ bool leftof(glm::vec2 a, glm::vec2 b);
 float distance(glm::vec2 a, glm::vec2 b);
 float distance_line(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
 
-// Distance from polygon (also gives the closest edge)
+/* Distance from polygon */
 float distance(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
 float distance(glm::vec2 point, Polygon& p);
+// Without polygon transformation
+float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
+
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end);
 
@@ -61,6 +65,11 @@ float intersect_vertical(glm::vec2 line_start, glm::vec2 line_direction, float x
 bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, Polygon& p, EdgePoint& result);
 
 bool inside(glm::vec2 point, Polygon& p);
+
+// Non-transformed Polygon
+bool inside_model(glm::vec2 point, Polygon& p);
+
+
 float cross(glm::vec2 a, glm::vec2 b);
 
 int sign(float x);

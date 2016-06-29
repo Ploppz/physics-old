@@ -1,5 +1,6 @@
 # Currently WIP #
 
+
 - Consider making a Placement struct instead of PlacementBackup, which also e.g. Polygon can use, and Body::placement() can return
 
 - Crashes when one polygon is OUTSIDE mode
@@ -21,6 +22,9 @@
 # Rendering Polygons #
  - Indices rather than vertices
 
+# Polygon calculations (area, etc) #
+ensure either that it updates variables automatically, or that it crashes 
+- getters and setters
 
 # Iterating a Polygon #
 

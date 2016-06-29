@@ -26,6 +26,7 @@ extern Renderer *g_renderer;
 
 void TimeResolutionAlg::init()
 {
+    MAX_ITERATIONS = 1;
     iterations = 0;
 }
 void TimeResolutionAlg::iteration_start()
@@ -86,12 +87,16 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
 void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 {
     DebugBegin();
-    Placement b1_placement(b1, delta_time);
-    Placement b2_placement(b2, delta_time);
+
+    const int MAX_ITER = 6;
+    int i = 0;
+
     std::list<DepthContact> contacts_resolved;
     std::vector<Intersection> intersections;
-    do {
-        intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+    intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+    while (intersections.size() > 0){
+        dout << "Iteration. Intersections = " << intersections.size() << " between bodies "
+            << b1.get_index() << ", " << b2.get_index() << newl;
         DepthContact deepest_contact;
         deepest_contact.depth = 0;
         for (Intersection& i : intersections)
@@ -99,21 +104,35 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
             for (HybridVertex& vertex : i.vertices)
             {
                 if (!vertex.intersect) {
-                    DepthContact contact = linear_find_contact(b1, b2, vertex, b1_placement, b2_placement);
+                    DepthContact contact = linear_find_contact(b1, b2, vertex);
                     if (contact.depth > deepest_contact.depth) {
                         deepest_contact = contact;
                     }
                 }
             }
         }
-        if (deepest_contact.depth == 0) return; // part of tolerant debugging
-        resolve_by_depth(b1, b2, deepest_contact);
-        contacts_resolved.push_back(deepest_contact); 
-        break;
-    } while (intersections.size() > 0);
-    intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
-    if (intersections.size() > 0)
-        dout << red << " .. Still intersections." << newl;
+        // g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
+        // g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
+        if (fabs(deepest_contact.depth) > INSIGNIFICANT_DEPTH) {
+            resolve_by_depth(b1, b2, deepest_contact);
+            contacts_resolved.push_back(deepest_contact); 
+            // g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
+            // g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
+        } else {
+            if (deepest_contact.depth == 0) {
+                dout << Red << "Depth: Null contact returned." << newl;
+            }
+            break;
+        }
+        intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+
+        ++ i;
+        if (i >= MAX_ITER) {
+            dout << Red << "MAX ITER" << newl;
+            break;
+            dout.fatal("Max iterations.");
+        }
+    }
 
     for (DepthContact& contact : contacts_resolved)
     {
@@ -121,23 +140,21 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
         physical_reaction(b1, b2, contact);
     }
 }
-DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex, Placement subj_past_placement, Placement ref_past_placement)
+DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex)
 {
     DebugBegin();
-    dout << " " << newl;
     /* Ensure that subject is the owner of the vertex */
     if (&subject.shape() != vertex.owner) {
         std::swap(subject, reference);
-        std::swap(subj_past_placement, ref_past_placement);
     }
 
     /* Current point,          transformed to the coordinate system of _reference_ */
     glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
     /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
     glm::vec2 past_point_detransformed = transform(subject.shape().vertices[vertex.vertex],
-            subj_past_placement.position, subj_past_placement.orientation);
+            subject.past_position(), subject.past_orientation());
     past_point_detransformed = detransform(past_point_detransformed,
-            ref_past_placement.position, ref_past_placement.orientation);
+            reference.past_position(), reference.past_orientation());
 
     /* Find intersect between the 'sweep line' and the reference Body */
     // NOTE/TODO: actually only need edge number of intersection. should it only return an int?
@@ -145,7 +162,20 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
     bool intersect_happened =
         intersect_segment_polygon_model(past_point_detransformed, point_detransformed, reference.shape(), intersect);
 
+    const bool EXTRA_INFO = false;
+    if (EXTRA_INFO) {
+        float dist;
+        int closest_edge;
+        float closest_edge_alpha;
+        dist = distance_model(point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+        if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+        dout << "Distance of current point: " << dist << newl;
+        dist = distance_model(past_point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+        if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+        dout << "Distance of past point: " << dist << newl;
+    }
 
+    if (false)
     { // DEBUG
         g_renderer->extra_line_buffer.add_dot(past_point_detransformed);
         g_renderer->extra_line_buffer.add_dot(point_detransformed);
@@ -154,10 +184,28 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
         g_renderer->extra_line_buffer.append_model_lines_to_vector(reference.shape());
     }
     if (!intersect_happened) {
-        // dout.fatal(Formatter() << "Intersect didn't happen, but is expected. Most likely because polygons were already colliding a frame back in time, violating an assumption.");  
-        dout << red << "No intersect - normally " << Red << "fatal." << newl;
-        DepthContact null_contact; null_contact.depth = 0;
-        return null_contact; // tolerance only for debugging
+        dout << red << "Intersect didn't happen." << newl;
+        // TEST: return null contact:
+        if (false)
+        {
+            { // builds on the idea that if there was no intersect, the subj point is in fact outside reference.
+            int closest_edge;
+            float closest_edge_alpha;
+            float dist;
+            dist = distance_model(point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+            if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+            dout << "Distance of current point: " << dist << newl;
+            dist = distance_model(past_point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+            if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+            dout << "Distance of past point: " << dist << newl;
+            assert(dist >= 0); /* else, assumption is violated */
+            }
+            DepthContact result;
+            result.depth = 0;
+            return result;
+        }
+        dout << red << "Trying approx." << newl;
+        return linear_find_contact_approx(subject, reference, vertex);
     }
 
     Polygon::Edge edge_of_intersect(intersect.index, intersect.parent);
@@ -172,20 +220,107 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
     result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
     result.ref_point = intersect;
 
+    if (EXTRA_INFO) {
+        dout << "Normal: " << result.normal << "   .. the direction in which Reference will move." << newl;
+        dout << "Distance from reference to subject point: " <<
+            (result.subj_point.point_t() - result.ref_point.point_t()) << newl;
+    }
+
     result.ensure_normal_toward_subject();
     return result;
 }
+
+DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex)
+{
+    DebugBegin();
+    /* Since this is called mostly in marginal situations..: */
+    /* Just find the edge that is the closest to the point in the past */
+
+    /* Current point,          transformed to the coordinate system of _reference_ */
+    glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
+    /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
+    glm::vec2 past_point_detransformed =
+        transform(subject.shape().vertices[vertex.vertex], subject.past_position(), subject.past_orientation());
+    past_point_detransformed =
+        detransform(past_point_detransformed, reference.past_position(), reference.past_orientation());
+
+    int closest_edge;
+    float closest_edge_alpha;
+    float dist;
+    
+    const bool EXTRA_INFO = false;
+    { // test
+        dist = distance_model(point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+        if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+        if (EXTRA_INFO) dout << "Distance of current point: " << dist << newl;
+    }
+    dist = distance_model(past_point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
+    if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+    if (EXTRA_INFO) dout << "Distance of past point: " << dist << newl;
+
+
+    Polygon::Edge edge_of_intersect(closest_edge, &reference.shape());
+    EdgePoint edgepoint_of_intersect(closest_edge, closest_edge_alpha, &reference.shape());
+
+    /* Get depth depending on the _current point_ */
+    DepthContact result;
+    result.depth =
+        distance_line_segment(vertex.point, edge_of_intersect.start_tr(), edge_of_intersect.end_tr());
+    result.normal = subject.shape().transformed(vertex.vertex) - edgepoint_of_intersect.point_t();
+    if (zero_length(result.normal)) {
+        result.depth = 0;
+        return result;
+    } else {
+        result.normal = glm::normalize(result.normal);
+    }
+
+    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());
+    if (EXTRA_INFO) dout << "Depth: " << result.depth << newl;
+    if (EXTRA_INFO) dout << "Resulting point on reference: " << result.ref_point.point_t() << newl;
+
+    result.ensure_normal_toward_subject();
+    /* Attempt: if subj_point is actually on the outside, flip the normal. */
+    dist = distance(result.subj_point.point_t(), reference.shape()); 
+    if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
+    if (dist >= 0) {
+        // STATISTICS
+        dout << green << "Flipped normal." << newl;
+        result.normal = - result.normal; 
+        // result.depth = 0;
+    } else {
+        dout << green << "Normal is ok." << newl;
+    }
+    return result;
+}
+
+
+
 void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact contact)
 {
+    DebugBegin();
     /* Assumption: contact: normal points from ref_point to subj_point */
     /* Ensure that subject and contact.subj_point refer to the same polygon */
     if (&subject.shape() != contact.subj_point.parent)
         std::swap(subject, reference);
     {
-        /* g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.normal * contact.depth); */
+
+        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.subj_point.point_t() - contact.ref_point.point_t()); 
+        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.normal * contact.depth); 
+        g_renderer->extra_line_buffer.add_dot(contact.ref_point.point_t());
+        g_renderer->extra_line_buffer.add_dot(contact.subj_point.point_t());
+        // g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), - contact.normal * contact.depth); 
+        // g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), 
+                // contact.ref_point.point_t() - contact.subj_point.point_t()); 
     }
-    subject.position() -= 0.5f * contact.normal * contact.depth;
-    reference.position() += 0.5f * contact.normal * contact.depth;
+    const float strength = 1;
+    dout << "Depth: " << contact.depth << newl;
+    dout << "Subj point: " << contact.subj_point << newl;
+    dout << "Ref point: " << contact.ref_point << newl;
+    dout << "Resoution direction: " << contact.normal * contact.depth << newl;
+    dout << " -- Subject = " << subject.get_index() << newl;
+    subject.position() -= (strength / 2) * contact.normal * (contact.depth);
+    reference.position() += (strength / 2) * contact.normal * (contact.depth);
     subject.update_polygon_state();
     reference.update_polygon_state();
 }
@@ -509,10 +644,3 @@ glm::vec2 TimeResolutionAlg::relative_pos(glm::vec2 point, Body reference, Body 
 	return relative_pos;
 }
 
-
-
-
-//////////////////////////////////////////////
-
-Placement::Placement(Body b, float rewind_time)
-        : position(b.position() - rewind_time * b.velocity()), orientation(b.orientation() - rewind_time * b.rotation()) {}

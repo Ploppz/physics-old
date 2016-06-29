@@ -20,6 +20,10 @@ float length_squared(vec2 v)
 {
     return v.x*v.x + v.y*v.y;
 }
+bool zero_length(vec2 v)
+{
+    return v.x == 0 && v.y == 0;
+}
 bool leftof(vec2 a, vec2 b)
 {
     // Cross product
@@ -198,6 +202,28 @@ bool inside(vec2 point, Polygon& p)
     }
     return counter % 2 == 1;
 }
+bool inside_model(vec2 point, Polygon& p)
+{
+    LineSegment edge;
+    int counter = 0;
+    glm::vec2 delta;
+    float t;
+    for (int i = 0; i < p.num_edges(); i ++)
+    {
+        edge = p.get_edge(i);
+        edge.first -= point;
+        edge.second -= point;
+        if (sign(edge.first.y) != sign(edge.second.y)) { // The edge crosses the x-axis
+            // Find out where it intersects the x-axis
+            delta = edge.second - edge.first;
+            t = - edge.first.y / delta.y;
+            if ((edge.first + delta * t).x > 0) {
+                counter ++;
+            }
+        }
+    }
+    return counter % 2 == 1;
+}
 
 /**
  * CCW: Positive on the outside, negative on the inside
@@ -229,12 +255,44 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
         min_distance = - min_distance;
     return min_distance;
 }
+
 float distance(vec2 point, Polygon& p)
 {
     // PERFORMANCE: specialize function rather than reuse
     int out_closest_edge;
     float out_closest_edge_alpha;
     return distance(point, p, out_closest_edge, out_closest_edge_alpha);
+}
+
+float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
+{
+    DebugBegin();
+    assert( ! (isnan(point.x) || isnan(point.y)));
+    // PERFORMANCE incorporate the inside 
+    
+    // Experimental way to iterate ( PERFORMANCE )
+    Polygon::Edge start(0, &p);
+    Polygon::Edge it(0, &p);
+    float min_distance = FLT_MAX;
+    do
+    {
+        float alpha_on_edge;
+        float distance_from_edge = distance_line_segment(point, it.start(), it.end(), alpha_on_edge);
+        if (alpha_on_edge != 1) { // Disregard, and let the same happen for the next edge, with alpha=0
+            if (distance_from_edge < min_distance) {
+                min_distance = distance_from_edge;
+                out_closest_edge = it.get_index();
+                out_closest_edge_alpha = alpha_on_edge;
+            }
+        }
+        ++ it;
+    } while (it != start);
+    assert (min_distance != FLT_MAX);
+
+    bool is_inside = inside_model(point, p) ^ p.CCW;
+    if (is_inside)
+        min_distance = - min_distance;
+    return min_distance;
 }
 
 float cross(glm::vec2 a, glm::vec2 b)

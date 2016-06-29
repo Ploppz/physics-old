@@ -22,13 +22,6 @@ treat_body_tree
             
 **/
 
-/* only used in a private method... also look in todo.md */
-struct Placement {
-    Placement(Body b, float rewind_time);
-    glm::vec2 position;
-    float orientation;
-};
-
 class TimeResolutionAlg
 {
  public:
@@ -40,8 +33,8 @@ class TimeResolutionAlg
     void treat_by_depth(Body, Body, float delta_time);
     void resolve_by_depth(Body, Body, DepthContact contact);
     /* Uses previous frame to find incident edge & vertex, then simply calculates normal & depth */
-    DepthContact linear_find_contact(Body subject, Body reference, HybridVertex& vertex,
-                            Placement subj_past_placement, Placement ref_past_placement);
+    DepthContact linear_find_contact(Body b1, Body b2, HybridVertex& vertex);
+    DepthContact linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex);
 
 
 	void _rewind(Body b1, Body b2, float time);
@@ -69,7 +62,8 @@ class TimeResolutionAlg
     float biggest_depth;
     int iterations;
  private:
+    const float INSIGNIFICANT_DEPTH = 0.1f;
     const float CORRECTION_STRENGTH = 0.7f;
     const float DEPTH_OK_THRESHOLD = 10;
-    const int MAX_ITERATIONS = 2;
+    int MAX_ITERATIONS = 2;
 };

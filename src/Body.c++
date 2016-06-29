@@ -36,6 +36,12 @@ void Body::update_polygon_state()
 	shape().position = position();
 	shape().orientation = orientation();
 }
+void Body::save_placement()
+{
+    past_position() = position();
+    past_orientation() = orientation();
+}
+
 vec2 Body::real_position()
 {
 	if (position_type() == ABSOLUTE || parent().index == -1) {

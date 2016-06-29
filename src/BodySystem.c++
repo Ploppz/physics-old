@@ -36,20 +36,29 @@ BodySystem::BodySystem()
 	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
 }
-
 void BodySystem::timestep(float delta_time)
 {
     DebugBegin();
+    dout << "Count: " << count << newl;
+    
     delta_time *= simulation_speed;
 
 	alternator = ! alternator;
+#define alternate 0
+#if alternate
 	if (alternator) {
+#endif
+        /* Step forward */
 		g_renderer->extra_line_buffer.clear_buffer();
 		for (int i = 0; i < count; i ++)
 		{
+            Body(i, this).save_placement();
 			Body(i, this).update(delta_time);
 		}
+#if alternate
 	} else {
+#endif
+        /* Detect, resolve, react */
 		resolution_alg.init();
 
 		do {
@@ -60,8 +69,11 @@ void BodySystem::timestep(float delta_time)
 			treat_body_tree(p, delta_time);
 		}
 		} while (!resolution_alg.done());
+#if alternate
 	}
+#endif
     /* just_plot_movement(Body(0, this), Body(1, this), delta_time * 15, 15); */
+
 }
 
 
@@ -131,10 +143,12 @@ Body BodySystem::add_body()
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
+    past_position.push_back( vec2(0, 0) );
 	velocity.push_back( vec2(0, 0) );
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
+    past_orientation.push_back( 0 );
 	rotation.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon() );

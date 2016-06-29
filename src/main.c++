@@ -52,16 +52,19 @@
 
 void error_callback(int error, const char* description);
 
-
-template <typename T>
-void printVector(std::vector<T> v)
+Polygon create_polygon(int num_edges, float inner_size, float outer_size)
 {
-	for (auto it = v.begin(); it != v.end(); it ++)
-	{
-		std::cout << *it << std::endl;
-	}
+    Polygon p;
+    float a;
+	for (int i = 0; i < num_edges; i ++) {
+		a = rand() / static_cast<float>(INT_MAX) * outer_size;
+		p.vertices.push_back(glm::vec2(cos(-i*2.0f/num_edges * M_PI) * (inner_size + a), sin(-i*2.0f/num_edges * M_PI) * (inner_size + a)));
+	} 
+    return p;
 }
 
+template <typename T>
+std::ostream& operator<< (std::ostream&, std::vector<T>);
 
 // Fullwindow rectangle
 GLfloat rectangle[] = {
@@ -84,7 +87,7 @@ Renderer *g_renderer;
 
 int main()
 {
-	// feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
+    feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	// srand (time(NULL));
 	// Input::Init();
@@ -98,30 +101,16 @@ int main()
 	srand(1013);
 
 	// 
-	Polygon p, q, r;
-	int numEdges = 4;
-	float a;
-	//box
-	for (int i = 0; i < numEdges; i ++) {
-		float size = 1000;
-		p.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * size * 2, sin(-i*2.0f/numEdges * M_PI) * size));
-	}
-	numEdges = 10;
-	//big
-	for (int i = 0; i < numEdges; i ++) {
-		a = rand() / static_cast<float>(INT_MAX) * 200;
-		float size = 100;
-		q.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
-	} 
-	//small
-	for (int i = 0; i < numEdges; i ++) {
-		a = rand() / static_cast<float>(INT_MAX) * 150;
-		float size = 50;
-		r.vertices.push_back(glm::vec2(cos(-i*2.0f/numEdges * M_PI) * (size + a), sin(-i*2.0f/numEdges * M_PI) * (size + a)));
-	} 
+    Polygon p = create_polygon(4, 1000, 0);
+    Polygon q = create_polygon(10, 100, 200);
+    Polygon r = create_polygon(10, 50, 150);
+    Polygon s = create_polygon(10, 50, 150);
+    Polygon t = create_polygon(10, 50, 150);
 	p.calculate_shape_dependent_variables();
 	q.calculate_shape_dependent_variables();
 	r.calculate_shape_dependent_variables();
+	s.calculate_shape_dependent_variables();
+	t.calculate_shape_dependent_variables();
 
 	World world;
 	Body big, small, bounding_box;
@@ -151,12 +140,28 @@ int main()
 		small.rotation() = 0; 
 		small.position().x = 500;
 	}
-	
+
+    // Other polygons
+    if (true)
+    {
+    Body other = world.bodies.add_body(bounding_box);
+    other.shape() = s;
+    other.position_type() = RELATIVE;
+    other.position().y = 500;
+
+    other = world.bodies.add_body(bounding_box);
+    other.shape() = t;
+    other.position_type() = RELATIVE;
+    other.velocity() = glm::vec2(1, 5);
+    other.position().y = - 500; 
+    }
+
+
 	Renderer renderer(world.bodies);
 	g_renderer = &renderer;
 	g_font_renderer = renderer.get_font_renderer();
 	renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-	renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
+	// renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
 	renderer.set_color_1(0.1f, 0.1f, 0);
 	renderer.set_color_2(0, 0.5f, 0);
 
@@ -178,7 +183,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		/** Handle input **/
-
+        // bounding_box.velocity() = glm::vec2(0);
 		Input::UpdateMouse(window);
 
 		zoom *= (-Input::scroll / 10.f + 1);
@@ -249,5 +254,16 @@ int main()
 void error_callback(int error, const char* description)
 {
 	fputs(description, stderr);
+}
+
+template <typename T>
+std::ostream& operator<< (std::ostream& out, std::vector<T> vec)
+{
+    out << "vector(";
+    for (T e : vec) {
+        out << e << ", ";
+    }
+    out << ")";
+    return out;
 }
 

@@ -71,10 +71,12 @@ class BodySystem
 	std::vector<PositionType> position_type;
 
 	std::vector<glm::vec2> position;
+	std::vector<glm::vec2> past_position;
 	std::vector<glm::vec2> velocity;
 	std::vector<glm::vec2> force;
 
 	std::vector<float> orientation;
+    std::vector<float> past_orientation;
 	std::vector<float> rotation;
 	std::vector<float> torque;
 

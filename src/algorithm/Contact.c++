@@ -1,5 +1,6 @@
 /* src */
 #include "Contact.h"
+#include <debug.h>
 #include <geometry/Polygon.h>
 #include <geometry/geometry.h>
 
@@ -22,7 +23,11 @@ DepthContact simple_contact_conversion(TimeContact& in_contact)
 }
 void DepthContact::ensure_normal_toward_subject()
 {
+    DebugBegin();
     float d = glm::dot(subj_point.point_t() - ref_point.point_t(), normal);
-    if (d < 0)
+    // dout << "dot = " << d / (glm::length(subj_point.point_t() - ref_point.point_t()) * glm::length(normal)) << newl;
+    if (d < 0) {
         normal = - normal;
+        // dout << "Flipping normal" << newl;
+    }
 }
