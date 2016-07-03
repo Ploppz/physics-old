@@ -4,7 +4,7 @@ OBJDIR = .obj
 TOOLDIR = ~/scripts/make
 DEFAULT_MAIN = src/main.c++
 # We have to add the include directory because freetype uses relative (to freetype2 dir) include file names
-FLAGS = -std=c++11 -ggdb -Isrc -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable
+FLAGS = -std=c++11 -ggdb -iquote src -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable
 # FLAGS = -std=c++11 -ggdb -Isrc -I/usr/include/freetype2 -Wall -Wextra
 LDFLAGS = -lglfw -lGL -lGLEW -lfreetype
 DEFINE = -DFREETYPE_GL_USE_VAO -DUSE_GLFW
