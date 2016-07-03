@@ -3,12 +3,12 @@
 #include "Intersection.h"
 #include "linestrip/LineStripSeries.h"
 #include "geometry.h"
-#include <debug.h>
-#include <LinkedList.h>
-#include <render/Renderer.h>
-#include <tmp.h>
+#include "LinkedList.h"
+#include "tmp.h"
+#include "render/Renderer.h"
+#include "debug/debug.h"
+#include "error_handling.h"
 /****/
-#include <error_handling.h>
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>

@@ -132,7 +132,7 @@ void LineBuffer::append_velocity_lines_to_buffer(Body body)
 
 void LineBuffer::add_dot(glm::vec2 dot)
 {
-    const int radius = 1;
+    const float radius = 0.01f;
 
     buffer.push_back(dot.x - radius);
     buffer.push_back(dot.y - radius);
@@ -146,8 +146,8 @@ void LineBuffer::add_dot(glm::vec2 dot)
 }
 void LineBuffer::add_vector(glm::vec2 point, glm::vec2 vec)
 {
-    const int radius = 4;
-    const float arrow_angle = 2.4f;
+    const float radius = 0.07f;
+    const float arrow_angle = 2.7f;
 
     float vec_angle = atan2(vec.y, vec.x);
     glm::vec2 a1 = glm::vec2(cos(vec_angle - arrow_angle) * radius, sin(vec_angle - arrow_angle) * radius);

@@ -1,10 +1,12 @@
+#include <glm/glm.hpp>
 #include <vector>
 #include <algorithm>
+/* src */
 #include "Polygon.h"
 #include "geometry.h"
 #include "constants.h"
 #include "Intersection.h"
-#include "../LinkedList.h"
+#include "LinkedList.h"
 
 /** Structs used for algorithm */
 struct NewVertex {
@@ -230,9 +232,8 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
 
     return result;
 }
-///////////////////////////////////////////
-// Overlaps: old, maybe not used anymore //
-///////////////////////////////////////////
+
+
 std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 {
 	// Make an "Influence Area" from a
@@ -246,7 +247,7 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
     std::vector<Intersect> intersections;
 
 	float dist_from_edge;
-	float slope, min_val, delta_val;
+	float min_val, delta_val;
 	glm::vec2 delta;
 	bool within_bounds;
 	LineSegment edge_a, edge_b;
@@ -262,8 +263,7 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 		
 		{	// First, also limit the y or x coordinate based on slope
 			delta = edge_a.first - edge_a.second;
-			slope = delta.y / delta.x;
-			if (fabs(slope) < 1) {	// Limit on x axis
+			if (fabs(delta.x) > fabs(delta.y)) {	// Limit on x axis
 				min_val = std::min(edge_a.first.x, edge_a.second.x) - radius_b;
 				delta_val = fabs(delta.x) + radius_b + radius_b;
 				within_bounds = centroid_b.x > min_val && centroid_b.x < min_val + delta_val;

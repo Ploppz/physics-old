@@ -35,7 +35,6 @@
 
 /* files */
 #include "tmp.h"
-#include "render/Renderer.h"
 #include "shaders.h"
 #include "glutils.h"
 #include "Body.h"
@@ -43,9 +42,14 @@
 #include "World.h"
 #include "Input.h"
 #include "error_handling.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw_gl3.h"
+#include "render/Renderer.h"
 #include "geometry/Intersection.h"
 #include "geometry/Polygon.h"
 #include "geometry/geometry.h"
+#include "debug/StatisticsCollection.h"
+#include "debug/debug.h"
 // Typewriter
 #include "typewriter/FontTexture.h"
 #include "typewriter/FontRenderer.h"
@@ -83,24 +87,33 @@ GLfloat rectangle[] = {
 /* For debugging */
 FontRenderer *g_font_renderer;
 Renderer *g_renderer;
+StatisticsCollection *g_statistics;
 
 
 int main()
 {
+    DebugBegin();
     feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-	// srand (time(NULL));
 	// Input::Init();
 
+    /* GLFW  & Input */
 	GLFWwindow *window;
 	GLFW_boilerPlate(&window, error_callback);
 	glfwSetKeyCallback(window, Input::key_callback);
 	glfwSetScrollCallback(window, Input::scroll_callback);
 	glfwSetMouseButtonCallback(window, Input::mouse_button_callback);
 
+    /* ImGui */
+    ImGui_ImplGlfwGL3_Init(window, false);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+	style.FramePadding.y = 1;
+	style.ItemSpacing.y = 2;
+
+
 	srand(1013);
 
-	// 
     Polygon p = create_polygon(4, 1000, 0);
     Polygon q = create_polygon(10, 100, 200);
     Polygon r = create_polygon(10, 50, 150);
@@ -157,10 +170,13 @@ int main()
     }
 
 
+    StatisticsCollection statistics;
+    g_statistics = &statistics;
+
 	Renderer renderer(world.bodies);
 	g_renderer = &renderer;
 	g_font_renderer = renderer.get_font_renderer();
-	renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
+    renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
 	// renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
 	renderer.set_color_1(0.1f, 0.1f, 0);
 	renderer.set_color_2(0, 0.5f, 0);
@@ -174,9 +190,9 @@ int main()
 	
 	/** CONFIG **/
 	const bool INTERACTIVE_FRAME = true;
-	const int FRAME_DURATION_MS = 10;
+	const int FRAME_DURATION_MS = 5;
 	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
-	const float speed = 12; // this is in fact acceleration
+	const float acceleration = 12; 
 	/** **/
 
 	int space_counter = 0;
@@ -184,7 +200,10 @@ int main()
 	{
 		/** Handle input **/
         // bounding_box.velocity() = glm::vec2(0);
-		Input::UpdateMouse(window);
+        ImGui_ImplGlfwGL3_NewFrame();
+        if (!io.WantCaptureMouse) {
+            Input::UpdateMouse(window);
+        }
 
 		zoom *= (-Input::scroll / 10.f + 1);
 		Input::scroll = 0;
@@ -198,16 +217,16 @@ int main()
 		Body& a = big;
 		if (SMALL_POLYGON_EXISTS) {
 			Body& b = small; 
-			if (Input::keys[GLFW_KEY_UP]) b.position().y += speed;
-			if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= speed; 
-			if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += speed; 
-			if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= speed;  
+			if (Input::keys[GLFW_KEY_UP]) b.position().y += acceleration;
+			if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= acceleration; 
+			if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += acceleration; 
+			if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= acceleration;  
 		}
 		//
-		if (Input::keys[GLFW_KEY_N])	a.velocity().x -= speed/10;
-		if (Input::keys[GLFW_KEY_E])	a.velocity().y -= speed/10;
-		if (Input::keys[GLFW_KEY_I])	a.velocity().y += speed/10;
-		if (Input::keys[GLFW_KEY_O])	a.velocity().x += speed/10;
+		if (Input::keys[GLFW_KEY_N])	a.velocity().x -= acceleration/10;
+		if (Input::keys[GLFW_KEY_E])	a.velocity().y -= acceleration/10;
+		if (Input::keys[GLFW_KEY_I])	a.velocity().y += acceleration/10;
+		if (Input::keys[GLFW_KEY_O])	a.velocity().x += acceleration/10;
 
 		/* renderer.write_distances_to(big.shape(), bounding_box.shape()); */
 		if (INTERACTIVE_FRAME) {
@@ -224,20 +243,16 @@ int main()
 
 		if ( ! INTERACTIVE_FRAME ) {
 			world.timestep(DELTA_TIME);
-			// what I had to do every time step.. can World do it?? ..... clear the buffer. nope
 		}
-		/* std::vector<Intersection> intersections = Polygon::extract_intersections(bounding_box.shape(), big.shape(), false, false);
-		if (intersections.size() > 0)
-			renderer.append_lines_to_vector(intersections[0]); */
-
 		
-
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
 
 		renderer.render(center_x, center_y, width, height, zoom);
+        renderer.render(statistics);
+        ImGui::Render();
 
 
 
@@ -247,6 +262,7 @@ int main()
 		std::this_thread::sleep_for(std::chrono::milliseconds(FRAME_DURATION_MS));
 	}
 
+    ImGui_ImplGlfwGL3_Shutdown();
 	return 0;
 }
 

@@ -1,6 +1,6 @@
 #include "LineStrip.h"
-#include "../Intersection.h"
-#include "../geometry.h"
+#include "geometry/Intersection.h"
+#include "geometry/geometry.h"
 #include <limits>
 #include <glm/glm.hpp>
 using namespace glm;

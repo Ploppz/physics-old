@@ -1,25 +1,29 @@
 /** TODO
 - Make depth constants.
 **/
+
 #include <vector>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-/* glm */
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+/* src */
 #include "Renderer.h"
-#include "../shaders.h"
-#include "../tmp.h"
-#include "../BodySystem.h"
-#include "../Body.h"
-#include "../geometry/geometry.h"
-#include "../typewriter/FontTexture.h"
-#include "../typewriter/FontRenderer.h"
+#include "shaders.h"
+#include "tmp.h"
+#include "BodySystem.h"
+#include "Body.h"
+#include "geometry/geometry.h"
+#include "typewriter/FontTexture.h"
+#include "typewriter/FontRenderer.h"
+#include "imgui/imgui.h"
+#include "debug/StatisticsCollection.h"
+#include "debug/debug.h"
 
 GLfloat quad[] = {
 	// x, y, tex_x, tex_y
@@ -150,8 +154,8 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
     int length;
     glm::vec2 position;
-    assert(start_indices.size() > 0); // The loop still loops when size == 0....... 
-    for (int i = 0; i < start_indices.size() - 1; i ++) 
+
+    for (int i = 0; i < static_cast<int>(start_indices.size()) - 1; i ++) 
     {
         position = system.get_body(i).position();
         length = start_indices[i + 1] - start_indices[i];
@@ -189,17 +193,55 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     glUniform1f(uni_orientation, 0);
 
     const int size_float_buffer = line_buffer.get_buffer().size() + extra_line_buffer.get_buffer().size();
+    if (size_float_buffer > 0) {
+        BufferWriter<float> buffer(size_float_buffer); 
+        line_buffer.write_to_buffer(buffer);
+        extra_line_buffer.write_to_buffer(buffer);
+        buffer.unmap();
+    }
 
-    BufferWriter<float> buffer(size_float_buffer); 
-    line_buffer.write_to_buffer(buffer);
-    extra_line_buffer.write_to_buffer(buffer);
 
     // Draw
     glDrawArrays(GL_LINES, 0, size_float_buffer / 2);
-    buffer.unmap();
 /** Draw text **/
     font_renderer->render(center_x, center_y, width, height, zoom);
     font_renderer->clearBuffer();
+}
+void Renderer::render(StatisticsCollection statistics)
+{
+    DebugBegin();
+    ImGui::CollapsingHeader("Statistics");
+    ImGui::Text("\n");
+        ImGui::Columns(4, "mycolumns");
+        ImGui::Separator();
+        ImGui::Text("name"); ImGui::NextColumn();
+        ImGui::Text("avg"); ImGui::NextColumn();
+        ImGui::Text("min"); ImGui::NextColumn();
+        ImGui::Text("max"); ImGui::NextColumn();
+        ImGui::Separator();
+        for (auto& it : statistics)
+        {
+            ImGui::Text("%s", it.first.c_str()); ImGui::NextColumn();
+            ImGui::Text("%f", it.second.get_avg()); ImGui::NextColumn();
+            ImGui::Text("%f", it.second.get_min()); ImGui::NextColumn();
+            ImGui::Text("%f", it.second.get_max()); ImGui::NextColumn();
+            ImGui::Separator();
+        }
+        ImGui::Columns(1);
+
+    ImGui::Text("\n");
+        ImGui::Columns(2, "mycolumns");
+        ImGui::Separator();
+        ImGui::Text("name"); ImGui::NextColumn();
+        ImGui::Text("count"); ImGui::NextColumn();
+        ImGui::Separator();
+        for (auto it = statistics.begin_counters(); it != statistics.end_counters(); ++ it)
+        {
+            ImGui::Text("%s", it->first.c_str()); ImGui::NextColumn();
+            ImGui::Text("%d", it->second); ImGui::NextColumn();
+            ImGui::Separator();
+        }
+        ImGui::Columns(1);
 }
 
 void Renderer::set_color_1(float r, float g, float b)

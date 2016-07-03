@@ -1,8 +1,8 @@
 /* src */
 #include "Contact.h"
-#include <debug.h>
-#include <geometry/Polygon.h>
-#include <geometry/geometry.h>
+#include "geometry/Polygon.h"
+#include "geometry/geometry.h"
+#include "debug/debug.h"
 
 DepthContact simple_contact_conversion(TimeContact& in_contact)
 {

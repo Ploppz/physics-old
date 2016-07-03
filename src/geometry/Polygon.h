@@ -1,12 +1,13 @@
 #pragma once
 
 #include "constants.h"
-#include "../glutils.h"
+#include "glutils.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <iterator>
 #include <utility>
 #include <iostream>
+
 class SubPolygon;
 
 struct Intersect;
@@ -152,7 +153,7 @@ public: /** Helper classes **/
     class Point
     {
     public:
-        Point():start_index(0), alpha(0), parent(0) {};
+        Point() : start_index(0), alpha(0), parent(0) {};
         Point(int start_index, float alpha, Polygon *parent);
         bool operator== (Point other);
         glm::vec2 & start() const;

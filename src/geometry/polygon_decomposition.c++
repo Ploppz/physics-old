@@ -1,9 +1,9 @@
 #include "Polygon.h"
 #include "geometry.h"
-#include "../tmp.h"
-#include "../LinkedList.h"
-#include "../glutils.h"
-#include "../typewriter/FontRenderer.h"
+#include "tmp.h"
+#include "LinkedList.h"
+#include "glutils.h"
+#include "typewriter/FontRenderer.h"
 
 #include <list>
 #include <glm/glm.hpp>

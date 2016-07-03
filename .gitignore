@@ -8,3 +8,4 @@ bin/
 .obj/
 tags
 *.taghl
+imgui.ini

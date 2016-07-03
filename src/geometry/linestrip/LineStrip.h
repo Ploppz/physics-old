@@ -1,10 +1,11 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include "../constants.h"
-#include "../geometry.h"
-#include "../Intersection.h"
 #include <glm/glm.hpp>
+/* src*/
+#include "geometry/constants.h"
+#include "geometry/geometry.h"
+#include "geometry/Intersection.h"
 /* External classes */
 class Polygon;
 /**/

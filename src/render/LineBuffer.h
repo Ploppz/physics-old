@@ -2,7 +2,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "../glutils.h"
+#include "glutils.h"
 class Polygon;
 class Body;
 struct Intersection;

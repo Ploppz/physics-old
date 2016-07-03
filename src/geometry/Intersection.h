@@ -2,7 +2,7 @@
 #include "Polygon.h"
 #include "constants.h"
 #include "EdgePoint.h"
-#include "../algorithm/Contact.h"
+#include "algorithm/Contact.h"
 
 class LineStrip;
 

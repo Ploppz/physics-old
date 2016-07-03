@@ -1,7 +1,8 @@
 #include <glm/glm.hpp>
+/* src */
 #include "Body.h"
 #include "BodySystem.h"
-#include <debug.h>
+#include "debug/debug.h"
 
 using namespace glm;
 

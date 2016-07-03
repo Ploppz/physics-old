@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-#include "../BodySystem.h"
+#include "BodySystem.h"
 #include "Polygon.h"
 
 class Body;

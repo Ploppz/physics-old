@@ -1,7 +1,7 @@
 #pragma once
 #include "LineStrip.h"
 #include "linestrip_iterator.h"
-#include "../geometry.h"
+#include "geometry/geometry.h"
 #include <list>
 #include <glm/glm.hpp>
 #include <iostream>

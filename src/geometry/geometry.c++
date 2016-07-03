@@ -4,7 +4,7 @@
 #include <algorithm>
 
 /* src */
-#include <debug.h>
+#include "debug/debug.h"
 #include "geometry.h"
 #include "EdgePoint.h"
 

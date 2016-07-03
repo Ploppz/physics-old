@@ -4,8 +4,10 @@
 #include <vector>
 
 
+/* src */
 #include "LineBuffer.h"
-#include "../geometry/Polygon.h"
+#include "geometry/Polygon.h"
+#include "debug/StatisticsCollection.h"
 
 /* External */
 class FontRenderer;
@@ -25,6 +27,7 @@ class Renderer
  public:
     Renderer(BodySystem& system);
     void render(float center_x, float center_y, int width, int height, float zoom);
+    void render(StatisticsCollection statistics);
     void set_color_1(float r, float g, float b);
     void set_color_2(float r, float g, float b);
     void set_render_flags(int composite_flag);

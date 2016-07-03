@@ -14,7 +14,7 @@ should BS work with Body or int?
 #include <algorithm>
 #include <list>
 
-#include "debug.h"
+/* src */
 #include "BodySystem.h"
 #include "Body.h"
 #include "render/Renderer.h"
@@ -26,9 +26,11 @@ should BS work with Body or int?
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
 #include "algorithm/DepthResolutionAlg.h"
+#include "debug/debug.h"
 
 extern FontRenderer *fontRenderer;
 extern Renderer *g_renderer;
+extern StatisticsCollection *g_statistics;
 
 using namespace glm;
 
@@ -38,8 +40,8 @@ BodySystem::BodySystem()
 }
 void BodySystem::timestep(float delta_time)
 {
+    g_statistics->count("frames");
     DebugBegin();
-    dout << "Count: " << count << newl;
     
     delta_time *= simulation_speed;
 
@@ -62,12 +64,12 @@ void BodySystem::timestep(float delta_time)
 		resolution_alg.init();
 
 		do {
-        dout << "Iteration" << newl;
-        resolution_alg.iteration_start();
-		for (Body p : top_level_bodies)
-		{
-			treat_body_tree(p, delta_time);
-		}
+            dout << "Iteration" << newl;
+            resolution_alg.iteration_start();
+            for (Body p : top_level_bodies)
+            {
+                treat_body_tree(p, delta_time);
+            }
 		} while (!resolution_alg.done());
 #if alternate
 	}

@@ -1,5 +1,5 @@
 #pragma once
-#include "../geometry/EdgePoint.h"
+#include "geometry/EdgePoint.h"
 
 // Notes:
 // It's kind of unnecessary to use inheritance here.
