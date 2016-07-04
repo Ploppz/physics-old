@@ -2,6 +2,8 @@
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
+#include <cstdio>
+#include <iomanip>
 
 /* src */
 #include "debug/debug.h"
@@ -48,6 +50,7 @@ float distance_line_segment(vec2 p, vec2 line_start, vec2 line_end)
     const vec2 projection = line_start + t * (line_end - line_start);
     return distance(p, projection);
 }
+
 float distance_line_segment(vec2 p, vec2 line_start, vec2 line_end, float &out_alpha)
 {
     float length_sq = length_squared(line_start - line_end);
@@ -57,10 +60,12 @@ float distance_line_segment(vec2 p, vec2 line_start, vec2 line_end, float &out_a
     const vec2 projection = line_start + out_alpha * (line_end - line_start);
     return distance(p, projection);
 }
+
 vec2 middle(vec2 a, vec2 b)
 {
 	return a + ((b - a) / 2.0f);
 }
+
 // Returns (projected p) - line_a?
 vec2 project(vec2 p, vec2 line_a, vec2 line_b)
 {
@@ -84,6 +89,7 @@ float project(Polygon polygon, vec2 direction)
     }
     return max_shadow - min_shadow;
 }
+
 float project(vec2 point, vec2 direction)
 {
     direction = normalize(direction);
@@ -94,6 +100,7 @@ float signedArea(vec2 a, vec2 b, vec2 c)
 {
 	return 0.5f*(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
 }
+
 vec3 barycentric(vec2 a, vec2 b, vec2 c, vec2 p)
 {
 	float A = signedArea(a, b, c);
@@ -117,6 +124,7 @@ bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b, vec2& poi
     }
     return false;
 }
+
 bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b)
 {
     // Lazy
@@ -124,6 +132,26 @@ bool intersect(vec2 line1_a, vec2 line1_b, vec2 line2_a, vec2 line2_b)
     float b, c;
     return intersect(line1_a, line1_b, line2_a, line2_b, a, b, c);
 }
+
+bool intersect_line_line_segment(glm::vec2 line_start, glm::vec2 line_direction, glm::vec2 segment_start, glm::vec2 segment_end, float& alpha2)
+{
+    DebugBegin();
+    float alpha1;
+    // modified from intersect(two line segments) - let line2 be the line
+    vec2 start_diff = line_start - segment_start;
+    vec2 segment1_vec = segment_end - segment_start;
+    vec2 segment2_vec = line_direction;
+    float cross_vec = cross(segment1_vec, segment2_vec);
+    if (cross_vec == 0) return false; // This means colinear (if also cross(a_diff, line2_vec) == 0) OR parallel (else)
+    alpha1 = cross(start_diff, segment2_vec) / cross_vec; //TODO wrong order??
+    alpha2 = cross(start_diff, segment1_vec) / cross_vec;
+    dout << "Alphas: " << alpha1 << ", " << alpha2 << newl;
+    if (alpha1 > 0 && alpha1 < 1) {
+        return true;
+    }
+    return false;
+}
+
 float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constant, float &alpha_out)
 {
     // Returns x value of intersection
@@ -131,6 +159,7 @@ float intersect_horizontal(vec2 line_start, vec2 line_direction, float y_constan
     alpha_out = (y_constant - line_start.y)/line_direction.y;
     return (line_start.x + alpha_out * line_direction.x);
 }
+
 float intersect_vertical(vec2 line_start, vec2 line_direction, float x_constant, float &alpha_out)
 {
     // Returns x value of intersection
@@ -179,6 +208,8 @@ int sign(float x)
 
 bool inside(vec2 point, Polygon& p)
 {
+    // TODO detransform point instead of transforming polygon
+    // TODO fix silly edge iteration
     LineSegment edge;
     int counter = 0;
     glm::vec2 delta;
@@ -195,7 +226,7 @@ bool inside(vec2 point, Polygon& p)
             // Find out where it intersects the x-axis
             delta = edge.second - edge.first;
             t = - edge.first.y / delta.y;
-            if ((edge.first + delta * t).x > 0) {
+            if ((edge.first + delta * t).x >= 0) {
                 counter ++;
             }
         }
@@ -224,14 +255,37 @@ bool inside_model(vec2 point, Polygon& p)
     }
     return counter % 2 == 1;
 }
+bool inside_stable(vec2 point, Polygon& p)
+{
+    int counter = 0;
+    Polygon::Edge start(0, &p);
+    Polygon::Edge it(0, &p);
+    do
+    {
+        // Notes on PERFORMANCE: We could just use alpha of intersect_horizontal to decide the first if.
+        // But this way is more performant once we cache the transformed edge vertices
+        float start_y_distance = it.start_tr().y - point.y;
+        float end_y_distance = it.end_tr().y - point.y;
+
+        if (sign(start_y_distance) != sign(end_y_distance)) {
+            float alpha;
+            float x = intersect_horizontal(it.start_tr(), it.end_tr() - it.start_tr(), point.y, alpha);
+            if (x >= point.x) { // TODO Not sure if > is better.
+                ++ counter;
+            }
+        }
+        ++ it;
+    } while (it != start);
+    return counter % 2 == 1;
+}
 
 /**
  * CCW: Positive on the outside, negative on the inside
 **/
 float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
 {
-    assert( ! (isnan(point.x) || isnan(point.y)));
-    // PERFORMANCE incorporate the inside 
+    // (?) PERFORMANCE incorporate the inside 
+    // PERFORMANCE transform point rather than polygon
     
     // Experimental way to iterate
     Polygon::Edge start(0, &p);
@@ -251,8 +305,10 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
     } while (it != start);
     assert (min_distance != FLT_MAX);
     bool is_inside = inside(point, p) ^ p.CCW;
-    if (is_inside)
+    if (is_inside) {
         min_distance = - min_distance;
+
+    }
     return min_distance;
 }
 
@@ -264,6 +320,35 @@ float distance(vec2 point, Polygon& p)
     return distance(point, p, out_closest_edge, out_closest_edge_alpha);
 }
 
+bool distance_along_line(glm::vec2 point, glm::vec2 direction, Polygon& p, float& out_distance)
+{
+    DebugBeginC(false);
+    Polygon::Edge start(0, &p);
+    Polygon::Edge it(0, &p);
+    float min_alpha = FLT_MAX;
+    do
+    {
+        float alpha;
+        if (intersect_line_line_segment(point, direction, it.start_tr(), it.end_tr(), alpha)) {
+            dout << "Intersection at alpha = " << alpha << newl;
+            if (fabs(alpha) < min_alpha) {
+                min_alpha = fabs(alpha);
+            }
+        } else {
+            dout << "No intersection here." << newl;
+        }
+        ++ it;
+    } while (it != start);
+
+
+    if (min_alpha == FLT_MAX) {
+        out_distance = FLT_MAX;
+        return false;
+    } else {
+        out_distance = min_alpha * glm::length(direction);
+        return true;
+    }
+}
 float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
 {
     DebugBegin();

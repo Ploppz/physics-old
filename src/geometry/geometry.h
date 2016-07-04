@@ -34,6 +34,7 @@ float distance_line(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
 /* Distance from polygon */
 float distance(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
 float distance(glm::vec2 point, Polygon& p);
+bool distance_along_line(glm::vec2 point, glm::vec2 line_direction, Polygon& p, float& out_distance);
 // Without polygon transformation
 float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
 
@@ -52,19 +53,26 @@ float project(glm::vec2 point, glm::vec2 direction);
 
 float signedArea(glm::vec2 a, glm::vec2 b, glm::vec2 c);
 
-// First 3 points are for triangle.
 glm::vec3 barycentric(glm::vec2 a, glm::vec2 b, glm::vec2 c, glm::vec2 p);
+
+// following 2: segments no lines..
 bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec2 line2_b);
 bool intersect(glm::vec2 line1_a, glm::vec2 line1_b, glm::vec2 line2_a, glm::vec2 line2_b, glm::vec2& point_of_intersection, float& alpha1, float& alpha2);
+bool intersect_line_line_segment(glm::vec2 line_start, glm::vec2 line_direction, glm::vec2 segment_start, glm::vec2 segment_end,
+                                float& out_line_alpha);
 // return the x value of the intersection between a line and a constant y value
 float intersect_horizontal(glm::vec2 line_start, glm::vec2 line_direction, float y_constant, float &alpha_out);
 float intersect_vertical(glm::vec2 line_start, glm::vec2 line_direction, float x_constant, float &alpha_out);
+// Note to self ^^^^ I do like the say we use line_start and line_direction, generalizing for lines & line segments
 
 /* Intersect between segment and untransformed polygon */
 // Note: only returns the first result found
 bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, Polygon& p, EdgePoint& result);
 
 bool inside(glm::vec2 point, Polygon& p);
+
+/* Using fewer transformations forth and back, aims to provide numerical stability at very small differences/numbers */
+bool inside_stable(glm::vec2 point, Polygon& p);
 
 // Non-transformed Polygon
 bool inside_model(glm::vec2 point, Polygon& p);

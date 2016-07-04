@@ -1,12 +1,21 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <algorithm>
+#include <cstdio> // DELETE 
+#include <iomanip> // DELETE
 /* src */
 #include "Polygon.h"
 #include "geometry.h"
 #include "constants.h"
 #include "Intersection.h"
 #include "LinkedList.h"
+#include "debug/debug.h"
+
+
+#include "render/Renderer.h"
+#include "debug/StatisticsCollection.h"
+extern Renderer* g_renderer;
+extern StatisticsCollection* g_statistics;
 
 /** Structs used for algorithm */
 struct NewVertex {
@@ -42,7 +51,7 @@ struct NewVertex {
                         // e.g. polygon and edge numbers
 };
 
-struct FullIntersect { // An intersection is needed to sort the NewVertices
+struct FullIntersect { // Needed to sort the NewVertices
     FullIntersect(Intersect *i, NewVertex *p, NewVertex *q): i(i), vert_p(p), vert_q(q){}
     Intersect* i;
     NewVertex* vert_p;
@@ -56,10 +65,16 @@ struct FullIntersect { // An intersection is needed to sort the NewVertices
 
 std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q, bool p_inside_out, bool q_inside_out)
 {
+    DebugBeginC(false);
     const bool DEBUG = false;
     std::vector<Intersect> intersects = find_intersects(p, q); // Let an intersect be an intersection vertex
-    if (intersects.size() % 2 != 0 || intersects.size() == 0)
+    for (Intersect& i : intersects) {
+        g_renderer->extra_line_buffer.add_dot(i.point);
+    }
+    dout << "Number of intersects: " << intersects.size() << newl;
+    if (intersects.size() % 2 != 0 || intersects.size() == 0) {
         return std::vector<Intersection> {};
+    }
 
     if (DEBUG)
     { // test
@@ -90,18 +105,21 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in p **/
     CircularList<NewVertex> p_vertices;
 
-    Side in_out = p_inside_q = inside(p.transformed(0), q) ^ q_inside_out;
+
+    Side in_out = p_inside_q = inside_stable(p.transformed(0), q) ^ q_inside_out;
     int added_vertex_index = -1;
     int current_index = 0;
     
-    if (DEBUG) std::cout << "Initial in-out " << std::boolalpha << in_out << std::endl;
+    dout << "(p)Initial in-out " << std::boolalpha << in_out << newl;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
     {
         current_index = it->i->edge1.get_index();
+        dout << "-- iteration, with vertex index " << current_index << newl;
         // Add eventual vertices that were skipped
         Vertex vertex(added_vertex_index + 1, &p);
         while (current_index > added_vertex_index) {
             NewVertex *to_add = new NewVertex(vertex, in_out);
+            dout << " - add normal vertex " << vertex.get_index() << ", in_out = " << in_out << newl;
 
             p_vertices.push_back(to_add);
 
@@ -112,10 +130,15 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         in_out = !in_out;
         it->vert_p->in_out = in_out;
         p_vertices.push_back(it->vert_p);
-        if (DEBUG) std::cout << " - " << std::boolalpha << in_out << std::endl;
+        dout << " - add intersect... (?)" << newl;
+
+        if (in_out)
+            dout << " - in" << newl;
+        else
+            dout << " - out" << newl;
     }
     // just to test our logic..
-    assert(in_out == (inside(p.transformed(0), q) ^ q_inside_out));
+    assert(in_out == (inside_stable(p.transformed(0), q) ^ q_inside_out));
     // Add rest of vertices..
     if (sorted.size() > 0) {
         for (uint i = sorted.back().i->edge1.get_index() + 1; i  < p.vertices.size(); i ++)
@@ -131,9 +154,11 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     /** Interleave vertices and intersects in q **/
     CircularList<NewVertex> q_vertices;
 
-    in_out = q_inside_p = inside(q.transformed(0), p) ^ p_inside_out;
+    in_out = q_inside_p = inside_stable(q.transformed(0), p) ^ p_inside_out;
     added_vertex_index = -1;
     current_index = 0;
+
+    dout << "(q)Initial in-out " << std::boolalpha << in_out << newl;
     for (auto it = sorted.begin(); it != sorted.end(); it ++)
     {
         current_index = it->i->edge2.get_index();
@@ -150,10 +175,11 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         in_out = !in_out;
         it->vert_q->in_out = in_out;
         q_vertices.push_back(it->vert_q);
+        dout << " - " << in_out << newl;
     }
     // just to test our logic..
     // assert(in_out == inside(q.vertices[0], p)); // TODO doesn't work when q[0] is inside of p
-    assert(in_out == (inside(q.transformed(0), p) ^ p_inside_out));
+    assert(in_out == (inside_stable(q.transformed(0), p) ^ p_inside_out));
     // Add rest of vertices..
     if (sorted.size() > 0) {
         for (uint i = sorted.back().i->edge2.get_index() + 1; i  < q.vertices.size(); i ++)
@@ -213,20 +239,22 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
         }
     }
     if (sorted.size() == 0) {
-        if (p_inside_q)
+        if (p_inside_q) {
             result.push_back( Intersection(p) );
-        else if (q_inside_p)
+            dout << "p insize q" << newl;
+        }
+        else if (q_inside_p) {
             result.push_back( Intersection(q) );
+            dout << "q insize p" << newl;
+        }
     }
-    if (DEBUG)
+    if (true)
     {
-        std::cout << "Found this: " << std::endl;
+        dout << "Found this: " << newl;
         for (auto it = result.begin(); it != result.end(); it ++)
         {
-            for (auto vert = it->vertices.begin(); vert != it->vertices.end(); vert ++)
-            {
-                std::cout << vert->point << std::endl;
-            }
+            dout << "# vertices: " << it->vertices.size() << newl;
+
         }
     }
 
@@ -234,8 +262,10 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
 }
 
 
+
 std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 {
+    DebugBegin();
 	// Make an "Influence Area" from a
 	// test centroid of b.
 	// glm::vec2 centroid_a = a.transform(a.centroid());
@@ -283,7 +313,11 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 				edge_b = b.get_edge(j);
                 edge_b.first = b.transform(edge_b.first);
                 edge_b.second = b.transform(edge_b.second);
-				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second)) {
+
+                glm::vec2 point_of_intersection;
+                float alpha1;
+                float alpha2;
+				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second, point_of_intersection, alpha1, alpha2)) {
                     intersections.push_back(Intersect(   Polygon::Edge(i, &a),
                                                             Polygon::Edge(j, &b)));
 				}

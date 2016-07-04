@@ -8,6 +8,8 @@
 #include "render/Renderer.h"
 #include "debug/debug.h"
 
+#define VISUAL_DEPTH_RESOLUTION false
+
 struct SpeedBackup {
     SpeedBackup(Body& b1, Body& b2) : b1(b1), b2(b2) {}
     void backup() {
@@ -41,6 +43,7 @@ bool TimeResolutionAlg::done()
 void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
 {
     DebugBegin();
+    dout << "Bodies " << b1.get_index() << " vs " << b2.get_index() << newl;
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
 
@@ -96,6 +99,12 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     while (intersections.size() > 0){
+        { //DEBUG draw intersections
+            for (Intersection& inter : intersections)
+            {
+                g_renderer->extra_line_buffer.append_lines_to_vector(inter);
+            }
+        }
         dout << "Iteration. Intersections = " << intersections.size() << " between bodies "
             << b1.get_index() << ", " << b2.get_index() << newl;
         DepthContact deepest_contact;
@@ -112,20 +121,20 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
                 }
             }
         }
-        if (b1.get_index() == 2 || b2.get_index() == 2) {
-        g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
-        g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
+        if (VISUAL_DEPTH_RESOLUTION) {
+            g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
+            g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
         }
         if (fabs(deepest_contact.depth) > INSIGNIFICANT_DEPTH) {
             resolve_by_depth(b1, b2, deepest_contact);
             contacts_resolved.push_back(deepest_contact); 
-            if (b1.get_index() == 2 || b2.get_index() == 2) {
+            if (VISUAL_DEPTH_RESOLUTION) {
                 g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
                 g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
             }
         } else {
             if (deepest_contact.depth == 0) {
-                dout << Red << "Depth: Null contact returned." << newl;
+                dout << Red << "Depth: Null contact returned. (" << deepest_contact.depth << ")" << newl;
                 g_statistics->count("null contact returned");
             } else {
                 g_statistics->count("depth_ignored");
@@ -220,12 +229,34 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
     /* Find normal and depth by looking only at what edge is involved */
     DepthContact result;
 
-    result.depth =
-        distance_line_segment(vertex.point, edge_of_intersect.start_tr(), edge_of_intersect.end_tr());
-    result.normal = edge_of_intersect.normal_tr();
-
     result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
     result.ref_point = intersect;
+
+    // old way to obtain depth:
+    result.depth = distance_line_segment(vertex.point, edge_of_intersect.start_tr(), edge_of_intersect.end_tr());
+    result.normal = edge_of_intersect.normal_tr();
+    result.ensure_normal_toward_subject();
+    // return result;
+
+    float depth;
+
+    if (false) // remove
+    { // DEBUG
+        dout << "Reference is " << reference.get_index() << newl;
+        g_renderer->extra_line_buffer.add_dot(intersect.point_t());
+        g_renderer->extra_line_buffer.add_vector(intersect.point_t(), result.normal * 5.f);
+    }
+    // Cast ray from subject point onto reference
+    if ( distance_along_line(vertex.point, result.normal, reference.shape(), depth) ) {
+        result.depth = depth;
+    } else {
+        // TODO Try the other approach here, e.g. normal * depth = distance between points.
+        dout << red << "ray doesn't intersect polyogn?" << newl;
+        g_statistics->count("ray failed");
+        result.depth = 0;
+        return result;
+    }
+
 
     if (EXTRA_INFO) {
         dout << "Normal: " << result.normal << "   .. the direction in which Reference will move." << newl;
@@ -233,7 +264,7 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
             (result.subj_point.point_t() - result.ref_point.point_t()) << newl;
     }
 
-    result.ensure_normal_toward_subject();
+    dout << "End ... result.depth = " << result.depth << newl;
     return result;
 }
 
@@ -273,8 +304,18 @@ DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body re
     DepthContact result;
     result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
     result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());
+
+    { // DEBUG
+        dout << "subj point: " << vertex.vertex << " of " << subject.get_index() << newl;
+        dout << "ref point: " << closest_edge << " of " << reference.get_index() << newl;
+    }
+
+    // Development notes:
+    /* In non-approx method, depth was calculated by intersecting the normal ray with the subject polygon
+     * --- I think that here, it's sufficient to do it the old way... TODO read this */
     result.depth =
         distance_line_segment(vertex.point, edge_of_intersect.start_tr(), edge_of_intersect.end_tr());
+
     /** Normal **/
     if (closest_edge_alpha == 0) {
         dout << Magenta << "Vertex vs. Vertex" << newl;
@@ -319,26 +360,25 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     /* Ensure that subject and contact.subj_point refer to the same polygon */
     if (&subject.shape() != contact.subj_point.parent)
         std::swap(subject, reference);
+    if (VISUAL_DEPTH_RESOLUTION)
     {
-
-            if (subject.get_index() == 2 || reference.get_index() == 2) { // REMOVE & find others TODO
         g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.subj_point.point_t() - contact.ref_point.point_t()); 
         g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.normal * contact.depth); 
         g_renderer->extra_line_buffer.add_dot(contact.ref_point.point_t());
         g_renderer->extra_line_buffer.add_dot(contact.subj_point.point_t());
-            }
         // g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), - contact.normal * contact.depth); 
         // g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), 
                 // contact.ref_point.point_t() - contact.subj_point.point_t()); 
     }
     const float strength = 1;
+    const float additional_depth = 0.1f;
     dout << "Depth: " << contact.depth << newl;
     dout << "Subj point: " << contact.subj_point << newl;
     dout << "Ref point: " << contact.ref_point << newl;
     dout << "Resoution direction: " << contact.normal * contact.depth << newl;
     dout << " -- Subject = " << subject.get_index() << newl;
-    subject.position() -= (strength / 2) * contact.normal * (contact.depth + 1);
-    reference.position() += (strength / 2) * contact.normal * (contact.depth + 1);
+    subject.position() -= (strength / 2) * contact.normal * (contact.depth + additional_depth);
+    reference.position() += (strength / 2) * contact.normal * (contact.depth + additional_depth);
     subject.update_polygon_state();
     reference.update_polygon_state();
 }

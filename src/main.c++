@@ -177,7 +177,7 @@ int main()
 	g_renderer = &renderer;
 	g_font_renderer = renderer.get_font_renderer();
     renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-	// renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
+    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
 	renderer.set_color_1(0.1f, 0.1f, 0);
 	renderer.set_color_2(0, 0.5f, 0);
 

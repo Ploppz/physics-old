@@ -32,6 +32,9 @@ Intersect::Intersect(Polygon::Edge edge1, Polygon::Edge edge2)
     if (!result) {
         runtime_fatal(Formatter() << "Error: edges do not actually overlap (" << edge1.get_index() << ", " << edge2.get_index() << ")");
     }
+    /* Fix alphas - shoudn't be too close to 0 (or 1). Because else, intersection_extraction may
+     * get the wrong results */
+    // TODO... need it here??
 }
 
 
