@@ -20,7 +20,7 @@ struct Beginning;
 
 class Debug
 {
- public:
+ public: /* Methods */
     Debug(const std::string& function, const std::string& file, int line);
     Debug(bool condition, const std::string& function, const std::string& file, int line);
     ~Debug();
@@ -32,6 +32,7 @@ class Debug
     template <typename T>
     Debug& operator << (const T& rhs)
     {
+        if (do_not_write) return *this;
         std::ostringstream ss;
         ss << rhs;
         std::string s = ss.str();

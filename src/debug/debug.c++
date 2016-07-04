@@ -50,6 +50,8 @@ int Debug::pending_ends = 0;
 bool Debug::do_not_write = false;
 int  Debug::do_not_write_counter = 0;
 //
+bool Debug::disabled = false;
+//
 std_manipulator Debug::color1 = brown;
 std_manipulator Debug::color2 = gray;
 
@@ -78,14 +80,16 @@ void Debug::_begin(bool cond, const std::string& function, const std::string& fi
 }
 void Debug::draw_beginnings()
 {
-   if (pending_beginnings.size() == 0) return;
+    if (pending_beginnings.size() == 0) return;
     if (!next_is_newline)
         std::cout << std::endl;
     next_is_newline = true;
-   if (pending_ends == 1) {
-       // TODO wrong order?? need to get from front?
-        Beginning b = pending_beginnings.back();
-        pending_beginnings.pop_back();
+
+    bool first_beginning_written = false;
+    if (pending_ends == 1) {
+        first_beginning_written = true;
+        // TODO wrong order?? need to get from front?
+        Beginning b = pending_beginnings.front();
         next_is_newline = true;
         prefix();
         std::cout << color2 << "├─── "
@@ -99,16 +103,19 @@ void Debug::draw_beginnings()
     }
 
     draw_end();
-    for (Beginning& b : pending_beginnings)
+
+    auto it = pending_beginnings.begin();
+    if (first_beginning_written) ++ it;
+    for (; it != pending_beginnings.end(); ++ it)
     {
         ++ level;
         prefix();
         std::cout << color2 << "┌─── "
-                  << color1 << b.function
+                  << color1 << it->function
                   << color2 << "() ──── "
-                  << color1 << b.file
+                  << color1 << it->file
                   << color2 << ":"
-                  << color1 << b.line
+                  << color1 << it->line
                   << nocolor << std::endl;
         next_is_newline = true;
     }
