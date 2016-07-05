@@ -33,6 +33,7 @@ GLuint uploadVertices(unsigned int size); // Uploads no data
 
 // Compiles the sources and links them to a program, whose reference it returns
 GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc, GLuint& vertexShaderRef, GLuint& fragmentShaderRef);
+GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc);
 
 GLuint createVertexArrayObject();
 

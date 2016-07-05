@@ -63,7 +63,7 @@ class Renderer
 
     /* OpenGL state */
     // Programs
-    GLuint pos2_program, color_program;
+    GLuint pos2_program, pos2col3_program, color_program;
     // Uniforms
     GLuint uni_proj, uni_view, uni_center, uni_orientation;
     GLuint uni_color;

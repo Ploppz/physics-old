@@ -54,10 +54,8 @@ void LineBuffer::append_lines_to_vector(Polygon& p)
         int j = i + 1; j %= p.vertices.size();
         glm::vec2 vec_i = p.transformed(i);
         glm::vec2 vec_j = p.transformed(j);
-        buffer.push_back(vec_i.x);
-        buffer.push_back(vec_i.y);
-        buffer.push_back(vec_j.x);
-        buffer.push_back(vec_j.y);
+        add_point(vec_i);
+        add_point(vec_j);
     }
 }
 void LineBuffer::append_model_lines_to_vector(Polygon& p)
@@ -66,10 +64,8 @@ void LineBuffer::append_model_lines_to_vector(Polygon& p)
         int j = i + 1; j %= p.vertices.size();
         glm::vec2 vec_i = p.vertices[i];
         glm::vec2 vec_j = p.vertices[j];
-        buffer.push_back(vec_i.x);
-        buffer.push_back(vec_i.y);
-        buffer.push_back(vec_j.x);
-        buffer.push_back(vec_j.y);
+        add_point(vec_i);
+        add_point(vec_j);
     }
 }
 
@@ -86,10 +82,8 @@ void LineBuffer::append_lines_to_vector(Intersection& intersection)
         
         glm::vec2 vec_i = it->point;
         glm::vec2 vec_j = next->point;
-        buffer.push_back(vec_i.x);
-        buffer.push_back(vec_i.y);
-        buffer.push_back(vec_j.x);
-        buffer.push_back(vec_j.y);
+        add_point(vec_i);
+        add_point(vec_j);
     }
 }
 
@@ -114,10 +108,8 @@ void LineBuffer::append_velocity_lines_to_buffer(Body body)
         float next_angle = velocity_angle + sign(rotation) * (0.5f*empty_angle + ((float)(i+1) / resolution) * (6.28 - empty_angle));
         glm::vec2 next_point = center + unit_vector(next_angle) * rotation_radius;
         if (i < resolution - 1) {
-            buffer.push_back(point.x);
-            buffer.push_back(point.y);
-            buffer.push_back(next_point.x);
-            buffer.push_back(next_point.y);
+            add_point(point);
+            add_point(next_point);
         } else { // Draw vector
             add_vector(point, next_point - point);
         }
@@ -128,47 +120,53 @@ void LineBuffer::append_velocity_lines_to_buffer(Body body)
 }
 
 
+void LineBuffer::add_point(glm::vec2 point)
+{
+    buffer.push_back(point.x);
+    buffer.push_back(point.y);
+    buffer.push_back(color.r);
+    buffer.push_back(color.g);
+    buffer.push_back(color.b);
+}
+void LineBuffer::add_point(float x, float y)
+{
+    buffer.push_back(x);
+    buffer.push_back(y);
+    buffer.push_back(color.r);
+    buffer.push_back(color.g);
+    buffer.push_back(color.b);
+}
 
 
+void LineBuffer::add_dot(glm::vec2 dot, float radius) 
+{
+    add_point(dot - glm::vec2(radius));
+    add_point(dot + glm::vec2(radius));
+    add_point(dot.x + radius, dot.y - radius);
+    add_point(dot.x - radius, dot.y + radius);
+}
 void LineBuffer::add_dot(glm::vec2 dot)
 {
-    const float radius = 2;
-
-    buffer.push_back(dot.x - radius);
-    buffer.push_back(dot.y - radius);
-    buffer.push_back(dot.x + radius);
-    buffer.push_back(dot.y + radius);
-
-    buffer.push_back(dot.x + radius);
-    buffer.push_back(dot.y - radius);
-    buffer.push_back(dot.x - radius);
-    buffer.push_back(dot.y + radius);
+    add_dot(dot, 2);
 }
 void LineBuffer::add_vector(glm::vec2 point, glm::vec2 vec)
 {
     // const float radius = 0.07f;
-    const float radius = 2;
+    const float radius = glm::length(vec) / 15.f;
     const float arrow_angle = 2.7f;
 
     float vec_angle = atan2(vec.y, vec.x);
     glm::vec2 a1 = glm::vec2(cos(vec_angle - arrow_angle) * radius, sin(vec_angle - arrow_angle) * radius);
     glm::vec2 a2 = glm::vec2(cos(vec_angle + arrow_angle) * radius, sin(vec_angle + arrow_angle) * radius);
 
-    buffer.push_back(point.x);
-    buffer.push_back(point.y);
-    buffer.push_back(point.x + vec.x);
-    buffer.push_back(point.y + vec.y);
+    add_point(point);
+    add_point(point + vec);;
 
-    buffer.push_back(point.x + vec.x);
-    buffer.push_back(point.y + vec.y);
-    buffer.push_back(point.x + vec.x + a1.x);
-    buffer.push_back(point.y + vec.y + a1.y);
+    add_point(point + vec);
+    add_point(point + vec + a1);
 
-    buffer.push_back(point.x + vec.x);
-    buffer.push_back(point.y + vec.y);
-    buffer.push_back(point.x + vec.x + a2.x);
-    buffer.push_back(point.y + vec.y + a2.y);
-
+    add_point(point + vec);
+    add_point(point + vec + a2);
 }
 
 

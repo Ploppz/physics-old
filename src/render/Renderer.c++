@@ -78,9 +78,9 @@ Renderer::Renderer(BodySystem& system)
 
     /** OpenGL **/
     // Create shader program
-	GLuint vertexShader, fragmentShader; // unused
-    pos2_program  = createShaderProgram(shaders::shaders_pos2_v, shaders::shaders_pos2_f, vertexShader, fragmentShader);
-    color_program = createShaderProgram(shaders::shaders_color_v, shaders::shaders_color_f, vertexShader, fragmentShader);
+    pos2_program  = createShaderProgram(shaders::shaders_pos2_v, shaders::shaders_pos2_f);
+    pos2col3_program  = createShaderProgram(shaders::shaders_pos2col3_v, shaders::shaders_pos2col3_f);
+    color_program = createShaderProgram(shaders::shaders_color_v, shaders::shaders_color_f);
     // Get uniform locations
 	uni_proj = glGetUniformLocation(pos2_program, "proj");
 	uni_view = glGetUniformLocation(pos2_program, "view");
@@ -100,6 +100,8 @@ Renderer::Renderer(BodySystem& system)
     glGenVertexArrays(1, &triangles_vao);
     glBindVertexArray(triangles_vao);
     setFormat("position 2f", pos2_program);
+
+    glUseProgram(pos2col3_program);
     // Lines VBO
 	glGenBuffers(1,&lines_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, lines_vbo);
@@ -107,7 +109,7 @@ Renderer::Renderer(BodySystem& system)
     // Lines VAO
     glGenVertexArrays(1, &lines_vao);
     glBindVertexArray(lines_vao);
-    setFormat("position 2f", pos2_program);
+    setFormat("position 2f color 3f", pos2col3_program);
 
     glUseProgram(color_program);
     // Red quad
@@ -185,13 +187,19 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     glStencilFunc(GL_ALWAYS, 0, 0xFF); // Disable stencil testing
     glDisable(GL_STENCIL_TEST);
 // Reupload and draw lines
-    glUseProgram(pos2_program);
+    glUseProgram(pos2col3_program);
     glBindVertexArray(lines_vao);
     glBindBuffer(GL_ARRAY_BUFFER, lines_vbo);
 
-    glUniform2f(uni_center, 0, 0);
-    glUniform1f(uni_orientation, 0);
-
+    { /* Uniforms */
+        glUniform2f(uni_center, 0, 0);
+        glUniform1f(uni_orientation, 0);
+        glm::mat4 proj, view, model;
+        proj = ortho2D(width * zoom, height * zoom, 0, 1);
+        view = viewMatrix2D(center_x, center_y, 1, 1);
+        glUniformMatrix4fv(uni_proj, 1, GL_FALSE, glm::value_ptr(proj));
+        glUniformMatrix4fv(uni_view, 1, GL_FALSE, glm::value_ptr(view));
+    }
     int size_float_buffer = line_buffer.get_buffer().size() + extra_line_buffer.get_buffer().size();
     size_float_buffer = std::min(size_float_buffer, LINES_VBO_SIZE);
     if (size_float_buffer > 0) {
@@ -203,7 +211,7 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
 
 
     // Draw
-    glDrawArrays(GL_LINES, 0, size_float_buffer / 2);
+    glDrawArrays(GL_LINES, 0, size_float_buffer / 5); // TODO previously 2... maybe make it a constant?
 /** Draw text **/
     font_renderer->render(center_x, center_y, width, height, zoom);
     font_renderer->clearBuffer();

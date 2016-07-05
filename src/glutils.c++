@@ -134,6 +134,11 @@ GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc, GLuint&
 	glDeleteShader(vertexShaderRef);
 	return shaderProgramRef;
 }
+GLuint createShaderProgram(const GLchar* vertSrc, const GLchar* fragSrc)
+{
+    GLuint f, v;
+    return createShaderProgram(vertSrc, fragSrc, f, v);
+}
 
 GLuint createVertexArrayObject()
 {
