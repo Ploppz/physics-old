@@ -1,7 +1,12 @@
 # Currently WIP #
 
+1. Depth distribution
+2. Chain of collisions
 
 - Consider making a Placement struct instead of PlacementBackup, which also e.g. Polygon can use, and Body::placement() can return
+
+
+
 
 - Crashes when one polygon is OUTSIDE mode
   - before anything else: get_contact needs to properly decide which direction each LineStripSeries::Vertex should go

@@ -8,7 +8,7 @@
 #include "render/Renderer.h"
 #include "debug/debug.h"
 
-#define VISUAL_DEPTH_RESOLUTION false
+#define VISUAL_DEPTH_RESOLUTION true
 
 struct SpeedBackup {
     SpeedBackup(Body& b1, Body& b2) : b1(b1), b2(b2) {}
@@ -29,7 +29,7 @@ extern StatisticsCollection *g_statistics;
 
 void TimeResolutionAlg::init()
 {
-    MAX_ITERATIONS = 1;
+    MAX_ITERATIONS = 10;
     iterations = 0;
 }
 void TimeResolutionAlg::iteration_start()
@@ -55,7 +55,7 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
     SpeedBackup speed_backup(b1, b2);
 
     /* TODO: If speed is too low, break without backuping? */
-    while (false) {
+    while (true) {
         TimeContact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
         if (contact.rewind_time == 0) {
@@ -85,6 +85,7 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
     /* And of course since it uses rewinding to check that, velocities/rotations must not be
      * changed earlier in the function.*/
     dout << " -> Rewinding failed... trying Depth Resolution" << newl << newl;
+    g_statistics->count("Rewinding failed");
     treat_by_depth(b1, b2, delta_time);
 }
 
@@ -99,12 +100,6 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
     while (intersections.size() > 0){
-        { //DEBUG draw intersections
-            for (Intersection& inter : intersections)
-            {
-                g_renderer->extra_line_buffer.append_lines_to_vector(inter);
-            }
-        }
         dout << "Iteration. Intersections = " << intersections.size() << " between bodies "
             << b1.get_index() << ", " << b2.get_index() << newl;
         DepthContact deepest_contact;
@@ -158,7 +153,7 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 }
 DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex)
 {
-    DebugBegin();
+    DebugBeginC(false);
     /* Ensure that subject is the owner of the vertex */
     if (&subject.shape() != vertex.owner) {
         std::swap(subject, reference);
@@ -270,7 +265,7 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
 
 DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex)
 {
-    DebugBegin();
+    DebugBeginC(false);
     /* Since this is called mostly in marginal situations..: */
     /* Just find the edge that is the closest to the point in the past */
 
@@ -352,10 +347,11 @@ DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body re
 }
 
 
+const double PI = 3.141592653589793;
 
 void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact contact)
 {
-    DebugBegin();
+    DebugBeginC(false);
     /* Assumption: contact: normal points from ref_point to subj_point */
     /* Ensure that subject and contact.subj_point refer to the same polygon */
     if (&subject.shape() != contact.subj_point.parent)
@@ -377,8 +373,30 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     dout << "Ref point: " << contact.ref_point << newl;
     dout << "Resoution direction: " << contact.normal * contact.depth << newl;
     dout << " -- Subject = " << subject.get_index() << newl;
-    subject.position() -= (strength / 2) * contact.normal * (contact.depth + additional_depth);
-    reference.position() += (strength / 2) * contact.normal * (contact.depth + additional_depth);
+
+    /* LOG
+    velocity direction + mass & just mass worked well on intended area 
+      BUT... it makes several collisions work bad - it won't let smaller polygons 'claim their space'
+      --> Could be fixed with a better multiple-collisions alg.?
+    */
+
+    /* Distribution */
+    float distribution;
+    { /* By velocity direction */
+        float subj_part = fabs(glm::dot(subject.velocity(), contact.normal))  / subject.shape().mass;
+        float ref_part = fabs(glm::dot(reference.velocity(), contact.normal)) / reference.shape().mass;
+        if (subj_part == 0 && ref_part == 0)
+            distribution = 0.5f;
+        else
+            distribution = 2 * atan2(subj_part, ref_part) / PI; // fair number in [0, 1]
+    }
+    // .. overrided by:
+    { /* By mass */
+        distribution = reference.shape().mass / (subject.shape().mass + reference.shape().mass);
+    }
+
+    subject.position() -=   (distribution)      * contact.normal * (contact.depth + additional_depth);
+    reference.position() += (1 - distribution)  * contact.normal * (contact.depth + additional_depth);
     subject.update_polygon_state();
     reference.update_polygon_state();
 }

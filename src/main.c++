@@ -92,7 +92,7 @@ StatisticsCollection *g_statistics;
 
 int main()
 {
-    DebugBegin();
+    DebugBeginC(false);
     feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	// Input::Init();
@@ -160,13 +160,13 @@ int main()
     Body other = world.bodies.add_body(bounding_box);
     other.shape() = s;
     other.position_type() = RELATIVE;
-    other.position().y = 500;
+    /* other.position().y = 500; */
 
     other = world.bodies.add_body(bounding_box);
     other.shape() = t;
     other.position_type() = RELATIVE;
     other.velocity() = glm::vec2(1, 5);
-    other.position().y = - 500; 
+    /* other.position().y = - 500;  */
     }
 
 
@@ -177,7 +177,7 @@ int main()
 	g_renderer = &renderer;
 	g_font_renderer = renderer.get_font_renderer();
     renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
-    renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
+    // renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
 	renderer.set_color_1(0.1f, 0.1f, 0);
 	renderer.set_color_2(0, 0.5f, 0);
 
@@ -198,6 +198,7 @@ int main()
 	int space_counter = 0;
 	while (!glfwWindowShouldClose(window))
 	{
+        auto start_time = std::chrono::high_resolution_clock::now();
 		/** Handle input **/
         // bounding_box.velocity() = glm::vec2(0);
         ImGui_ImplGlfwGL3_NewFrame();
@@ -260,6 +261,11 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		std::this_thread::sleep_for(std::chrono::milliseconds(FRAME_DURATION_MS));
+        { /* Count FPS */
+            auto delta_time = std::chrono::high_resolution_clock::now() - start_time;
+            long long delta_time_micros = std::chrono::duration_cast<std::chrono::microseconds>(delta_time).count();
+            statistics.add_value("FPS", 1000000.f / delta_time_micros);
+        }
 	}
 
     ImGui_ImplGlfwGL3_Shutdown();

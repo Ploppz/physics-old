@@ -19,7 +19,7 @@ void Statistics::add_value(float value)
         ++ num_samples;
     } else {
         if (USING_EXP_AVG) {
-            add_exp_avg(value, avg, 0.2);
+            add_exp_avg(value, avg, 0.2f);
         } else {
             add_avg(value, avg, num_samples);
         }

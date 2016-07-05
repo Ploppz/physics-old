@@ -45,6 +45,7 @@ void setFormat(const char *format, GLuint shaderProgram);
 /* BUFFER WRITER */
 // Helps write to a mapped buffer
 // WARNING: Map the correct buffer to GL_ARRAY_BUFFER first
+// Buffer overflow is ignored (not written)
 template <typename T>
 class BufferWriter
 {
@@ -55,7 +56,7 @@ public:
         unmapped = false;
 		ptr = static_cast<T*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, size * sizeof(T), GL_MAP_WRITE_BIT));
         if (ptr == nullptr)
-            runtime_fatal("Couldn't map buffer range - possible too large range.");
+            runtime_fatal("Couldn't map buffer range - possibly too large range.");
         this->size = 0;
         max_size = size;
     }
@@ -63,30 +64,28 @@ public:
 
     ~BufferWriter() {
         assert(unmapped);
+        // TODO can we really not do RAII here?
     }
     // Write to buffer
     void write(T a) {
         assert(!unmapped);
-        if (size > max_size - 1) {
-            runtime_fatal("Buffer overflow.");
-        }
+        if (size > max_size - 1)
+            return;
         *ptr = a; ptr ++;   
         size ++;
     }
     void write(T a, T b) {
         assert(!unmapped);
-        if (size > max_size - 2) {
-            runtime_fatal("Buffer overflow.");
-        }
+        if (size > max_size - 2)
+            return;
         // std::cout << "WRITE " << size << " vs " << max_size << std::endl;
         *(ptr ++) = a; *(ptr ++) = b;
         size += 2;
     }
     void write(T a, T b, T c) {
         assert(!unmapped);
-        if (size > max_size - 3) {
-            runtime_fatal("Buffer overflow.");
-        }
+        if (size > max_size - 3)
+            return;
         *(ptr ++) = a; *(ptr ++) = b; *(ptr ++) = c;
         size += 3;
     }

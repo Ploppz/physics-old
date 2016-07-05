@@ -50,8 +50,6 @@ int Debug::pending_ends = 0;
 bool Debug::do_not_write = false;
 int  Debug::do_not_write_counter = 0;
 //
-bool Debug::disabled = false;
-//
 std_manipulator Debug::color1 = brown;
 std_manipulator Debug::color2 = gray;
 
