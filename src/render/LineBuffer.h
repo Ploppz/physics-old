@@ -27,6 +27,8 @@ class LineBuffer
     // debugging..
     /* void render_contact(TimeContact c); */
  private:
+    bool ok_to_add_floats(int num);
+ private:
     std::vector<float> buffer;
 };
 

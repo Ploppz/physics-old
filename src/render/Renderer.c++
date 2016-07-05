@@ -192,7 +192,8 @@ void Renderer::render(float center_x, float center_y, int width, int height, flo
     glUniform2f(uni_center, 0, 0);
     glUniform1f(uni_orientation, 0);
 
-    const int size_float_buffer = line_buffer.get_buffer().size() + extra_line_buffer.get_buffer().size();
+    int size_float_buffer = line_buffer.get_buffer().size() + extra_line_buffer.get_buffer().size();
+    size_float_buffer = std::min(size_float_buffer, LINES_VBO_SIZE);
     if (size_float_buffer > 0) {
         BufferWriter<float> buffer(size_float_buffer); 
         line_buffer.write_to_buffer(buffer);
