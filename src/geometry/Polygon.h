@@ -83,8 +83,6 @@ class Polygon
     bool CCW;
 
 
-
-
 public: /** Helper classes **/
 
     ///////////////////////

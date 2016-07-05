@@ -42,6 +42,7 @@ void BodySystem::timestep(float delta_time)
 {
     g_statistics->count("frames");
     DebugBegin();
+    dout << Green << "FRAME" << newl;
     
     delta_time *= simulation_speed;
 
@@ -63,7 +64,9 @@ void BodySystem::timestep(float delta_time)
         /* Detect, resolve, react */
 		resolution_alg.init();
 
+        int i = 0;
 		do {
+            i ++;
             dout << "Iteration" << newl;
             resolution_alg.iteration_start();
             for (Body p : top_level_bodies)
@@ -71,6 +74,7 @@ void BodySystem::timestep(float delta_time)
                 treat_body_tree(p, delta_time);
             }
 		} while (!resolution_alg.done());
+        g_statistics->add_value("global iterations", i);
 #if alternate
 	}
 #endif

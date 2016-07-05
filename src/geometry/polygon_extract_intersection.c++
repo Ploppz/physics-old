@@ -68,9 +68,6 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     DebugBeginC(false);
     const bool DEBUG = false;
     std::vector<Intersect> intersects = find_intersects(p, q); // Let an intersect be an intersection vertex
-    for (Intersect& i : intersects) {
-        g_renderer->extra_line_buffer.add_dot(i.point);
-    }
     dout << "Number of intersects: " << intersects.size() << newl;
     if (intersects.size() % 2 != 0 || intersects.size() == 0) {
         return std::vector<Intersection> {};

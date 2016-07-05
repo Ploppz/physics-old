@@ -56,16 +56,9 @@
 
 void error_callback(int error, const char* description);
 
-Polygon create_polygon(int num_edges, float inner_size, float outer_size)
-{
-    Polygon p;
-    float a;
-	for (int i = 0; i < num_edges; i ++) {
-		a = rand() / static_cast<float>(INT_MAX) * outer_size;
-		p.vertices.push_back(glm::vec2(cos(-i*2.0f/num_edges * M_PI) * (inner_size + a), sin(-i*2.0f/num_edges * M_PI) * (inner_size + a)));
-	} 
-    return p;
-}
+Polygon create_polygon(int num_edges, float inner_size, float outer_size);
+
+void set_up_test1(World& world, Body& to_be_controlled);
 
 template <typename T>
 std::ostream& operator<< (std::ostream&, std::vector<T>);
@@ -114,61 +107,11 @@ int main()
 
 	srand(1013);
 
-    Polygon p = create_polygon(4, 1000, 0);
-    Polygon q = create_polygon(10, 100, 200);
-    Polygon r = create_polygon(10, 50, 150);
-    Polygon s = create_polygon(10, 50, 150);
-    Polygon t = create_polygon(10, 50, 150);
-	p.calculate_shape_dependent_variables();
-	q.calculate_shape_dependent_variables();
-	r.calculate_shape_dependent_variables();
-	s.calculate_shape_dependent_variables();
-	t.calculate_shape_dependent_variables();
 
 	World world;
-	Body big, small, bounding_box;
 
-	bounding_box = world.bodies.add_body();
-	bounding_box.shape() = p;
-	bounding_box.position_type() = ABSOLUTE;
-	bounding_box.rotation() = 0.03f;
-	// bounding_box.rotation() = 0;
-	// bounding_box.velocity() = glm::vec2(-4,  0);
-	bounding_box.mode = POLYGON_OUTSIDE;
-
-	big = world.bodies.add_body(bounding_box);
-	big.shape() = q;
-	big.position_type() = RELATIVE;
-	big.velocity() = glm::vec2(55, 0.02f);
-	big.rotation() = -0.05f;
-	big.rotation() = 0;
-
-#define SMALL_POLYGON_EXISTS true
-	if (SMALL_POLYGON_EXISTS) {
-		small = world.bodies.add_body(bounding_box);
-		small.shape() = r;
-		small.position_type() = RELATIVE;
-		small.velocity() = glm::vec2(-10, -0.02f);
-		small.rotation() = 0.05f;
-		small.rotation() = 0; 
-		small.position().x = 500;
-	}
-
-    // Other polygons
-    if (true)
-    {
-    Body other = world.bodies.add_body(bounding_box);
-    other.shape() = s;
-    other.position_type() = RELATIVE;
-    /* other.position().y = 500; */
-
-    other = world.bodies.add_body(bounding_box);
-    other.shape() = t;
-    other.position_type() = RELATIVE;
-    other.velocity() = glm::vec2(1, 5);
-    /* other.position().y = - 500;  */
-    }
-
+    Body big;
+    set_up_test1(world, big);
 
     StatisticsCollection statistics;
     g_statistics = &statistics;
@@ -179,7 +122,7 @@ int main()
     renderer.set_render_flag(POLYGON_SHOW_VELOCITY);
     // renderer.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
 	renderer.set_color_1(0.1f, 0.1f, 0);
-	renderer.set_color_2(0, 0.5f, 0);
+	renderer.set_color_2(0.34f, 0.3f, 0.3f);
 
 	int width, height;
 	float zoom = 1;
@@ -190,9 +133,10 @@ int main()
 	
 	/** CONFIG **/
 	const bool INTERACTIVE_FRAME = true;
-	const int FRAME_DURATION_MS = 5;
+	const int FRAME_DURATION_MS = 0;
 	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
 	const float acceleration = 12; 
+    glfwSwapInterval(1);
 	/** **/
 
 	int space_counter = 0;
@@ -215,19 +159,10 @@ int main()
 		glViewport(0, 0, width, height);
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-		Body& a = big;
-		if (SMALL_POLYGON_EXISTS) {
-			Body& b = small; 
-			if (Input::keys[GLFW_KEY_UP]) b.position().y += acceleration;
-			if (Input::keys[GLFW_KEY_DOWN]) b.position().y -= acceleration; 
-			if (Input::keys[GLFW_KEY_RIGHT]) b.position().x += acceleration; 
-			if (Input::keys[GLFW_KEY_LEFT]) b.position().x -= acceleration;  
-		}
-		//
-		if (Input::keys[GLFW_KEY_N])	a.velocity().x -= acceleration/10;
-		if (Input::keys[GLFW_KEY_E])	a.velocity().y -= acceleration/10;
-		if (Input::keys[GLFW_KEY_I])	a.velocity().y += acceleration/10;
-		if (Input::keys[GLFW_KEY_O])	a.velocity().x += acceleration/10;
+		if (Input::keys[GLFW_KEY_N])	big.velocity().x -= acceleration/10;
+		if (Input::keys[GLFW_KEY_E])	big.velocity().y -= acceleration/10;
+		if (Input::keys[GLFW_KEY_I])	big.velocity().y += acceleration/10;
+		if (Input::keys[GLFW_KEY_O])	big.velocity().x += acceleration/10;
 
 		/* renderer.write_distances_to(big.shape(), bounding_box.shape()); */
 		if (INTERACTIVE_FRAME) {
@@ -273,6 +208,70 @@ int main()
 }
 
 
+
+void set_up_test1(World& world, Body& to_be_controlled)
+{
+	Body big, small, bounding_box;
+
+	bounding_box = world.bodies.add_body();
+	bounding_box.shape() = create_polygon(4, 1000, 0);
+	bounding_box.position_type() = ABSOLUTE;
+	bounding_box.rotation() = 0.03f;
+	// bounding_box.rotation() = 0;
+	// bounding_box.velocity() = glm::vec2(-4,  0);
+	bounding_box.mode = POLYGON_OUTSIDE;
+
+	big = world.bodies.add_body(bounding_box);
+	big.shape() = create_polygon(10, 100, 200);
+	big.position_type() = RELATIVE;
+	big.velocity() = glm::vec2(55, 0.02f);
+	big.rotation() = -0.05f;
+	big.rotation() = 0;
+
+#define SMALL_POLYGON_EXISTS true
+	if (SMALL_POLYGON_EXISTS) {
+		small = world.bodies.add_body(bounding_box);
+		small.shape() = create_polygon(10, 50, 150);
+		small.position_type() = RELATIVE;
+		small.velocity() = glm::vec2(-10, -0.02f);
+		small.rotation() = 0.05f;
+		small.rotation() = 0; 
+		// small.position().x = 500;
+	}
+
+    // Other polygons
+    Body other = world.bodies.add_body(bounding_box);
+    other.shape() = create_polygon(10, 50, 150);
+    other.position_type() = RELATIVE;
+    /* other.position().y = 500; */
+
+    other = world.bodies.add_body(bounding_box);
+    other.shape() = create_polygon(10, 50, 150);
+    other.position_type() = RELATIVE;
+    other.velocity() = glm::vec2(1, 5);
+    /* other.position().y = - 500;  */
+
+    to_be_controlled = big;
+}
+
+
+
+Polygon create_polygon(int num_edges, float inner_size, float outer_size)
+{
+    Polygon p;
+    float a;
+	for (int i = 0; i < num_edges; i ++) {
+		a = rand() / static_cast<float>(INT_MAX) * outer_size;
+		p.vertices.push_back(glm::vec2(cos(-i*2.0f/num_edges * M_PI) * (inner_size + a), sin(-i*2.0f/num_edges * M_PI) * (inner_size + a)));
+	} 
+	p.calculate_shape_dependent_variables();
+    return p;
+}
+
+
+
+
+/*******************/
 void error_callback(int error, const char* description)
 {
 	fputs(description, stderr);

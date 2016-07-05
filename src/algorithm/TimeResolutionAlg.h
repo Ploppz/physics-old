@@ -52,6 +52,7 @@ class TimeResolutionAlg
 	inline TimeContact rewind_out_of(HybridVertex non_intersection_vertex, Body reference, Body subject, float time_since_last_update);
 	static glm::vec2 relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset);
 	inline glm::vec2 velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho);
+    glm::vec2 relative_velocity(Body A, Body B, TimeContact c);
 
 
     // Unfinished, basic fallback in case Time method fails.
@@ -59,11 +60,5 @@ class TimeResolutionAlg
 
  /** MEMBERS **/
  private:
-    float biggest_depth;
     int iterations;
- private:
-    const float INSIGNIFICANT_DEPTH = 0.1f;
-    const float CORRECTION_STRENGTH = 0.7f;
-    const float DEPTH_OK_THRESHOLD = 10;
-    int MAX_ITERATIONS = 2;
 };

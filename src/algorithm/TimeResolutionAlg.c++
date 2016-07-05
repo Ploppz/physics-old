@@ -3,12 +3,14 @@
 #include <list>
 /* src */
 #include "TimeResolutionAlg.h"
+#include "config.h"
 #include "Body.h"
 #include "geometry/geometry.h"
 #include "render/Renderer.h"
 #include "debug/debug.h"
 
 #define VISUAL_DEPTH_RESOLUTION true
+#define VISUAL_BODY_PROGRESSION false
 
 struct SpeedBackup {
     SpeedBackup(Body& b1, Body& b2) : b1(b1), b2(b2) {}
@@ -29,7 +31,6 @@ extern StatisticsCollection *g_statistics;
 
 void TimeResolutionAlg::init()
 {
-    MAX_ITERATIONS = 10;
     iterations = 0;
 }
 void TimeResolutionAlg::iteration_start()
@@ -54,11 +55,24 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
 
     SpeedBackup speed_backup(b1, b2);
 
-    /* TODO: If speed is too low, break without backuping? */
+    int time_iterations = 0;
     while (true) {
+        { /* count */ 
+            ++ time_iterations;
+            if (time_iterations > MAX_TIME_ITER) {
+                speed_backup.backup();
+                break;
+            }
+        }
+
         TimeContact contact = find_earliest_contact_by_rewinding(b1, b2, intersections, delta_time);
 
-        if (contact.rewind_time == 0) {
+        if (contact.rewind_time <= MIN_REWIND_TIME) {
+            speed_backup.backup();
+            break;
+        }
+        glm::vec2 rel_vel = relative_velocity(b1, b2, contact);
+        if (glm::length(rel_vel) < MIN_REL_VEL) {
             speed_backup.backup();
             break;
         }
@@ -68,17 +82,24 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
         physical_reaction(b1, b2, contact);
         if (separating_at(b1, b2, contact)) {
             dout << green << " -> Now Separating" << nocolor << newl;
+            g_statistics->count("Now separating");
             unwind(b1, b2, contact.rewind_time);
         } else {
             dout << Red << " -> Now Approaching ********************************" << nocolor << newl;
+            g_statistics->count("Now approaching");
+            g_statistics->add_value("REL VEL", glm::length(rel_vel));
+            unwind(b1, b2, contact.rewind_time);
+            speed_backup.backup();
+            break;
         }
         intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
         if (intersections.size() == 0) {
-            dout << green << "Success" << newl;
+            g_statistics->add_value("S time iterations", time_iterations);
             return;
-        
         }
+
     }
+    g_statistics->add_value("F time iterations", time_iterations);
 
     /* Rewinding failed -> revert and try again with Depth Resolution */
     /* Assumption is that at the previous frame, the polygons were *not overlapping* */
@@ -91,9 +112,8 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
 
 void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 {
-    DebugBegin();
+    DebugBeginC(false);
 
-    const int MAX_ITER = 10;
     int i = 0;
 
     std::list<DepthContact> contacts_resolved;
@@ -116,14 +136,14 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
                 }
             }
         }
-        if (VISUAL_DEPTH_RESOLUTION) {
+        if (VISUAL_BODY_PROGRESSION) {
             g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
             g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
         }
         if (fabs(deepest_contact.depth) > INSIGNIFICANT_DEPTH) {
             resolve_by_depth(b1, b2, deepest_contact);
             contacts_resolved.push_back(deepest_contact); 
-            if (VISUAL_DEPTH_RESOLUTION) {
+            if (VISUAL_BODY_PROGRESSION) {
                 g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
                 g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
             }
@@ -139,7 +159,7 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
         intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
 
         ++ i;
-        if (i >= MAX_ITER) {   
+        if (i >= MAX_DEPTH_ITER) {   
             break;
             dout.fatal("Max iterations.");
         }
@@ -356,16 +376,6 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     /* Ensure that subject and contact.subj_point refer to the same polygon */
     if (&subject.shape() != contact.subj_point.parent)
         std::swap(subject, reference);
-    if (VISUAL_DEPTH_RESOLUTION)
-    {
-        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.subj_point.point_t() - contact.ref_point.point_t()); 
-        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), contact.normal * contact.depth); 
-        g_renderer->extra_line_buffer.add_dot(contact.ref_point.point_t());
-        g_renderer->extra_line_buffer.add_dot(contact.subj_point.point_t());
-        // g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), - contact.normal * contact.depth); 
-        // g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), 
-                // contact.ref_point.point_t() - contact.subj_point.point_t()); 
-    }
     const float strength = 1;
     const float additional_depth = 0.1f;
     dout << "Depth: " << contact.depth << newl;
@@ -399,6 +409,17 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     reference.position() += (1 - distribution)  * contact.normal * (contact.depth + additional_depth);
     subject.update_polygon_state();
     reference.update_polygon_state();
+
+    if (VISUAL_DEPTH_RESOLUTION)
+    {
+        g_renderer->extra_line_buffer.set_color(glm::vec3(0.8f, 0, 0));
+        g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), - distribution * contact.normal * contact.depth); 
+        g_renderer->extra_line_buffer.add_dot(contact.subj_point.point_t(), distribution * contact.depth / 15.f); 
+
+        g_renderer->extra_line_buffer.set_color(glm::vec3(0.8f, 0.8f, 0));
+        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), (1 - distribution) * contact.normal * contact.depth); 
+        g_renderer->extra_line_buffer.add_dot(contact.ref_point.point_t(), (1 - distribution) * contact.depth / 15.f);
+    }
 }
 
 
@@ -485,7 +506,6 @@ inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body re
 	assert(vertex.intersect == false);
 
 	const bool VISUAL_DEBUG = false;
-	const float error_threshold = 0.1f;
 
 	float error;
 	float time_offset = delta_time / 2.f;
@@ -514,11 +534,10 @@ inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body re
 		g_renderer->extra_line_buffer.add_dot(point_then);
 	}
 	int count = 0;
-	const int max_count = 100;
 	while (true)
 	{
 		count ++;
-		if (count > max_count) break;
+		if (count > MAX_REWIND_ITER) break;
 		glm::vec2 point_at_time = relative_pos(vertex.point, reference, subject, - time_offset);
 		if (VISUAL_DEBUG)
 			g_renderer->extra_line_buffer.add_dot(point_at_time);
@@ -529,7 +548,7 @@ inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body re
 		if (reference.mode == POLYGON_OUTSIDE)
 			error = - error; // outside is inside
 
-		if (abs(error) <= error_threshold && error > 0) // TODO the check for > 0 isn't optimal.
+		if (abs(error) <= ERROR_THRESHOLD && error > 0) // TODO the check for > 0 isn't optimal.
 			break;
 
 		time_step_size *= 0.5f;
@@ -568,24 +587,28 @@ void TimeResolutionAlg::physical_reaction(Body A, Body B, TimeContact c)
 		std::swap(A, B);
 	}
 
-	const float restitution = 0.5f; // coefficient of restitution
 	glm::vec2 r_ortho_A, r_ortho_B;
 	glm::vec2 v_AB = velocity_of_point(A, c.subj_point, r_ortho_A) - velocity_of_point(B, c.ref_point, r_ortho_B);
 
-	float impulse = - (1 + restitution) * glm::dot(v_AB, c.normal) /
+	float impulse = - (1 + RESTITUTION) * glm::dot(v_AB, c.normal) /
 					(  (1.f/A.shape().mass + 1.f/B.shape().mass) * glm::dot(c.normal, c.normal)
 						+ std::pow(glm::dot(r_ortho_A, c.normal), 2) / A.shape().moment_of_inertia
 						+ std::pow(glm::dot(r_ortho_B, c.normal), 2) / B.shape().moment_of_inertia  );
 	A.apply_impulse(impulse * c.normal, c.subj_point);
 	B.apply_impulse( - impulse * c.normal, c.ref_point);
 }
+
+glm::vec2 TimeResolutionAlg::relative_velocity(Body A, Body B, TimeContact c)
+{
+	glm::vec2 trash;
+	return velocity_of_point(A, c.subj_point, trash) - velocity_of_point(B, c.ref_point, trash);
+}
 bool TimeResolutionAlg::separating_at(Body A, Body B, TimeContact c)
 {
 	if (c.ref_point.parent == &A.shape()) {
 		std::swap(A, B); /* A is subject */
 	}
-	glm::vec2 trash;
-	glm::vec2 v_AB = velocity_of_point(A, c.subj_point, trash) - velocity_of_point(B, c.ref_point, trash);
+	glm::vec2 v_AB = relative_velocity(A, B, c);
 	/* Note to self: contact.normal should always be _out of_ reference */
 	//TODO I'm here and the normal calculation takes into account CCW, which has been flipped and
 	// it's now wrong.. question: does c.normal really reflect the _reference_?
@@ -602,57 +625,6 @@ inline glm::vec2 TimeResolutionAlg::velocity_of_point(Body b, EdgePoint p, glm::
 	return b.velocity() + b.rotation() * out_r_ortho;
 }
 
-/* Why list? Dunno. */
-std::list<TimeContact> TimeResolutionAlg::simple_move_out_of(Body b1, Body b2, std::vector<Intersection>& intersections)
-{
-    DebugBegin();
-	std::list<TimeContact> results;
-	for (auto it = intersections.begin(); it != intersections.end(); it ++)
-	{
-		results.push_back(it->get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
-											&b2.shape(), b2.mode == POLYGON_OUTSIDE));
-	}
-	int count = 0;
-	do {
-		if (count >= 10) {
-			dout << "Reached max. iterations" << newl;
-			break;
-		}
-		count ++;
-		dout << "SimpleMoveOutOf iteration" << newl;
-
-		Intersection& i = intersections[0];
-		DepthContact contact = i.get_contact(  &b1.shape(), b1.mode == POLYGON_OUTSIDE,
-											&b2.shape(), b2.mode == POLYGON_OUTSIDE);
-
-		dout << "\tResulting depth: " << contact.depth << newl;
-		/* The bodies are displaced weighed by their mass. contact.normal is assumed to be*/
-		b1.position() -= contact.normal * (b2.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
-		b2.position() += contact.normal * (b1.shape().mass * contact.depth) / (b1.shape().mass + b2.shape().mass);
-
-		b1.update_polygon_state();
-		b2.update_polygon_state();
-
-		dout << "=== Start extraction ... ===" << newl;
-		intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
-		dout << "Stop extraction ... " << newl;
-	} while (intersections.size() > 0);
-	dout << "SimpleMoveOutOf iterations: " << count << newl;
-	return results;
-}
-
-
-
-
-
-
-
-/**
-Numerically appoximate
-at what time `point`, belonging to `subject`, no longer is inside `reference`
-The Intersection is used as a guide of which edges of the reference to pick.
- -> In the future, we may want to check all edges or find a smarter way to select edges.
-**/
 
 inline bool TimeResolutionAlg::will_separate_in_future(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
