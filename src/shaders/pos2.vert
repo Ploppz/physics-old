@@ -20,5 +20,4 @@ void main()
             0,
             1 );
 	gl_Position = proj * view * gl_Position;
-
 }
