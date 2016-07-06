@@ -145,27 +145,6 @@ public: /** Helper classes **/
         int index;
         Polygon *parent;
     };
-    //////////////////////
-    // Point on polygon //
-    //////////////////////
-    class Point
-    {
-    public:
-        Point() : start_index(0), alpha(0), parent(0) {};
-        Point(int start_index, float alpha, Polygon *parent);
-        bool operator== (Point other);
-        glm::vec2 & start() const;
-        glm::vec2 & end() const;
-        glm::vec2 start_tr() const; // World coordinates
-        glm::vec2 end_tr() const;
-        int get_index() const { return start_index; }
-        Polygon* get_parent() const { return parent; }
-        float get_alpha() const { return alpha; }
-    private:
-        int start_index;
-        float alpha; // how far from start to end the point is along the edge
-        Polygon *parent;
-    };
 
     /////////////////////////
     // Diagonal smart-pointer

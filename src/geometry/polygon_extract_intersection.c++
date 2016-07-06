@@ -258,10 +258,40 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     return result;
 }
 
+#define for_each_edge(polygon, edge, i) \
+    std::pair<glm::vec2, glm::vec2> edge; \
+    edge.second = polygon.transformed(polygon.num_edges() - 1);
+    for (int i = 0; i < polygon.num_edges(); i ++)
 
 
 std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 {
+    std::vector<Intersect> intersections;
+#if 0
+    LineSegment edge_a, edge_b;
+    ////
+    edge_a.second = a.transformed(a.num_edges() - 1);
+    for (int i = 0; i < a.num_edges(); i ++) {
+        edge_a.first = edge_a.second;
+        edge_a.second = a.transformed(i);
+        ////
+        edge_b.second = b.transformed(b.num_edges() - 1);
+        for (int j = 0; j < b.num_edges(); j ++) {
+            edge_b.first = edge_b.second;
+            edge_b.second = b.transformed(j);
+            // std::cout << "B: " << edge_b.first << " ; " << edge_b.second << std::endl;
+            ////
+            glm::vec2 point_of_intersection; float alpha1; float alpha2;
+            if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second, point_of_intersection, alpha1, alpha2)) {
+                intersections.push_back(Intersect(   Polygon::Edge(i-1, &a),
+                                                     Polygon::Edge(j-1, &b)));
+            }
+        }
+    }
+    return intersections;
+
+#else
+
     DebugBegin();
 	// Make an "Influence Area" from a
 	// test centroid of b.
@@ -271,7 +301,6 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 	// First, loop through edges (u, v) of a, and create a triangle with the centroid, from which we
 	// calculate the barycentric coordinate space
     
-    std::vector<Intersect> intersections;
 
 	float dist_from_edge;
 	float min_val, delta_val;
@@ -322,6 +351,7 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 		}
 	}
 	return intersections;
+#endif
 }
 
 

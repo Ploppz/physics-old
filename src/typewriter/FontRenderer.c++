@@ -157,6 +157,7 @@ void FontRenderer::render(float center_x, float center_y, int width, int height,
 	glBindBuffer(GL_ARRAY_BUFFER, bufferRef);
 
 	// Reupload
+    std::cout << "font buffer size: " << buffer.size() << std::endl;
 	float *buffer_ptr = static_cast<float*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.size() * sizeof(float), GL_MAP_WRITE_BIT));
     std::copy_n(buffer.data(), buffer.size(), buffer_ptr);
 

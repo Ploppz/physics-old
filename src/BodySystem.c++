@@ -174,10 +174,12 @@ Body BodySystem::add_body(Body parent)
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
+    past_position.push_back( vec2(0, 0) );
 	velocity.push_back( vec2(0, 0) );
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
+    past_orientation.push_back( 0 );
 	rotation.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );

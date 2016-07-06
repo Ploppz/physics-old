@@ -29,6 +29,7 @@ void LineBuffer::write_vertex_numbers(Polygon& p)
 {
     for (uint i = 0; i < p.vertices.size(); i ++)
     {
+        std::cout << "WRITING vertex numbers" << std::endl;
         glm::vec2 point = p.transformed(i);
         g_renderer->get_font_renderer()->setColor(255, 255, 255);
         g_renderer->get_font_renderer()->addText(std::to_string(i), point.x, point.y,  false);

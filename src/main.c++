@@ -136,7 +136,7 @@ int main()
 	const int FRAME_DURATION_MS = 0;
 	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
 	const float acceleration = 12; 
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 	/** **/
 
 	int space_counter = 0;
@@ -186,7 +186,7 @@ int main()
 		ratio = width / (float) height;
 		timer = (float)glfwGetTime() * 2;
 
-		renderer.render(center_x, center_y, width, height, zoom);
+        renderer.render(center_x, center_y, width, height, zoom);
         renderer.render(statistics);
         ImGui::Render();
 
@@ -214,7 +214,7 @@ void set_up_test1(World& world, Body& to_be_controlled)
 	Body big, small, bounding_box;
 
 	bounding_box = world.bodies.add_body();
-	bounding_box.shape() = create_polygon(4, 1000, 0);
+	bounding_box.shape() = create_polygon(4, 4000, 0);
 	bounding_box.position_type() = ABSOLUTE;
 	bounding_box.rotation() = 0.03f;
 	// bounding_box.rotation() = 0;
@@ -228,28 +228,15 @@ void set_up_test1(World& world, Body& to_be_controlled)
 	big.rotation() = -0.05f;
 	big.rotation() = 0;
 
-#define SMALL_POLYGON_EXISTS true
-	if (SMALL_POLYGON_EXISTS) {
-		small = world.bodies.add_body(bounding_box);
-		small.shape() = create_polygon(10, 50, 150);
-		small.position_type() = RELATIVE;
-		small.velocity() = glm::vec2(-10, -0.02f);
-		small.rotation() = 0.05f;
-		small.rotation() = 0; 
-		// small.position().x = 500;
-	}
+    const int NUM_BODIES = 30;
+    Body other;
+    for (int i = 0; i < NUM_BODIES; i ++)
+    {
+        other = world.bodies.add_body(bounding_box);
+        other.shape() = create_polygon(10, 50, 150);
+        other.position_type() = RELATIVE;
+    }
 
-    // Other polygons
-    Body other = world.bodies.add_body(bounding_box);
-    other.shape() = create_polygon(10, 50, 150);
-    other.position_type() = RELATIVE;
-    /* other.position().y = 500; */
-
-    other = world.bodies.add_body(bounding_box);
-    other.shape() = create_polygon(10, 50, 150);
-    other.position_type() = RELATIVE;
-    other.velocity() = glm::vec2(1, 5);
-    /* other.position().y = - 500;  */
 
     to_be_controlled = big;
 }

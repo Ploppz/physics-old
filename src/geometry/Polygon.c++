@@ -249,7 +249,10 @@ glm::vec2 Polygon::Vertex::transformed()
 //////////////////////////////////////////////
 
 Polygon::Edge::Edge(int index, Polygon *parent)
-    :index(index % parent->vertices.size()), parent(parent) { }
+    : parent(parent)
+{
+    this->index = (index + parent->vertices.size()) % parent->vertices.size();
+}
 
 Polygon::Edge Polygon::first_edge() {
     return Edge(0, this);
@@ -279,12 +282,12 @@ glm::vec2& Polygon::Edge::end() const
 }
 glm::vec2 Polygon::Edge::start_tr() const
 {
-	return parent->transform(parent->vertices[index]);
+	return parent->transformed(index);
 }
 glm::vec2 Polygon::Edge::end_tr() const
 {
 	int i = (index == parent->vertices.size() - 1) ? 0 : index + 1;
-	return parent->transform(parent->vertices[i]);
+	return parent->transformed(i);
 }
 
 // Find y value given x value. Doesn't care about bounds.

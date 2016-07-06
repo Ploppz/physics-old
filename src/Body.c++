@@ -39,6 +39,8 @@ void Body::update_polygon_state()
 }
 void Body::save_placement()
 {
+    std::cout << index << " vs " << system->past_position.size() << " vs " << system->past_orientation.size() << std::endl;
+    ensure_valid();
     past_position() = position();
     past_orientation() = orientation();
 }
