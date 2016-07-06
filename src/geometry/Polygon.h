@@ -51,13 +51,16 @@ class Polygon
 
     class Edge;
     class Diagonal;
+    template <bool transformed>
     class EdgeAccessor;
+    template <bool transformed>
     class EdgeIterator;
  /** METHODS **/
  public:
 	Polygon();
 
-    EdgeAccessor edges() { return EdgeAccessor(*this); };
+    EdgeAccessor<true> edges() { return EdgeAccessor<true>(*this); };
+    EdgeAccessor<false> model_edges() { return EdgeAccessor<false>(*this); };
 
 
     void calculate_shape_dependent_variables();
@@ -168,34 +171,43 @@ public: /** Helper classes **/
         Polygon *parent;
     };
 
+    template <bool transformed>
     class EdgeIterator
     {
      public:
         ::Edge operator* () { return ::Edge(edge, get_index()); }
-        EdgeIterator& operator++ ();
-        bool operator== (EdgeIterator& other);
-        bool operator!= (EdgeIterator& other);
-        int get_index();
-        glm::vec2& get_start() { return edge.start; };
-        glm::vec2& get_end() { return edge.end; };
+        EdgeIterator<transformed> & operator++ ();
+        bool operator== (EdgeIterator& other) { return index == other.index; }
+        bool operator!= (EdgeIterator& other) { return index != other.index; }
+        int get_index()
+        {
+            return (index - 1 + polygon.vertices.size()) % polygon.vertices.size();
+        }
      private:
         EdgeIterator(bool is_end, Polygon& polygon);
         Polygon& polygon;
         int index; // index refers to the _end_ of the edge
         LineSegment edge;
 
+     template <bool tr>
      friend class EdgeAccessor; // only EdgeAccessor may access constructor
 
     };
+
+    template <bool transformed>
     class EdgeAccessor
     {
      public:
         EdgeAccessor(Polygon& polygon) : polygon(polygon) {};
-        /* Settings */
-        void do_not_transform() { assert("No implementation!"); };
         /* Init iteration */
-        EdgeIterator begin();
-        EdgeIterator end();
+        EdgeIterator<transformed> begin()
+        {
+            return EdgeIterator<transformed>(false, polygon);
+        }
+        EdgeIterator<transformed> end()
+        {
+            return EdgeIterator<transformed>(true, polygon);
+        }
      private:
         Polygon& polygon;
     };

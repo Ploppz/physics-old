@@ -313,27 +313,26 @@ Polygon::Edge& Polygon::Edge::operator-- ()
     return *this;
 }
 
-//////////////////////////////////////////////////////
-//
-//  Edge accessor
-//
-////////////////////////////////////////////////////
-
-Polygon::EdgeIterator Polygon::EdgeAccessor::begin()
-{
-    return EdgeIterator(false, polygon);
-}
-Polygon::EdgeIterator Polygon::EdgeAccessor::end()
-{
-    return EdgeIterator(true, polygon);
-}
-
 /////////////////////////////////////////////////////
 //
 // Edge iterator
 //
 /////////////////////////////////////////////////////
-Polygon::EdgeIterator::EdgeIterator(bool is_end, Polygon& polygon)
+
+template <>
+Polygon::EdgeIterator<false>::EdgeIterator(bool is_end, Polygon& polygon)
+    : polygon(polygon)
+{
+    if (is_end) { // end iterator
+        this->index = polygon.vertices.size();
+    } else {
+        this->index = 0;
+        edge.start = polygon.vertices[polygon.vertices.size() - 1];
+        edge.end = polygon.vertices[0];
+    }
+}
+template <>
+Polygon::EdgeIterator<true>::EdgeIterator(bool is_end, Polygon& polygon)
     : polygon(polygon)
 {
     if (is_end) { // end iterator
@@ -345,23 +344,22 @@ Polygon::EdgeIterator::EdgeIterator(bool is_end, Polygon& polygon)
     }
 }
 
-Polygon::EdgeIterator& Polygon::EdgeIterator::operator++ ()
+
+template <>
+Polygon::EdgeIterator<false>& Polygon::EdgeIterator<false>::operator++ ()
+{
+    assert(index != polygon.vertices.size());
+    ++ index;
+    edge.start = edge.end;
+    edge.end = polygon.vertices[index];
+    return *this;
+}
+template <>
+Polygon::EdgeIterator<true>& Polygon::EdgeIterator<true>::operator++ ()
 {
     assert(index != polygon.vertices.size());
     ++ index;
     edge.start = edge.end;
     edge.end = polygon.transformed(index);
     return *this;
-}
-bool Polygon::EdgeIterator::operator== (Polygon::EdgeIterator& other)
-{
-    return index == other.index;
-}
-bool Polygon::EdgeIterator::operator!= (Polygon::EdgeIterator& other)
-{
-    return index != other.index;
-}
-int Polygon::EdgeIterator::get_index()
-{
-    return (index - 1 + polygon.vertices.size()) % polygon.vertices.size();
 }

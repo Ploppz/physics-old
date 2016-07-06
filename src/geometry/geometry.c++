@@ -172,20 +172,17 @@ bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, P
     float alpha1, alpha2;
     vec2 point_of_intersection;
     // PERFORMANCE can loop with less transformation calculations..
-    Polygon::Edge start(0, &p);
-    Polygon::Edge it(0, &p);
-    do
+    for (Edge edge : p.model_edges())
     {
-        bool intersecting = intersect(line_start, line_end, it.start(), it.end(), // in
+        bool intersecting = intersect(line_start, line_end, edge.start, edge.end, // in
                 point_of_intersection, alpha1, alpha2); // out
         if (intersecting) {
             result.parent = &p;
-            result.index = it.get_index();
+            result.index = edge.index;
             result.alpha = alpha2;
             return true;
         }
-        ++ it;
-    } while (it != start);
+    }
 
     /* No intersection */
     return false;
@@ -210,17 +207,14 @@ int sign(float x)
 bool inside(vec2 point, Polygon& p)
 {
     // TODO detransform point instead of transforming polygon
-    // TODO fix silly edge iteration
-    LineSegment edge;
+
     int counter = 0;
     glm::vec2 delta;
     float t;
-    for (int i = 0; i < p.num_edges(); i ++)
+
+    for (Edge edge : p.edges())
     {
-        edge = p.get_edge(i);
-        //TODO did some changes here
-        edge.start = p.transform(edge.start);
-        edge.end = p.transform(edge.end);
+    
         edge.start -= point;
         edge.end -= point;
         if (sign(edge.start.y) != sign(edge.end.y)) { // The edge crosses the x-axis
@@ -236,13 +230,11 @@ bool inside(vec2 point, Polygon& p)
 }
 bool inside_model(vec2 point, Polygon& p)
 {
-    LineSegment edge;
     int counter = 0;
     glm::vec2 delta;
     float t;
-    for (int i = 0; i < p.num_edges(); i ++)
+    for (Edge edge : p.model_edges())
     {
-        edge = p.get_edge(i);
         edge.start -= point;
         edge.end -= point;
         if (sign(edge.start.y) != sign(edge.end.y)) { // The edge crosses the x-axis
@@ -348,22 +340,19 @@ float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& 
     // PERFORMANCE incorporate the inside 
     
     // Experimental way to iterate ( PERFORMANCE )
-    Polygon::Edge start(0, &p);
-    Polygon::Edge it(0, &p);
     float min_distance = FLT_MAX;
-    do
+    for (Edge edge : p.model_edges())
     {
         float alpha_on_edge;
-        float distance_from_edge = distance_line_segment(point, it.start(), it.end(), alpha_on_edge);
+        float distance_from_edge = distance_line_segment(point, edge.start, edge.end, alpha_on_edge);
         if (alpha_on_edge != 1) { // Disregard, and let the same happen for the next edge, with alpha=0
             if (distance_from_edge < min_distance) {
                 min_distance = distance_from_edge;
-                out_closest_edge = it.get_index();
+                out_closest_edge = edge.index;
                 out_closest_edge_alpha = alpha_on_edge;
             }
         }
-        ++ it;
-    } while (it != start);
+    }
     assert (min_distance != FLT_MAX);
 
     bool is_inside = inside_model(point, p) ^ p.CCW;
