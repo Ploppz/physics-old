@@ -7,6 +7,7 @@
 #include <iterator>
 #include <utility>
 #include <iostream>
+#include <tuple>
 
 class SubPolygon;
 
@@ -16,7 +17,24 @@ struct HybridVertex;
 struct Intersection;
 
 
-typedef std::pair<glm::vec2, glm::vec2> LineSegment;
+struct LineSegment {
+    LineSegment() : start{}, end{} {}
+    LineSegment(glm::vec2 start, glm::vec2 end) : start(start), end(end) {}
+    glm::vec2 start;
+    glm::vec2 end;
+};
+
+/* Used for iterating:
+ * I don't like it so much, waiting for C++17 structured bindings
+ * in order to return std::tuple<LineSegment&, int>. */
+struct Edge {
+    Edge(LineSegment& edge,int index) : start(edge.start), end(edge.end), index(index) {}
+    glm::vec2 start;
+    glm::vec2 end;
+    int index;
+};
+
+
 struct Triangle
 {
     Triangle(glm::vec2 a, glm::vec2 b, glm::vec2 c, glm::vec3 color):a(a), b(b), c(c), color(color) {};
@@ -33,9 +51,13 @@ class Polygon
 
     class Edge;
     class Diagonal;
+    class EdgeAccessor;
+    class EdgeIterator;
  /** METHODS **/
  public:
 	Polygon();
+
+    EdgeAccessor edges() { return EdgeAccessor(*this); };
 
 
     void calculate_shape_dependent_variables();
@@ -144,6 +166,38 @@ public: /** Helper classes **/
     private:
         int index;
         Polygon *parent;
+    };
+
+    class EdgeIterator
+    {
+     public:
+        ::Edge operator* () { return ::Edge(edge, get_index()); }
+        EdgeIterator& operator++ ();
+        bool operator== (EdgeIterator& other);
+        bool operator!= (EdgeIterator& other);
+        int get_index();
+        glm::vec2& get_start() { return edge.start; };
+        glm::vec2& get_end() { return edge.end; };
+     private:
+        EdgeIterator(bool is_end, Polygon& polygon);
+        Polygon& polygon;
+        int index; // index refers to the _end_ of the edge
+        LineSegment edge;
+
+     friend class EdgeAccessor; // only EdgeAccessor may access constructor
+
+    };
+    class EdgeAccessor
+    {
+     public:
+        EdgeAccessor(Polygon& polygon) : polygon(polygon) {};
+        /* Settings */
+        void do_not_transform() { assert("No implementation!"); };
+        /* Init iteration */
+        EdgeIterator begin();
+        EdgeIterator end();
+     private:
+        Polygon& polygon;
     };
 
     /////////////////////////

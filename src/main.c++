@@ -85,6 +85,16 @@ StatisticsCollection *g_statistics;
 
 int main()
 {
+    
+    /* Polygon p = create_polygon(10, 50, 150);
+    int i = 0;
+    for (Edge e : p.edges()) {
+        std::cout << i << std::endl;
+        std::cout << e.start << std::endl << e.end << std::endl << std::endl;
+        ++ i;
+    }
+
+    exit(0); */
     DebugBeginC(false);
     feenableexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_INVALID);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
@@ -136,7 +146,7 @@ int main()
 	const int FRAME_DURATION_MS = 0;
 	const float DELTA_TIME = 0.6f; // kinda milliseconds / 10..
 	const float acceleration = 12; 
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 	/** **/
 
 	int space_counter = 0;
@@ -235,6 +245,13 @@ void set_up_test1(World& world, Body& to_be_controlled)
         other = world.bodies.add_body(bounding_box);
         other.shape() = create_polygon(10, 50, 150);
         other.position_type() = RELATIVE;
+
+        { /* looping test */
+            std::cout << "START LOOP " << std::endl;
+            for (Edge e : other.shape().edges()) {
+                std::cout << "Index " << e.index << ": " << e.start << " ; " << e.end << std::endl;
+            }
+        }
     }
 
 

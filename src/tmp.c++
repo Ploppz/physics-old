@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <vector>
 
-
+/* 
 // Uses Polygon p as reference coordinate system
 unsigned int addToBuffer(LineSegment e, float *buffer, int offset)
 {
@@ -45,7 +45,7 @@ void addToBuffer(LineSegment e, BufferWriter<float> & buffer, float r, float g, 
 
 	buffer.write(e.second.x, e.second.y);
     buffer.write(r, g, b);
-}
+} */
 
 float randFloat() {
     return rand() / float(RAND_MAX);

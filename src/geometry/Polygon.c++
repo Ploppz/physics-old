@@ -93,9 +93,6 @@ void Polygon::calculate_shape_dependent_variables()
     moment_of_inertia = calculate_moment_of_inertia();
     std::cout << "MOMENT : " << moment_of_inertia << std::endl; 
 }
-float lengthcross (glm::vec2 a, glm::vec2 b) {
-   return (fabs(a.x*b.y - a.y*b.x));
-}
 float Polygon::calculate_moment_of_inertia()
 {
     float sum1=0;
@@ -106,8 +103,8 @@ float Polygon::calculate_moment_of_inertia()
 		next = it; next ++;
         if (next == vertices.end())
             next = vertices.begin();
-        sum1 += lengthcross(*next, *it) * (glm::dot(*next, *next) + glm::dot(*next, *it) + glm::dot(*it, *it));
-        sum2 += lengthcross(*next, *it);
+        sum1 += cross(*next, *it) * (glm::dot(*next, *next) + glm::dot(*next, *it) + glm::dot(*it, *it));
+        sum2 += cross(*next, *it);
     }
     return (mass/6*sum1/sum2);
 }
@@ -314,4 +311,57 @@ Polygon::Edge& Polygon::Edge::operator-- ()
 {
     index = (index == 0) ? (parent->vertices.size() - 1) : index - 1;
     return *this;
+}
+
+//////////////////////////////////////////////////////
+//
+//  Edge accessor
+//
+////////////////////////////////////////////////////
+
+Polygon::EdgeIterator Polygon::EdgeAccessor::begin()
+{
+    return EdgeIterator(false, polygon);
+}
+Polygon::EdgeIterator Polygon::EdgeAccessor::end()
+{
+    return EdgeIterator(true, polygon);
+}
+
+/////////////////////////////////////////////////////
+//
+// Edge iterator
+//
+/////////////////////////////////////////////////////
+Polygon::EdgeIterator::EdgeIterator(bool is_end, Polygon& polygon)
+    : polygon(polygon)
+{
+    if (is_end) { // end iterator
+        this->index = polygon.vertices.size();
+    } else {
+        this->index = 0;
+        edge.start = polygon.transformed(polygon.vertices.size() - 1);
+        edge.end = polygon.transformed(0);
+    }
+}
+
+Polygon::EdgeIterator& Polygon::EdgeIterator::operator++ ()
+{
+    assert(index != polygon.vertices.size());
+    ++ index;
+    edge.start = edge.end;
+    edge.end = polygon.transformed(index);
+    return *this;
+}
+bool Polygon::EdgeIterator::operator== (Polygon::EdgeIterator& other)
+{
+    return index == other.index;
+}
+bool Polygon::EdgeIterator::operator!= (Polygon::EdgeIterator& other)
+{
+    return index != other.index;
+}
+int Polygon::EdgeIterator::get_index()
+{
+    return (index - 1 + polygon.vertices.size()) % polygon.vertices.size();
 }

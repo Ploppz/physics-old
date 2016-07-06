@@ -174,7 +174,8 @@ bool intersect_segment_polygon_model(glm::vec2 line_start, glm::vec2 line_end, P
     // PERFORMANCE can loop with less transformation calculations..
     Polygon::Edge start(0, &p);
     Polygon::Edge it(0, &p);
-    do {
+    do
+    {
         bool intersecting = intersect(line_start, line_end, it.start(), it.end(), // in
                 point_of_intersection, alpha1, alpha2); // out
         if (intersecting) {
@@ -218,15 +219,15 @@ bool inside(vec2 point, Polygon& p)
     {
         edge = p.get_edge(i);
         //TODO did some changes here
-        edge.first = p.transform(edge.first);
-        edge.second = p.transform(edge.second);
-        edge.first -= point;
-        edge.second -= point;
-        if (sign(edge.first.y) != sign(edge.second.y)) { // The edge crosses the x-axis
+        edge.start = p.transform(edge.start);
+        edge.end = p.transform(edge.end);
+        edge.start -= point;
+        edge.end -= point;
+        if (sign(edge.start.y) != sign(edge.end.y)) { // The edge crosses the x-axis
             // Find out where it intersects the x-axis
-            delta = edge.second - edge.first;
-            t = - edge.first.y / delta.y;
-            if ((edge.first + delta * t).x >= 0) {
+            delta = edge.end - edge.start;
+            t = - edge.start.y / delta.y;
+            if ((edge.start + delta * t).x >= 0) {
                 counter ++;
             }
         }
@@ -242,13 +243,13 @@ bool inside_model(vec2 point, Polygon& p)
     for (int i = 0; i < p.num_edges(); i ++)
     {
         edge = p.get_edge(i);
-        edge.first -= point;
-        edge.second -= point;
-        if (sign(edge.first.y) != sign(edge.second.y)) { // The edge crosses the x-axis
+        edge.start -= point;
+        edge.end -= point;
+        if (sign(edge.start.y) != sign(edge.end.y)) { // The edge crosses the x-axis
             // Find out where it intersects the x-axis
-            delta = edge.second - edge.first;
-            t = - edge.first.y / delta.y;
-            if ((edge.first + delta * t).x > 0) {
+            delta = edge.end - edge.start;
+            t = - edge.start.y / delta.y;
+            if ((edge.start + delta * t).x > 0) {
                 counter ++;
             }
         }
@@ -258,24 +259,21 @@ bool inside_model(vec2 point, Polygon& p)
 bool inside_stable(vec2 point, Polygon& p)
 {
     int counter = 0;
-    Polygon::Edge start(0, &p);
-    Polygon::Edge it(0, &p);
-    do
+    for (Edge edge : p.edges())
     {
         // Notes on PERFORMANCE: We could just use alpha of intersect_horizontal to decide the first if.
         // But this way is more performant once we cache the transformed edge vertices
-        float start_y_distance = it.start_tr().y - point.y;
-        float end_y_distance = it.end_tr().y - point.y;
+        float start_y_distance = edge.start.y - point.y;
+        float end_y_distance = edge.end.y - point.y;
 
         if (sign(start_y_distance) != sign(end_y_distance)) {
             float alpha;
-            float x = intersect_horizontal(it.start_tr(), it.end_tr() - it.start_tr(), point.y, alpha);
+            float x = intersect_horizontal(edge.start, edge.end - edge.start, point.y, alpha);
             if (x >= point.x) { // TODO Not sure if > is better.
                 ++ counter;
             }
         }
-        ++ it;
-    } while (it != start);
+    }
     return counter % 2 == 1;
 }
 
@@ -288,21 +286,18 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
     // PERFORMANCE transform point rather than polygon
     
     // Experimental way to iterate
-    Polygon::Edge start(0, &p);
-    Polygon::Edge it(0, &p);
     float min_distance = FLT_MAX;
-    do
+    for (Edge edge : p.edges())
     {
         // PERFORMANCE We transform twice per iteration ..
         float alpha_on_edge;
-        float distance_from_edge = distance_line_segment(point, it.start_tr(), it.end_tr(), alpha_on_edge);
+        float distance_from_edge = distance_line_segment(point, edge.start, edge.end, alpha_on_edge);
         if (distance_from_edge < min_distance) {
             min_distance = distance_from_edge;
-            out_closest_edge = it.get_index();
+            out_closest_edge = edge.index;
             out_closest_edge_alpha = alpha_on_edge;
         }
-        ++ it;
-    } while (it != start);
+    }
     assert (min_distance != FLT_MAX);
     bool is_inside = inside(point, p) ^ p.CCW;
     if (is_inside) {
@@ -323,13 +318,11 @@ float distance(vec2 point, Polygon& p)
 bool distance_along_line(glm::vec2 point, glm::vec2 direction, Polygon& p, float& out_distance)
 {
     DebugBeginC(false);
-    Polygon::Edge start(0, &p);
-    Polygon::Edge it(0, &p);
     float min_alpha = FLT_MAX;
-    do
+    for (Edge edge : p.edges())
     {
         float alpha;
-        if (intersect_line_line_segment(point, direction, it.start_tr(), it.end_tr(), alpha)) {
+        if (intersect_line_line_segment(point, direction, edge.start, edge.end, alpha)) {
             dout << "Intersection at alpha = " << alpha << newl;
             if (fabs(alpha) < min_alpha) {
                 min_alpha = fabs(alpha);
@@ -337,8 +330,7 @@ bool distance_along_line(glm::vec2 point, glm::vec2 direction, Polygon& p, float
         } else {
             dout << "No intersection here." << newl;
         }
-        ++ it;
-    } while (it != start);
+    }
 
 
     if (min_alpha == FLT_MAX) {

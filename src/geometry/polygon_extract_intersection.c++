@@ -258,11 +258,6 @@ std::vector<Intersection> Polygon::extract_intersections(Polygon& p, Polygon& q,
     return result;
 }
 
-#define for_each_edge(polygon, edge, i) \
-    std::pair<glm::vec2, glm::vec2> edge; \
-    edge.second = polygon.transformed(polygon.num_edges() - 1);
-    for (int i = 0; i < polygon.num_edges(); i ++)
-
 
 std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 {
@@ -270,19 +265,19 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 #if 0
     LineSegment edge_a, edge_b;
     ////
-    edge_a.second = a.transformed(a.num_edges() - 1);
+    edge_a.end = a.transformed(a.num_edges() - 1);
     for (int i = 0; i < a.num_edges(); i ++) {
-        edge_a.first = edge_a.second;
-        edge_a.second = a.transformed(i);
+        edge_a.start = edge_a.end;
+        edge_a.end = a.transformed(i);
         ////
-        edge_b.second = b.transformed(b.num_edges() - 1);
+        edge_b.end = b.transformed(b.num_edges() - 1);
         for (int j = 0; j < b.num_edges(); j ++) {
-            edge_b.first = edge_b.second;
-            edge_b.second = b.transformed(j);
-            // std::cout << "B: " << edge_b.first << " ; " << edge_b.second << std::endl;
+            edge_b.start = edge_b.end;
+            edge_b.end = b.transformed(j);
+            // std::cout << "B: " << edge_b.start << " ; " << edge_b.end << std::endl;
             ////
             glm::vec2 point_of_intersection; float alpha1; float alpha2;
-            if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second, point_of_intersection, alpha1, alpha2)) {
+            if (intersect(edge_a.start, edge_a.end, edge_b.start, edge_b.end, point_of_intersection, alpha1, alpha2)) {
                 intersections.push_back(Intersect(   Polygon::Edge(i-1, &a),
                                                      Polygon::Edge(j-1, &b)));
             }
@@ -310,26 +305,26 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 	for (int i = 0; i < a.num_edges(); i ++)
 	{
 		edge_a = a.get_edge(i);
-        edge_a.first = a.transform(edge_a.first);
-        edge_a.second = a.transform(edge_a.second);
+        edge_a.start = a.transform(edge_a.start);
+        edge_a.end = a.transform(edge_a.end);
 		// Get barycentric coordinates with respect to centroid_a
-		// glm::vec3 lala = barycentric(centroid_a, edge_a.first, edge_a.second, centroid_b);
+		// glm::vec3 lala = barycentric(centroid_a, edge_a.start, edge_a.end, centroid_b);
 
 		// If absolute value of this is within the radius of b, then there is a possible collision
 		
 		{	// First, also limit the y or x coordinate based on slope
-			delta = edge_a.first - edge_a.second;
+			delta = edge_a.start - edge_a.end;
 			if (fabs(delta.x) > fabs(delta.y)) {	// Limit on x axis
-				min_val = std::min(edge_a.first.x, edge_a.second.x) - radius_b;
+				min_val = std::min(edge_a.start.x, edge_a.end.x) - radius_b;
 				delta_val = fabs(delta.x) + radius_b + radius_b;
 				within_bounds = centroid_b.x > min_val && centroid_b.x < min_val + delta_val;
 			} else {				// Limit on y axis
-				min_val = std::min(edge_a.first.y, edge_a.second.y) - radius_b;
+				min_val = std::min(edge_a.start.y, edge_a.end.y) - radius_b;
 				delta_val = fabs(delta.y) + radius_b + radius_b;
 				within_bounds = centroid_b.y > min_val && centroid_b.y < min_val + delta_val;
 			}
 		}
-		dist_from_edge = distance_line_segment(centroid_b, edge_a.first, edge_a.second);
+		dist_from_edge = distance_line_segment(centroid_b, edge_a.start, edge_a.end);
 		if (fabs(dist_from_edge) <= radius_b && within_bounds) {
 			// DO DETAILED TEST b vs. this edge (s, t)
 			//TODO: eliminate edges where both vertices are outside (using the bary-space of the centroid-triangle)
@@ -337,13 +332,13 @@ std::vector<Intersect> Polygon::find_intersects(Polygon& a, Polygon& b)
 			for (int j = 0; j < b.num_edges(); j ++)
 			{
 				edge_b = b.get_edge(j);
-                edge_b.first = b.transform(edge_b.first);
-                edge_b.second = b.transform(edge_b.second);
+                edge_b.start = b.transform(edge_b.start);
+                edge_b.end = b.transform(edge_b.end);
 
                 glm::vec2 point_of_intersection;
                 float alpha1;
                 float alpha2;
-				if (intersect(edge_a.first, edge_a.second, edge_b.first, edge_b.second, point_of_intersection, alpha1, alpha2)) {
+				if (intersect(edge_a.start, edge_a.end, edge_b.start, edge_b.end, point_of_intersection, alpha1, alpha2)) {
                     intersections.push_back(Intersect(   Polygon::Edge(i, &a),
                                                             Polygon::Edge(j, &b)));
 				}
