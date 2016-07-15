@@ -5,64 +5,54 @@
 #include <iostream>
 #include <list>
 
-#include "geometry/Polygon.h"
 #include "glutils.h"
+#include "geometry/Polygon.h"
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
 
-#include "algorithm/DepthResolutionAlg.h"
-#include "algorithm/TimeResolutionAlg.h"
+#include "algorithm/ResolutionAlg.h"
+#include "algorithm/SAP.h"
 
 class Body;
 
 
-enum PositionType { ABSOLUTE, RELATIVE };
+enum PositionType { FIXED, ABSOLUTE };
 enum PolygonMode { POLYGON_INSIDE = 0, POLYGON_OUTSIDE = 1 };
 
 
 class BodySystem
 {
 	friend class Body;
- /** METHODS **/
- public:
+ public: /** Interface **/
 	BodySystem();
 	void timestep(float delta);
 
 
 	Body add_body(); // Returns index of new body
 	Body add_body(Body parent);
-	int num_bodies() const { return count; }
+	int num_bodies() const { return body_count; }
 	Body get_body(int index);
 	Polygon& get_polygon(int body_index);
 
-
-	// 
-	glm::mat3 construct_matrix(int index);
-
-	std::vector<Intersect> overlaps(Body a, Body b);
-
- private:
-	/*** Physical and Geometric Treatment ***/
+ private: /** Algorithm **/
 	void treat_body_tree(Body root, float delta_time);
+    void update_broadphase_alg();
 
 
- public:
-	// Just for drawing...
-	void add_vector(glm::vec2 point, glm::vec2 vec);
-	// Tests
+ public: /** Tests/helpers **/
 	void visualize_shadows(Body, Body, std::vector<Intersection>&);
 	void just_plot_movement(Body b1, Body b2, float total_time, int samples);
 
- /** MEMBERS **/
- public:
+ public: /** MEMBERS **/
 	float simulation_speed = 1;
 
-	std::vector<float> auxilliary_lines;
  private:
-	bool alternator = false;
-	TimeResolutionAlg resolution_alg;
-	int count;
+	ResolutionAlg resolution_alg;
+    SAP<int> broadphase_alg;
+	int body_count;
 	int flags = 0;
+    // For debug
+	bool alternator = false;
 
 
 	// Body data
@@ -83,9 +73,10 @@ class BodySystem
 	// Temporary solution: only one polygon each Body
 	std::vector<Polygon> shape;
 
+    // For broadphase
+    std::vector<int> broadphase_id;
 	// Hierarchical tree of bodies
+	std::vector<Body> top_level_bodies;
 	std::vector<Body> parent;
 	std::vector<std::vector<Body>> children;
-
-	std::vector<Body> top_level_bodies;
 };

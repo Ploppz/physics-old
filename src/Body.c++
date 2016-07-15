@@ -18,8 +18,8 @@ void Body::apply_impulse(glm::vec2 impulse, EdgePoint point)
 {
 	glm::vec2 r_ortho = point.point_t() - position();
 	r_ortho = glm::vec2( - r_ortho.y, r_ortho.x);
-	velocity() += impulse / shape().mass;
-	rotation() += glm::dot(r_ortho, impulse) / shape().moment_of_inertia; 
+	velocity() += impulse / shape().get_mass();
+	rotation() += glm::dot(r_ortho, impulse) / shape().get_moment_of_inertia(); 
 }
 void Body::apply_impulse(glm::vec2 impulse, glm::vec2 point)
 {
@@ -39,7 +39,6 @@ void Body::update_polygon_state()
 }
 void Body::save_placement()
 {
-    std::cout << index << " vs " << system->past_position.size() << " vs " << system->past_orientation.size() << std::endl;
     ensure_valid();
     past_position() = position();
     past_orientation() = orientation();
@@ -49,19 +48,19 @@ vec2 Body::real_position()
 {
 	if (position_type() == ABSOLUTE || parent().index == -1) {
 		return position();
-	} else { // RELATIVE
+	} else { // FIXED (relative to parent)
 		return position() + parent().real_position();
 	}
 }
 
 Body& Body::operator++ ()
 {
-	index ++;
+    ++ index;
 	return *this;
 }
 bool Body::is_valid()
 {
-	return index >= 0 && index < system->count;
+	return index >= 0 && index < system->body_count;
 }
 void Body::ensure_valid()
 {

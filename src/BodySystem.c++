@@ -19,13 +19,12 @@ should BS work with Body or int?
 #include "Body.h"
 #include "render/Renderer.h"
 #include "geometry/geometry.h"
-#include "geometry/linestrip/LineStrip.h"
-#include "geometry/linestrip/LineStripSeries.h"
 #include "glutils.h"
 #include "typewriter/FontRenderer.h"
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
-#include "algorithm/DepthResolutionAlg.h"
+#include "algorithm/SAP.h"
+#include "algorithm/PairManager.h"
 #include "debug/debug.h"
 
 extern FontRenderer *fontRenderer;
@@ -35,7 +34,7 @@ extern StatisticsCollection *g_statistics;
 using namespace glm;
 
 BodySystem::BodySystem()
-	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
+	: body_count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
 }
 void BodySystem::timestep(float delta_time)
@@ -53,7 +52,7 @@ void BodySystem::timestep(float delta_time)
 #endif
         /* Step forward */
 		g_renderer->extra_line_buffer.clear_buffer();
-		for (int i = 0; i < count; i ++)
+		for (int i = 0; i < body_count; i ++)
 		{
             Body(i, this).save_placement();
 			Body(i, this).update(delta_time);
@@ -69,10 +68,32 @@ void BodySystem::timestep(float delta_time)
             i ++;
             dout << "Iteration" << newl;
             resolution_alg.iteration_start();
-            for (Body p : top_level_bodies)
+            update_broadphase_alg();
+
+            int active_pairs = 0;
+            int used_pairs = 0;
+            for (Pair pair : broadphase_alg.pairs)
             {
-                treat_body_tree(p, delta_time);
+                ++ active_pairs;
+                // dout << "Active pair: " << pair.box1 << " , " << pair.box2 << newl;
+                Body b1(broadphase_alg.get_box_user_data(pair.box1), this);
+                Body b2(broadphase_alg.get_box_user_data(pair.box2), this);
+                // Treat only if they are siblings or have a parent-child relationship
+                if (b1.parent() == b2.parent() || b1.parent() == b2 || b2.parent() == b1)
+                {
+                    if (b1.parent() == b2)
+                        b2.mode = POLYGON_OUTSIDE;
+                    else if (b2.parent() == b1)
+                        b1.mode = POLYGON_OUTSIDE;
+
+
+                    ++ used_pairs;
+                    // dout << "TREATING " << b1.get_index() << ", " << b2.get_index() << newl;
+                    resolution_alg.treat(b1, b2, delta_time);
+                }
+            
             }
+            dout << "Active/used pairs: " << active_pairs << "/" << used_pairs << newl;
 		} while (!resolution_alg.done());
         g_statistics->add_value("global iterations", i);
 #if alternate
@@ -110,8 +131,18 @@ void BodySystem::treat_body_tree(Body root, float delta_time)
 		treat_body_tree(child, delta_time);
 	}
 }
+void BodySystem::update_broadphase_alg()
+{
+    for (int i = 0; i < body_count; i ++)
+    {
+        AABB<2> aabb = shape[i].calc_bounding_box();
+        g_renderer->extra_line_buffer.set_color(0.8f, 0.8f, 0.8f);
+        g_renderer->extra_line_buffer.add_aabb(aabb.min[0], aabb.max[0], aabb.min[1], aabb.max[1]);
+        broadphase_alg.update_box(broadphase_id[i], aabb);
+    }
+}
 
-void BodySystem::visualize_shadows(Body b1, Body b2, std::vector<Intersection>& intersections)
+/* void BodySystem::visualize_shadows(Body b1, Body b2, std::vector<Intersection>& intersections)
 {
 	for (auto it = intersections.begin(); it != intersections.end(); it ++)
 	{
@@ -126,17 +157,17 @@ void BodySystem::visualize_shadows(Body b1, Body b2, std::vector<Intersection>& 
 		ls1.append_lines_to_vector(auxilliary_lines, 1, 1, 1);
 		ls2.append_lines_to_vector(auxilliary_lines, 1, 1, 1); 
 	}
-}
+} */
 
 void BodySystem::just_plot_movement(Body reference, Body subject, float total_time, int samples)
 {
     Polygon& p = subject.shape();
-    for (int vertex = 0; vertex < p.vertices.size(); vertex ++ )
+    for (Vertex v : p.vertices())
     {
         for (int i = 0; i < samples; i ++)
         {
             float time = total_time / samples * i;
-            glm::vec2 rel_pos = TimeResolutionAlg::relative_pos(p.transformed(vertex), reference, subject, -time);
+            glm::vec2 rel_pos = ResolutionAlg::relative_pos(v.point, reference, subject, -time);
             g_renderer->extra_line_buffer.add_dot(rel_pos);
         }
     }
@@ -145,6 +176,9 @@ void BodySystem::just_plot_movement(Body reference, Body subject, float total_ti
 /** BodySystem: Body management **/
 Body BodySystem::add_body()
 {
+    DebugBegin();
+	++ body_count;
+
 	position_type.push_back(ABSOLUTE);
 	mass.push_back( 0 );
 
@@ -159,18 +193,23 @@ Body BodySystem::add_body()
 	torque.push_back( 0 );
 	shape.push_back( Polygon() );
 
+
 	children.push_back(std::vector<Body> {});
 	parent.push_back(Body(-1, this)); // Invalid body
-
-	++ count;
-	Body new_body = Body(count - 1, this);
+	Body new_body = Body(body_count - 1, this);
 	top_level_bodies.push_back(new_body);
+
+    broadphase_id.push_back(broadphase_alg.add_box(AABB<2>(0, 0, 0, 0), new_body.get_index()));
+    dout << "ADD BODY " << new_body.get_index() << newl;
+
 	return new_body;
 }
 Body BodySystem::add_body(Body parent)
 {
+    DebugBegin();
+	++ body_count;
 
-	position_type.push_back(RELATIVE);
+	position_type.push_back(FIXED);
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
@@ -184,43 +223,18 @@ Body BodySystem::add_body(Body parent)
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
 
-	children[parent.index].push_back(Body(count, this));
+	children[parent.index].push_back(Body(body_count, this));
 	children.push_back(std::vector<Body> {});
 	this->parent.push_back(parent);
 
-	++ count;
-	return Body(count - 1, this);
+    Body new_body = Body(body_count - 1, this);
+    broadphase_id.push_back(broadphase_alg.add_box(AABB<2>(0, 0, 0, 0), new_body.get_index()));
+
+    dout << "ADD CHILD BODY " << new_body.get_index() << newl;
+	return new_body;
 }
 
 Body BodySystem::get_body(int index)
 {
 	return Body(index, this);
-}
-
-
-
-void BodySystem::add_vector(glm::vec2 point, glm::vec2 vec)
-{
-	const int radius = 4;
-	const float arrow_angle = 2.4f;
-
-	float vec_angle = atan2(vec.y, vec.x);
-	glm::vec2 a1 = glm::vec2(cos(vec_angle - arrow_angle) * radius, sin(vec_angle - arrow_angle) * radius);
-	glm::vec2 a2 = glm::vec2(cos(vec_angle + arrow_angle) * radius, sin(vec_angle + arrow_angle) * radius);
-
-	auxilliary_lines.push_back(point.x);
-	auxilliary_lines.push_back(point.y);
-	auxilliary_lines.push_back(point.x + vec.x);
-	auxilliary_lines.push_back(point.y + vec.y);
-
-	auxilliary_lines.push_back(point.x + vec.x);
-	auxilliary_lines.push_back(point.y + vec.y);
-	auxilliary_lines.push_back(point.x + vec.x + a1.x);
-	auxilliary_lines.push_back(point.y + vec.y + a1.y);
-
-	auxilliary_lines.push_back(point.x + vec.x);
-	auxilliary_lines.push_back(point.y + vec.y);
-	auxilliary_lines.push_back(point.x + vec.x + a2.x);
-	auxilliary_lines.push_back(point.y + vec.y + a2.y);
-
 }
