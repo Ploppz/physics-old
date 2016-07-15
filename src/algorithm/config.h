@@ -2,7 +2,7 @@
 
 
 /*** Physical ***/
-float RESTITUTION = 1;
+float RESTITUTION = .5f;
 
 
 /*** Iterating ***/

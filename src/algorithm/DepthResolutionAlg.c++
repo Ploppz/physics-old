@@ -1,3 +1,4 @@
+#if 0
 #include <glm/glm.hpp>
 #include <iostream>
 #include <algorithm>
@@ -93,3 +94,4 @@ bool DepthResolutionAlg::done()
     return (biggest_depth < DEPTH_OK_THRESHOLD
             || iterations > MAX_ITERATIONS);
 }
+#endif

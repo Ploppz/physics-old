@@ -2,7 +2,7 @@
 /* std */
 #include <list>
 /* src */
-#include "TimeResolutionAlg.h"
+#include "ResolutionAlg.h"
 #include "config.h"
 #include "Body.h"
 #include "geometry/geometry.h"
@@ -29,22 +29,25 @@ struct SpeedBackup {
 extern Renderer *g_renderer;
 extern StatisticsCollection *g_statistics;
 
-void TimeResolutionAlg::init()
+void ResolutionAlg::init()
 {
     iterations = 0;
 }
-void TimeResolutionAlg::iteration_start()
+void ResolutionAlg::iteration_start()
 {
     ++ iterations;
 }
-bool TimeResolutionAlg::done()
+bool ResolutionAlg::done()
 {
     return iterations >= MAX_ITERATIONS;
 }
-void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
+
+int count = 0;
+void ResolutionAlg::treat(Body b1, Body b2, float delta_time)
 {
+    count ++;
     DebugBegin();
-    dout << "Bodies " << b1.get_index() << " vs " << b2.get_index() << newl;
+    // dout << "Bodies " << b1.get_index() << " vs " << b2.get_index() << newl;
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
 
@@ -110,7 +113,7 @@ void TimeResolutionAlg::treat(Body b1, Body b2, float delta_time)
     treat_by_depth(b1, b2, delta_time);
 }
 
-void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
+void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 {
     DebugBeginC(false);
 
@@ -122,6 +125,8 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
     while (intersections.size() > 0){
         dout << "Iteration. Intersections = " << intersections.size() << " between bodies "
             << b1.get_index() << ", " << b2.get_index() << newl;
+
+        // Loop through the vertices - find deepest contact //
         DepthContact deepest_contact;
         deepest_contact.depth = 0;
         for (Intersection& i : intersections)
@@ -171,7 +176,7 @@ void TimeResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
         physical_reaction(b1, b2, contact);
     }
 }
-DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex)
+DepthContact ResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex)
 {
     DebugBeginC(false);
     /* Ensure that subject is the owner of the vertex */
@@ -182,7 +187,7 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
     /* Current point,          transformed to the coordinate system of _reference_ */
     glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
     /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
-    glm::vec2 past_point_detransformed = transform(subject.shape().vertices[vertex.vertex],
+    glm::vec2 past_point_detransformed = transform(subject.shape().model_vertex(vertex.vertex),
             subject.past_position(), subject.past_orientation());
     past_point_detransformed = detransform(past_point_detransformed,
             reference.past_position(), reference.past_orientation());
@@ -205,37 +210,8 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
         if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
         dout << "Distance of past point: " << dist << newl;
     }
-
-    if (false)
-    { // DEBUG
-        g_renderer->extra_line_buffer.add_dot(past_point_detransformed);
-        g_renderer->extra_line_buffer.add_dot(point_detransformed);
-        if (past_point_detransformed == point_detransformed)
-            dout << "THE POINTS ARE THE SAME" << newl;
-        g_renderer->extra_line_buffer.append_model_lines_to_vector(reference.shape());
-    }
     if (!intersect_happened) {
-        dout << red << "Intersect didn't happen." << newl;
-        // TEST: return null contact:
-        if (false)
-        {
-            { // builds on the idea that if there was no intersect, the subj point is in fact outside reference.
-            int closest_edge;
-            float closest_edge_alpha;
-            float dist;
-            dist = distance_model(point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
-            if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
-            dout << "Distance of current point: " << dist << newl;
-            dist = distance_model(past_point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
-            if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
-            dout << "Distance of past point: " << dist << newl;
-            assert(dist >= 0); /* else, assumption is violated */
-            }
-            DepthContact result;
-            result.depth = 0;
-            return result;
-        }
-        dout << red << "Trying approx." << newl;
+        dout << red << "Intersect didn't happen - trying approx." << newl;
         return linear_find_contact_approx(subject, reference, vertex);
     }
 
@@ -255,12 +231,6 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
 
     float depth;
 
-    if (false) // remove
-    { // DEBUG
-        dout << "Reference is " << reference.get_index() << newl;
-        g_renderer->extra_line_buffer.add_dot(intersect.point_t());
-        g_renderer->extra_line_buffer.add_vector(intersect.point_t(), result.normal * 5.f);
-    }
     // Cast ray from subject point onto reference
     if ( distance_along_line(vertex.point, result.normal, reference.shape(), depth) ) {
         result.depth = depth;
@@ -283,7 +253,7 @@ DepthContact TimeResolutionAlg::linear_find_contact(Body subject, Body reference
     return result;
 }
 
-DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex)
+DepthContact ResolutionAlg::linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex)
 {
     DebugBeginC(false);
     /* Since this is called mostly in marginal situations..: */
@@ -293,7 +263,7 @@ DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body re
     glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
     /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
     glm::vec2 past_point_detransformed =
-        transform(subject.shape().vertices[vertex.vertex], subject.past_position(), subject.past_orientation());
+        transform(subject.shape().model_vertex(vertex.vertex), subject.past_position(), subject.past_orientation());
     past_point_detransformed =
         detransform(past_point_detransformed, reference.past_position(), reference.past_orientation());
 
@@ -369,7 +339,7 @@ DepthContact TimeResolutionAlg::linear_find_contact_approx(Body subject, Body re
 
 const double PI = 3.141592653589793;
 
-void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact contact)
+void ResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact contact)
 {
     DebugBeginC(false);
     /* Assumption: contact: normal points from ref_point to subj_point */
@@ -393,8 +363,8 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     /* Distribution */
     float distribution;
     { /* By velocity direction */
-        float subj_part = fabs(glm::dot(subject.velocity(), contact.normal))  / subject.shape().mass;
-        float ref_part = fabs(glm::dot(reference.velocity(), contact.normal)) / reference.shape().mass;
+        float subj_part = fabs(glm::dot(subject.velocity(), contact.normal))  / subject.shape().get_mass();
+        float ref_part = fabs(glm::dot(reference.velocity(), contact.normal)) / reference.shape().get_mass();
         if (subj_part == 0 && ref_part == 0)
             distribution = 0.5f;
         else
@@ -402,7 +372,7 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
     }
     // .. overrided by:
     { /* By mass */
-        distribution = reference.shape().mass / (subject.shape().mass + reference.shape().mass);
+        distribution = reference.shape().get_mass() / (subject.shape().get_mass() + reference.shape().get_mass());
     }
 
     subject.position() -=   (distribution)      * contact.normal * (contact.depth + additional_depth);
@@ -424,7 +394,7 @@ void TimeResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthCont
 
 
 
-TimeContact TimeResolutionAlg::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
+TimeContact ResolutionAlg::find_earliest_contact_by_rewinding(Body b1, Body b2, std::vector<Intersection>& intersections, float delta_time)
 {
     DebugBegin();
 
@@ -456,7 +426,7 @@ TimeContact TimeResolutionAlg::find_earliest_contact_by_rewinding(Body b1, Body 
 	}
 	return earliest_contact;
 }
-bool TimeResolutionAlg::rewindable(Body b1, Body b2, Intersection& intersection, float delta_time)
+bool ResolutionAlg::rewindable(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     DebugBegin();
 	for (auto it = intersection.vertices.begin(); it != intersection.vertices.end(); it ++)
@@ -469,7 +439,7 @@ bool TimeResolutionAlg::rewindable(Body b1, Body b2, Intersection& intersection,
 	return true;
 }
 
-TimeContact TimeResolutionAlg::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
+TimeContact ResolutionAlg::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     DebugBegin();
 	assert(g_renderer);
@@ -500,7 +470,7 @@ TimeContact TimeResolutionAlg::calculate_contact_by_rewinding(Body b1, Body b2, 
     if (best_contact.rewind_time == 0) dout << "Rewind time still 0" << newl;
 	return best_contact;
 }
-inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
+inline TimeContact ResolutionAlg::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
     DebugBegin();
 	assert(vertex.intersect == false);
@@ -570,17 +540,17 @@ inline TimeContact TimeResolutionAlg::rewind_out_of(HybridVertex vertex, Body re
 
 
 
-void TimeResolutionAlg::_rewind(Body b1, Body b2, float time)
+void ResolutionAlg::_rewind(Body b1, Body b2, float time)
 {
 	b1.update(-time);
 	b2.update(-time);
 }
-void TimeResolutionAlg::unwind(Body b1, Body b2, float time)
+void ResolutionAlg::unwind(Body b1, Body b2, float time)
 {
 	b1.update(time);
 	b2.update(time);
 }
-void TimeResolutionAlg::physical_reaction(Body A, Body B, TimeContact c)
+void ResolutionAlg::physical_reaction(Body A, Body B, TimeContact c)
 {
 	/* Maybe inconsistent: but we try to keep A the subject here */
 	if (c.ref_point.parent == &A.shape()) {
@@ -591,19 +561,19 @@ void TimeResolutionAlg::physical_reaction(Body A, Body B, TimeContact c)
 	glm::vec2 v_AB = velocity_of_point(A, c.subj_point, r_ortho_A) - velocity_of_point(B, c.ref_point, r_ortho_B);
 
 	float impulse = - (1 + RESTITUTION) * glm::dot(v_AB, c.normal) /
-					(  (1.f/A.shape().mass + 1.f/B.shape().mass) * glm::dot(c.normal, c.normal)
-						+ std::pow(glm::dot(r_ortho_A, c.normal), 2) / A.shape().moment_of_inertia
-						+ std::pow(glm::dot(r_ortho_B, c.normal), 2) / B.shape().moment_of_inertia  );
+					(  (1.f/A.shape().get_mass() + 1.f/B.shape().get_mass()) * glm::dot(c.normal, c.normal)
+						+ std::pow(glm::dot(r_ortho_A, c.normal), 2) / A.shape().get_moment_of_inertia()
+						+ std::pow(glm::dot(r_ortho_B, c.normal), 2) / B.shape().get_moment_of_inertia()  );
 	A.apply_impulse(impulse * c.normal, c.subj_point);
 	B.apply_impulse( - impulse * c.normal, c.ref_point);
 }
 
-glm::vec2 TimeResolutionAlg::relative_velocity(Body A, Body B, TimeContact c)
+glm::vec2 ResolutionAlg::relative_velocity(Body A, Body B, TimeContact c)
 {
 	glm::vec2 trash;
 	return velocity_of_point(A, c.subj_point, trash) - velocity_of_point(B, c.ref_point, trash);
 }
-bool TimeResolutionAlg::separating_at(Body A, Body B, TimeContact c)
+bool ResolutionAlg::separating_at(Body A, Body B, TimeContact c)
 {
 	if (c.ref_point.parent == &A.shape()) {
 		std::swap(A, B); /* A is subject */
@@ -618,7 +588,7 @@ bool TimeResolutionAlg::separating_at(Body A, Body B, TimeContact c)
 	return true;
 }
 
-inline glm::vec2 TimeResolutionAlg::velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho)
+inline glm::vec2 ResolutionAlg::velocity_of_point(Body b, EdgePoint p, glm::vec2 &out_r_ortho)
 {
 	out_r_ortho = p.point_t() - b.position();
 	out_r_ortho = glm::vec2(- out_r_ortho.y, out_r_ortho.x);
@@ -626,7 +596,7 @@ inline glm::vec2 TimeResolutionAlg::velocity_of_point(Body b, EdgePoint p, glm::
 }
 
 
-inline bool TimeResolutionAlg::will_separate_in_future(HybridVertex vertex, Body reference, Body subject, float delta_time)
+inline bool ResolutionAlg::will_separate_in_future(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
 	/** This function only considers the next frame, but to avoid critical situations,
 		it should minimize intersection depth mid-frame.  **/
@@ -637,7 +607,7 @@ inline bool TimeResolutionAlg::will_separate_in_future(HybridVertex vertex, Body
 
 // TODO PROBLEM is that subject is the bounding box
 // and, uh, we don't consider which Body `vertex.point` belongs to
-inline bool TimeResolutionAlg::separate_last_frame(HybridVertex vertex, Body reference, Body subject, float delta_time)
+inline bool ResolutionAlg::separate_last_frame(HybridVertex vertex, Body reference, Body subject, float delta_time)
 {
     if (vertex.intersect) return true; // don't care
     // vertex should belong to subject.
@@ -667,7 +637,7 @@ it won't have any positive effect unless we pre-transform the reference polygon 
 .. Which we will do: we will benefit from making a transformed copy of each incident polygon (?).
 */
 
-glm::vec2 TimeResolutionAlg::relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset)
+glm::vec2 ResolutionAlg::relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset)
 {
 	// PERFORMANCE There is a way to greatly optimize this.. a lot only has to be calculated once
 	float angle_wrt_subject = angle_of_vector(point - subject.position());
