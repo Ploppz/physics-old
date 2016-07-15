@@ -5,19 +5,18 @@
 EdgePoint::EdgePoint(int index, float alpha, Polygon* parent)
     :alpha(alpha), parent(parent)
 {
-    if (index < 0) index += parent->vertices.size();
-    this->index = index % parent->vertices.size();
+    if (index < 0) index += parent->num_vertices();
+    this->index = index % parent->num_vertices();
 }
 glm::vec2 EdgePoint::point()
 {
-    int next_index = (index + 1) % parent->vertices.size();
-    return (1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index];
+    int next_index = (index + 1) % parent->num_vertices();
+    return (1 - alpha) * parent->model_vertex(index) + alpha * parent->model_vertex(next_index);
 }
 glm::vec2 EdgePoint::point_t()
 {
-    int next_index = (index + 1) % parent->vertices.size();
-    // return parent->transform((1 - alpha) * parent->vertices[index] + alpha * parent->vertices[next_index]);
-    return parent->transform(parent->vertices[index] + alpha * (parent->vertices[next_index] - parent->vertices[index]));
+    int next_index = (index + 1) % parent->num_vertices();
+    return parent->transform(parent->model_vertex(index) + alpha * (parent->model_vertex(next_index) - parent->model_vertex(index)));
 }
 std::ostream& operator<< (std::ostream& o, EdgePoint p){
     o << "(" << p.index << ", " << p.alpha << ", " << p.parent << ")";

@@ -47,7 +47,7 @@ void Renderer::upload_vertices()
     int size = 0;
     for (int i = 0; i < system.num_bodies(); i ++)
     {
-        size += system.get_body(i).shape().vertices.size() * 2;
+        size += system.get_body(i).shape().num_vertices() * 2;
     }
     
     BufferWriter<float> buffer(size);
@@ -95,7 +95,7 @@ Renderer::Renderer(BodySystem& system)
     // Triangles VBO
 	glGenBuffers(1,&triangles_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
-	glBufferData(GL_ARRAY_BUFFER, 3000, NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, TRIANGLE_FAN_VBO_SIZE, NULL, GL_DYNAMIC_DRAW);
     // Triangles VAO
     glGenVertexArrays(1, &triangles_vao);
     glBindVertexArray(triangles_vao);
@@ -282,8 +282,8 @@ FontRenderer* Renderer::get_font_renderer()
 
 void Renderer::append_stencil_triangle_fan(Polygon& p, BufferWriter<float>& buffer)
 {
-    for (uint i = 0; i < p.vertices.size(); i ++)
+    for (Vertex v : p.model_vertices())
     {
-        buffer.write(p.vertices[i].x, p.vertices[i].y);
+        buffer.write(v.point.x, v.point.y);
     }
 }

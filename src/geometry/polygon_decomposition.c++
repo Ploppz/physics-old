@@ -230,11 +230,11 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
         // (Only edges that have the polygon inside above)
 	std::vector<Vertex> helpers(indices.size()); // A helper is the right-most vertex that an edge
 		// can connect to with a vertical line
-	std::vector<Vertex> events; // Sorted vertices by x-axis
-	{// Sort vertices for scanline (keep in separate array)
+	std::vector<Vertex> events; // Sorted _vertices by x-axis
+	{// Sort _vertices for scanline (keep in separate array)
 		for (uint i = 0; i < indices.size(); i ++)
 		{
-            // If the direction is backwards, vertices with higher index should preced vertices with lower index
+            // If the direction is backwards, _vertices with higher index should preced _vertices with lower index
             // If not flexible enough: sort by ascending or descending y-axis dependent on dir.
             if (dir == FORTH) {
                 events.push_back(Vertex(i, this));
@@ -276,7 +276,7 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
             if (events[i].successive().y - events[i]->y == 0) succ_side = Direction(!bool(prec_side));
         }
 
-		// Used only if both vertices are on the same side of the scanline..:
+		// Used only if both _vertices are on the same side of the scanline..:
 		prec_rotated = events[i].preceding() - *events[i];
 		tmp = prec_rotated.x;
 		prec_rotated.x = - prec_rotated.y;
@@ -284,7 +284,7 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 		dot_product = glm::dot(prec_rotated, events[i].successive() - *events[i]);
 		concave  = (dot_product < 0) ^ CCW;
 		
-        if (prec_side == succ_side  &&  dir != prec_side) // Both adjacent vertices are BEHIND the scanline
+        if (prec_side == succ_side  &&  dir != prec_side) // Both adjacent _vertices are BEHIND the scanline
 		{
 			if (concave) { /* MERGE POINT */
 				// Remove the top-most edge from status
@@ -300,7 +300,7 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 				if (index == -1) index = indices.size() - 1;
                 erase(status, index, this);
 			}
-		} else if (prec_side == succ_side  &&  dir == prec_side) // Both adjacent vertices are IN FRON OF the scanline
+		} else if (prec_side == succ_side  &&  dir == prec_side) // Both adjacent _vertices are IN FRON OF the scanline
 		{
 			if (concave) { /* SPLIT POINT */
 				// Find the first edge on the line projected down from this vertex
@@ -355,12 +355,12 @@ void SubPolygon::monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction
 void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> &diagonals, std::vector<Triangle> &triangles)
 {
 	bool CCW = (signed_area() > 0); // Counter clockwise
-    // Confusion: sub polygons have an indexed array of indices of the vertices
+    // Confusion: sub polygons have an indexed array of indices of the _vertices
     // TRIANGULATE each subpolygon
     // We need to know which chain (upper or lower) each vertex is on. Indexed by index in original polygon.
     std::vector<bool> side;
-    side.resize(vertices.size());
-    //TODO Optimize - updating side info & sorting vertices could be done simultaneously
+    side.resize(_vertices.size());
+    //TODO Optimize - updating side info & sorting _vertices could be done simultaneously
     for (auto part = parts.begin(); part != parts.end(); part ++) 
     {
     // Update chain (side) information
@@ -371,10 +371,10 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
         for (unsigned int i = 1; i < part->indices.size(); i ++)
         {
             real_index = part->indices[i];
-            if (vertices[real_index].x < min->x) {min.set_index(real_index); min_index = i;}
-            if (vertices[real_index].x > max->x) {max.set_index(real_index); max_index = i;}
+            if (_vertices[real_index].x < min->x) {min.set_index(real_index); min_index = i;}
+            if (_vertices[real_index].x > max->x) {max.set_index(real_index); max_index = i;}
         }
-        // Now that we know the subpolygon indices of the min and max vertices, we can split it up in two chains
+        // Now that we know the subpolygon indices of the min and max _vertices, we can split it up in two chains
         // Make sure that upper chain false and bottom chain true.
         bool current_side = CCW;
         for (uint i = min_index; ; i ++) {
@@ -388,7 +388,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
             if (i == min_index) break;
             side[part->indices[i]] = current_side;
         }
-    // Sort vertices (x axis)
+    // Sort _vertices (x axis)
         for (uint i = 0; i < part->indices.size(); i ++)
         {
             events.push_back(SubPolygon::Vertex(i, &(*part)));
@@ -402,7 +402,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
         {
             if (side[vertex->get_index()] == side[L.back().get_index()])
             {
-                // As long as angle between vertex and two last vertices in list is convex..
+                // As long as angle between vertex and two last _vertices in list is convex..
                 SubPolygon::Vertex second_last = *(++L.rbegin());
                 while (L.size() > 1
                         && leftof( *L.back() - *second_last, **vertex - *L.back()) ^ side[vertex->get_index()])
@@ -417,7 +417,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
                 }
                 L.push_back(*vertex);
             }
-            else // The vertex is on the other side of vertices in L
+            else // The vertex is on the other side of _vertices in L
             {
                 SubPolygon::Vertex second = *(++ L.begin());
                 while (L.size() > 1)
@@ -445,7 +445,7 @@ void Polygon::triangulate(std::vector<SubPolygon> &parts, std::vector<Diagonal> 
 void SubPolygon::fill()
 {
     indices.clear();
-    for (int i = 0; i < mother->vertices.size(); i ++) {
+    for (int i = 0; i < mother->_vertices.size(); i ++) {
         indices.push_back(i);
     }
 }
@@ -512,21 +512,21 @@ SubPolygon::Vertex::Vertex(int index, SubPolygon *parent)
 
 glm::vec2& SubPolygon::Vertex::operator* ()
 {
-	return parent->mother->vertices[parent->indices[index]];
+	return parent->mother->_vertices[parent->indices[index]];
 }
 glm::vec2* SubPolygon::Vertex::operator-> ()
 {
-	return &(parent->mother->vertices[parent->indices[index]]);
+	return &(parent->mother->_vertices[parent->indices[index]]);
 }
 glm::vec2& SubPolygon::Vertex::preceding()
 {
 	int i = (index == 0) ? parent->indices.size() - 1 : index - 1;
-	return *(&(parent->mother->vertices[parent->indices[i]]));
+	return *(&(parent->mother->_vertices[parent->indices[i]]));
 }
 glm::vec2& SubPolygon::Vertex::successive()
 {
 	int i = (index == parent->indices.size() - 1) ? 0 : index + 1;
-	return parent->mother->vertices[parent->indices[i]];
+	return parent->mother->_vertices[parent->indices[i]];
 }
 
 
@@ -540,12 +540,12 @@ SubPolygon::Edge::Edge(int index, SubPolygon *parent)
 
 glm::vec2& SubPolygon::Edge::start() const
 {
-	return parent->mother->vertices[parent->indices[index]];
+	return parent->mother->_vertices[parent->indices[index]];
 }
 glm::vec2& SubPolygon::Edge::end() const
 {
 	int i = (index == parent->indices.size() - 1) ? 0 : index + 1;
-	return parent->mother->vertices[parent->indices[i]];
+	return parent->mother->_vertices[parent->indices[i]];
 }
 
 int SubPolygon::Edge::get_index() const
@@ -589,7 +589,7 @@ float SubPolygon::signed_area()
 		if (next == indices.end()) {
             next = indices.begin();
         }
-		A += mother->vertices[*it].x * mother->vertices[*next].y - mother->vertices[*next].x * mother->vertices[*it].y;
+		A += mother->_vertices[*it].x * mother->_vertices[*next].y - mother->_vertices[*next].x * mother->_vertices[*it].y;
 	}
 	A *= 0.5f;
 	return A;

@@ -1,7 +1,6 @@
 /** src **/
 #include "Polygon.h"
 #include "Intersection.h"
-#include "linestrip/LineStripSeries.h"
 #include "geometry.h"
 #include "LinkedList.h"
 #include "tmp.h"
@@ -53,6 +52,7 @@ HybridVertex::HybridVertex(Intersect& i)
     alpha2 = i.alpha2;
     intersect = true;
     //
+
     point = i.point;
 }
 HybridVertex::HybridVertex(Polygon::Vertex v)
@@ -68,8 +68,8 @@ HybridVertex::HybridVertex(Polygon::Vertex v)
 /****************/
 Intersection::Intersection(Polygon& p)
 {
-    vertices.resize(p.vertices.size());
-    for (int i = 0; i < p.vertices.size(); i ++)
+    vertices.resize(p.num_vertices());
+    for (int i = 0; i < p.num_vertices(); i ++)
     {
         HybridVertex v( Polygon::Vertex(i, &p) );
         vertices[i] = v;
@@ -201,6 +201,7 @@ struct ManifoldData {
 
 };
 
+#if 0
 /* CCW sensitive ! */
 DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject)
 {
@@ -524,6 +525,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
     return result;
 #undef v
 } 
+#endif
 
 bool index_is_next_given_range(int index, int next_index, int range)
 {
@@ -536,12 +538,12 @@ Polygon* Intersection::find_parent_of_intersection_edge(Vertex v1, Vertex v2)
     int v1_first_owner_index1 = v1->edge1_index;
     int v1_first_owner_index2;
     if (v1->edge1_owner == v2->edge1_owner) {
-        if (index_is_next_given_range(v1->edge1_index, v2->edge1_index, v1->edge1_owner->vertices.size()) )
+        if (index_is_next_given_range(v1->edge1_index, v2->edge1_index, v1->edge1_owner->num_vertices()) )
             return v1->edge1_owner;
         else // condition must be true for the other polygon
             return v1->edge2_owner;
     } else {
-        if (index_is_next_given_range(v1->edge1_index, v2->edge2_index, v1->edge1_owner->vertices.size()) )
+        if (index_is_next_given_range(v1->edge1_index, v2->edge2_index, v1->edge1_owner->num_vertices()) )
             return v1->edge1_owner;
         else // condition must be true for the other polygon
             return v1->edge2_owner;

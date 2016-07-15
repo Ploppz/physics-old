@@ -4,14 +4,15 @@ OBJDIR = .obj
 TOOLDIR = ~/scripts/make
 DEFAULT_MAIN = src/main.c++
 # We have to add the include directory because freetype uses relative (to freetype2 dir) include file names
-FLAGS = -std=c++1z -ggdb -iquote src -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable 
+FLAGS = -std=c++1z -ggdb -iquote src -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable
+# FLAGS = -std=c++1z -ggdb -iquote src -I/usr/include/freetype2 -Wall -Wno-sign-compare -Wno-unused-variable  -fsanitize=address
 # FLAGS = -std=c++11 -ggdb -Isrc -I/usr/include/freetype2 -Wall -Wextra
 LDFLAGS = -lglfw -lGL -lGLEW -lfreetype
 DEFINE = -DFREETYPE_GL_USE_VAO -DUSE_GLFW
 
 MAIN := $(DEFAULT_MAIN)
-SOURCE_CPP := $(shell $(TOOLDIR)/find-filetype src c++) $(MAIN)
-OBJECTS := $(shell $(TOOLDIR)/getobjects src c++ c)
+SOURCE_CPP := $(shell $(TOOLDIR)/find-filetype src c++ c) $(MAIN)
+OBJECTS := $(shell $(TOOLDIR)/source-to-object-names $(SOURCE_CPP))
 
 # Add object file of the main file
 # OBJECTS += $(patsubst */%.c++, .obj/%.o, $(MAIN))
@@ -112,3 +113,10 @@ flags:
 	@echo "$(FLAGS)"
 
 -include .depend
+
+
+
+
+# Special unit tests in case needed. Feel free to remove from Makefile..
+bin/sap:
+	clang++ -std=c++11 -iquote src -ggdb -fsanitize=address -o bin/sap tests/sap.c++ src/algorithm/PairManager.c++ src/debug/debug.c++ src/debug/color.c++

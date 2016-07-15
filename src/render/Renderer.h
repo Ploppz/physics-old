@@ -60,6 +60,7 @@ class Renderer
 
     /* Constants */
     const int LINES_VBO_SIZE = 40000;
+    const int TRIANGLE_FAN_VBO_SIZE = 10000;
 
     /* OpenGL state */
     // Programs

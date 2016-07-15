@@ -80,8 +80,8 @@ float project(Polygon polygon, vec2 direction)
     direction = normalize(direction);
     float min_shadow = FLT_MAX;
     float max_shadow = FLT_MIN;
-    for (auto it = polygon.vertices.begin(); it != polygon.vertices.end(); it ++) {
-        float shadow = project(*it, direction);
+    for (Vertex v : polygon.vertices()) {
+        float shadow = project(v.point, direction);
         if (shadow < min_shadow)
             min_shadow = shadow;
         if (shadow > max_shadow)
@@ -291,7 +291,7 @@ float distance(vec2 point, Polygon& p, int& out_closest_edge, float& out_closest
         }
     }
     assert (min_distance != FLT_MAX);
-    bool is_inside = inside(point, p) ^ p.CCW;
+    bool is_inside = inside(point, p) ^ p.is_CCW();
     if (is_inside) {
         min_distance = - min_distance;
 
@@ -355,7 +355,7 @@ float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& 
     }
     assert (min_distance != FLT_MAX);
 
-    bool is_inside = inside_model(point, p) ^ p.CCW;
+    bool is_inside = inside_model(point, p) ^ p.is_CCW();
     if (is_inside)
         min_distance = - min_distance;
     return min_distance;

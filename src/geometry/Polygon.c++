@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <set>
 #include <sstream>
+#include <limits>
 
 #define DRAW_VERTEX_NUMBERS false
 
@@ -34,92 +35,96 @@ Polygon::Polygon()
 {
 }
 
+Polygon::Polygon(std::vector<glm::vec2> vertices)
+{
+    _vertices = vertices;
+    calculate_shape_dependent_variables();
+}
+
 
 float Polygon::signed_area()
 {
 	float A = 0;
 	std::vector<glm::vec2>::iterator next;
-	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	for (auto it = _vertices.begin(); it != _vertices.end(); it ++)
 	{
 		next = it; next ++;
-		if (next == vertices.end())
-            next = vertices.begin();
+		if (next == _vertices.end())
+            next = _vertices.begin();
 		A += it->x * next->y - next->x * it->y;
 	}
 	A *= 0.5f;
 	return A;
 }
 
-// LOCAL
-glm::vec2 Polygon::centroid()
-{
-	float A = signed_area();
-	glm::vec2 C {};
-    glm::vec2 a, b;
-	std::vector<glm::vec2>::iterator next;
-	for (auto it = vertices.begin(); it != vertices.end(); it ++)
-	{
-		next = it; next ++;
-		if (next == vertices.end())
-            next = vertices.begin();
-		C.x += (it->x + next->x) * (it->x * next->y - next->x * it->y);
-		C.y += (it->y + next->y) * (it->x * next->y - next->x * it->y);
-	}
-	C /= 6.f * A;
-
-	return C;
-}
 void Polygon::calculate_shape_dependent_variables()
 {
 	float A = signed_area();
 	glm::vec2 C {};
     glm::vec2 a, b;
 	std::vector<glm::vec2>::iterator next;
-	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	for (auto it = _vertices.begin(); it != _vertices.end(); it ++)
 	{
 		next = it; next ++;
-		if (next == vertices.end())
-            next = vertices.begin();
+		if (next == _vertices.end())
+            next = _vertices.begin();
 		C.x += (it->x + next->x) * (it->x * next->y - next->x * it->y);
 		C.y += (it->y + next->y) * (it->x * next->y - next->x * it->y);
 	}
 	C /= 6.f * A;
 
-    mass = fabs(A); 
-    CCW = (A > 0);
-    center_of_mass = C;
-    std::cout << "CCW: " << CCW << std::endl;
-
-    moment_of_inertia = calculate_moment_of_inertia();
-    std::cout << "MOMENT : " << moment_of_inertia << std::endl; 
+    this->mass = fabs(A); 
+    this->moment_of_inertia = calculate_moment_of_inertia();
+    this->CCW = (A > 0);
+    this->center_of_mass = C;
+    apply_center_of_mass(center_of_mass);
+    this->radius = calculate_radius();
 }
 float Polygon::calculate_moment_of_inertia()
 {
     float sum1=0;
     float sum2=0;
     std::vector<glm::vec2>::iterator next;
-	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	for (auto it = _vertices.begin(); it != _vertices.end(); it ++)
 	{
 		next = it; next ++;
-        if (next == vertices.end())
-            next = vertices.begin();
+        if (next == _vertices.end())
+            next = _vertices.begin();
         sum1 += cross(*next, *it) * (glm::dot(*next, *next) + glm::dot(*next, *it) + glm::dot(*it, *it));
         sum2 += cross(*next, *it);
     }
     return (mass/6*sum1/sum2);
 }
-float Polygon::radius()
+float Polygon::calculate_radius()
 {
-	glm::vec2 c = centroid();
-	// Find point whose distance is MAXIMUM from c.
+	// Find point whose distance is MAXIMUM from origin - assuming we have already centered the center of mass
 	float m = 0;
-	float d;
-	for (auto it = vertices.begin(); it != vertices.end(); it ++)
+	for (auto it = _vertices.begin(); it != _vertices.end(); it ++)
 	{
-		d = distance(c, *it);
+		float d = length_squared(*it);
 		if (d > m) m = d;
 	}
-	return m;
+	return sqrt(m);
+}
+AABB<2> Polygon::calc_bounding_box()
+{
+    AABB<2> box(std::numeric_limits<float>::max(), - std::numeric_limits<float>::max(),
+                std::numeric_limits<float>::max(), - std::numeric_limits<float>::max());
+    //TODO set to MIN and MAX
+	for (::Vertex v : vertices())
+    {
+        box.min[0] = std::min(box.min[0], v.point.x);
+        box.min[1] = std::min(box.min[1], v.point.y);
+        box.max[0] = std::max(box.max[0], v.point.x);
+        box.max[1] = std::max(box.max[1], v.point.y);
+    }
+    return box;
+}
+void Polygon::apply_center_of_mass(glm::vec2 center)
+{
+    for (int i = 0; i < _vertices.size(); i ++) {
+        _vertices[i] -= center;
+    }
 }
 
 glm::vec2 Polygon::transform(glm::vec2 point)
@@ -142,8 +147,8 @@ glm::vec2 Polygon::detransform(glm::vec2 point)
 }
 glm::vec2 Polygon::transformed(int vertex_index)
 {
-    vertex_index = (vertex_index + vertices.size()) % vertices.size();
-    glm::vec2 point = vertices[vertex_index];
+    vertex_index = (vertex_index + _vertices.size()) % _vertices.size();
+    glm::vec2 point = _vertices[vertex_index];
     return transform(point);
 }
 /* translates first such that the center is at origin */
@@ -152,12 +157,22 @@ glm::vec2 Polygon::transform_center(glm::vec2 point, glm::vec2 center)
     point -= center;
     return transform(point);
 }
-glm::vec2 Polygon::get_point(int vertex_number, float alpha)
+/* 
+AABB<2> Polygon::calculate_bounding_box()
 {
-    int next_vertex_number = vertex_number + 1;
-    if (next_vertex_number >= vertices.size()) next_vertex_number = 0;
-    return  transform(vertices[vertex_number]) * (1 - alpha) + transform(vertices[next_vertex_number]) * alpha;
-}
+    float min_x = std::numeric_limits<float>::max();
+    float min_y = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::min();
+    float max_y = std::numeric_limits<float>::min();
+    for (int i = 0; i < _vertices.size(); i ++) {
+        glm::vec2 point = transformed(i);
+        if (point.x < min_x) min_x = point.x;
+        if (point.x < max_x) max_x = point.x;
+        if (point.y < min_y) min_y = point.y;
+        if (point.y < max_y) max_y = point.y;
+    }
+    return AABB<2>(min_x, max_x, min_y, max_y);
+} */
 
 
 //TODO WARNING: using a set for intersecting edges, edges with same y-value of start vertex is not allowed!
@@ -169,14 +184,14 @@ std::ostream &operator << (std::ostream &lhs, glm::vec2 &rhs);
 
 int Polygon::num_edges()
 {
-	return vertices.size();
+	return _vertices.size();
 }
 //TODO Caution: Local coordinates
 LineSegment Polygon::get_edge(int index)
 {
 	if (index < 0 || index >= num_edges()) throw(std::out_of_range("Edge out of range."));
-	glm::vec2 s = vertices[index];
-	glm::vec2 t = vertices[(index < num_edges() - 1)? index + 1 : 0];
+	glm::vec2 s = _vertices[index];
+	glm::vec2 t = _vertices[(index < num_edges() - 1)? index + 1 : 0];
 	// s += position;
 	// t += position;
 	return LineSegment(s, t);
@@ -189,44 +204,44 @@ LineSegment Polygon::get_edge(int index)
 //////////////////////////////////////////////
 
 Polygon::Vertex::Vertex(int index, Polygon* parent)
-    :index(index % parent->vertices.size()), parent(parent) { }
+    :index(index % parent->_vertices.size()), parent(parent) { }
 
 void Polygon::Vertex::set_index(int val)
 {
     index = val;
-    if (index < 0) index += parent->vertices.size();
-    index %= parent->vertices.size();
+    if (index < 0) index += parent->_vertices.size();
+    index %= parent->_vertices.size();
 }
 glm::vec2& Polygon::Vertex::operator* ()
 {
-	return parent->vertices[index];
+	return parent->_vertices[index];
 }
 glm::vec2* Polygon::Vertex::operator-> ()
 {
-	return &(parent->vertices[index]);
+	return &(parent->_vertices[index]);
 }
 glm::vec2& Polygon::Vertex::successive()
 {
-	int i = (index == parent->vertices.size() - 1) ? 0 : index + 1;
-	return parent->vertices[i];
+	int i = (index == parent->_vertices.size() - 1) ? 0 : index + 1;
+	return parent->_vertices[i];
 }
 glm::vec2& Polygon::Vertex::preceding()
 {
-	int i = (index == 0) ? parent->vertices.size() - 1 : index - 1;
-	return *(&(parent->vertices[i]));
+	int i = (index == 0) ? parent->_vertices.size() - 1 : index - 1;
+	return *(&(parent->_vertices[i]));
 }
 Polygon::Vertex& Polygon::Vertex::operator++ ()
 {
-	// index = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+	// index = (index == parent->_vertices.size() - 1) ? 0 : index + 1;
     index ++;
-    index %= parent->vertices.size();
+    index %= parent->_vertices.size();
     return *this;
 }
 Polygon::Vertex& Polygon::Vertex::operator-- ()
 {
-	// index = (index == 0) ? parent->vertices.size() - 1 : index - 1;
+	// index = (index == 0) ? parent->_vertices.size() - 1 : index - 1;
     index --;
-    if (index < 0) index += parent->vertices.size();
+    if (index < 0) index += parent->_vertices.size();
     return *this;
 }
 bool Polygon::Vertex::operator== (Polygon::Vertex& v)
@@ -248,7 +263,7 @@ glm::vec2 Polygon::Vertex::transformed()
 Polygon::Edge::Edge(int index, Polygon *parent)
     : parent(parent)
 {
-    this->index = (index + parent->vertices.size()) % parent->vertices.size();
+    this->index = (index + parent->_vertices.size()) % parent->_vertices.size();
 }
 
 Polygon::Edge Polygon::first_edge() {
@@ -270,12 +285,12 @@ glm::vec2 Polygon::Edge::normal_tr()
 
 glm::vec2& Polygon::Edge::start() const
 {
-	return parent->vertices[index];
+	return parent->_vertices[index];
 }
 glm::vec2& Polygon::Edge::end() const
 {
-	int i = (index == parent->vertices.size() - 1) ? 0 : index + 1;
-	return parent->vertices[i];
+	int i = (index == parent->_vertices.size() - 1) ? 0 : index + 1;
+	return parent->_vertices[i];
 }
 glm::vec2 Polygon::Edge::start_tr() const
 {
@@ -283,7 +298,7 @@ glm::vec2 Polygon::Edge::start_tr() const
 }
 glm::vec2 Polygon::Edge::end_tr() const
 {
-	int i = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+	int i = (index == parent->_vertices.size() - 1) ? 0 : index + 1;
 	return parent->transformed(i);
 }
 
@@ -304,62 +319,13 @@ bool Polygon::Edge::operator!= (Polygon::Edge other) {
 // Experimental iterator...
 Polygon::Edge& Polygon::Edge::operator++ ()
 {
-	 index = (index == parent->vertices.size() - 1) ? 0 : index + 1;
+	 index = (index == parent->_vertices.size() - 1) ? 0 : index + 1;
      return *this;
 }
 Polygon::Edge& Polygon::Edge::operator-- ()
 {
-    index = (index == 0) ? (parent->vertices.size() - 1) : index - 1;
+    index = (index == 0) ? (parent->_vertices.size() - 1) : index - 1;
     return *this;
 }
 
-/////////////////////////////////////////////////////
-//
-// Edge iterator
-//
-/////////////////////////////////////////////////////
 
-template <>
-Polygon::EdgeIterator<false>::EdgeIterator(bool is_end, Polygon& polygon)
-    : polygon(polygon)
-{
-    if (is_end) { // end iterator
-        this->index = polygon.vertices.size();
-    } else {
-        this->index = 0;
-        edge.start = polygon.vertices[polygon.vertices.size() - 1];
-        edge.end = polygon.vertices[0];
-    }
-}
-template <>
-Polygon::EdgeIterator<true>::EdgeIterator(bool is_end, Polygon& polygon)
-    : polygon(polygon)
-{
-    if (is_end) { // end iterator
-        this->index = polygon.vertices.size();
-    } else {
-        this->index = 0;
-        edge.start = polygon.transformed(polygon.vertices.size() - 1);
-        edge.end = polygon.transformed(0);
-    }
-}
-
-
-template <>
-Polygon::EdgeIterator<false>& Polygon::EdgeIterator<false>::operator++ ()
-{
-    assert(index != polygon.vertices.size());
-    ++ index;
-    edge.start = edge.end;
-    edge.end = polygon.vertices[index];
-    return *this;
-}
-template <>
-Polygon::EdgeIterator<true>& Polygon::EdgeIterator<true>::operator++ ()
-{
-    assert(index != polygon.vertices.size());
-    ++ index;
-    edge.start = edge.end;
-    edge.end = polygon.transformed(index);
-    return *this;
-}

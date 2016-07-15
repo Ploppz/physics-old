@@ -27,46 +27,37 @@ void LineBuffer::write_to_buffer(BufferWriter<float>& buffer_writer)
 
 void LineBuffer::write_vertex_numbers(Polygon& p)
 {
-    for (uint i = 0; i < p.vertices.size(); i ++)
+    for (Vertex v : p.vertices())
     {
-        std::cout << "WRITING vertex numbers" << std::endl;
-        glm::vec2 point = p.transformed(i);
         g_renderer->get_font_renderer()->setColor(255, 255, 255);
-        g_renderer->get_font_renderer()->addText(std::to_string(i), point.x, point.y,  false);
+        g_renderer->get_font_renderer()->addText(std::to_string(v.index), v.point.x, v.point.y,  false);
     }
 }
 void LineBuffer::write_distances_to(Polygon& subject, Polygon &other)
 {
-    for (uint i = 0; i < subject.vertices.size(); i ++)
+    for (Vertex v : subject.vertices())
     {
-        glm::vec2 transformed = subject.transform(subject.vertices[i]);
         int closest_edge;
         float closest_edge_alpha;
-        float distance_from_other = distance(transformed, other, closest_edge, closest_edge_alpha);
+        float distance_from_other = distance(v.point, other, closest_edge, closest_edge_alpha);
         std::stringstream stream;
         stream << std::fixed << std::setprecision(2) << distance_from_other;
         g_renderer->get_font_renderer()->setColor(255, 255, 255);
-        g_renderer->get_font_renderer()->addText(stream.str(), transformed.x, transformed.y,  false);
+        g_renderer->get_font_renderer()->addText(stream.str(), v.point.x, v.point.y,  false);
     }
 }
 void LineBuffer::append_lines_to_vector(Polygon& p)
 {
-    for (uint i = 0; i < p.vertices.size(); i ++) {
-        int j = i + 1; j %= p.vertices.size();
-        glm::vec2 vec_i = p.transformed(i);
-        glm::vec2 vec_j = p.transformed(j);
-        add_point(vec_i);
-        add_point(vec_j);
+    for (Edge e : p.edges()) {
+        add_point(e.start);
+        add_point(e.end);
     }
 }
 void LineBuffer::append_model_lines_to_vector(Polygon& p)
 {
-    for (uint i = 0; i < p.vertices.size(); i ++) {
-        int j = i + 1; j %= p.vertices.size();
-        glm::vec2 vec_i = p.vertices[i];
-        glm::vec2 vec_j = p.vertices[j];
-        add_point(vec_i);
-        add_point(vec_j);
+    for (Edge e : p.model_edges()) {
+        add_point(e.start);
+        add_point(e.end);
     }
 }
 
@@ -168,6 +159,21 @@ void LineBuffer::add_vector(glm::vec2 point, glm::vec2 vec)
 
     add_point(point + vec);
     add_point(point + vec + a2);
+}
+
+void LineBuffer::add_aabb(float min_x, float max_x, float min_y, float max_y)
+{
+    add_point(min_x, min_y);
+    add_point(min_x, max_y);
+
+    add_point(min_x, max_y);
+    add_point(max_x, max_y);
+
+    add_point(max_x, max_y);
+    add_point(max_x, min_y);
+
+    add_point(max_x, min_y);
+    add_point(min_x, min_y);
 }
 
 
