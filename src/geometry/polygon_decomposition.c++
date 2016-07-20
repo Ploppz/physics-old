@@ -3,7 +3,7 @@
 #include "tmp.h"
 #include "LinkedList.h"
 #include "glutils.h"
-#include "typewriter/FontRenderer.h"
+#include "render/font/FontRenderer.h"
 
 #include <list>
 #include <glm/glm.hpp>

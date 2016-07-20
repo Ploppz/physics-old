@@ -12,9 +12,9 @@
 #include "debug/debug.h"
 
 
-#include "render/Renderer.h"
+#include "render/Graphics.h"
 #include "debug/StatisticsCollection.h"
-extern Renderer* g_renderer;
+extern Renderer* g_graphics;
 extern StatisticsCollection* g_statistics;
 
 /** Structs used for algorithm */

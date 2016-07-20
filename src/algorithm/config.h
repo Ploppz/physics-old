@@ -6,7 +6,7 @@ float RESTITUTION = .5f;
 
 
 /*** Iterating ***/
-int MAX_ITERATIONS = 2;
+int MAX_ITERATIONS = 1;
 
 /** Depth resolution **/
 int MAX_DEPTH_ITER = 7;

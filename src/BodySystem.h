@@ -12,6 +12,7 @@
 
 #include "algorithm/ResolutionAlg.h"
 #include "algorithm/SAP.h"
+#include "algorithm/PairOrderer.h"
 
 class Body;
 
@@ -49,6 +50,7 @@ class BodySystem
  private:
 	ResolutionAlg resolution_alg;
     SAP<int> broadphase_alg;
+    PairOrderer pair_orderer;
 	int body_count;
 	int flags = 0;
     // For debug

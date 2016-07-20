@@ -4,7 +4,7 @@
 #include "geometry.h"
 #include "LinkedList.h"
 #include "tmp.h"
-#include "render/Renderer.h"
+#include "render/Graphics.h"
 #include "debug/debug.h"
 #include "error_handling.h"
 /****/
@@ -16,7 +16,7 @@
 
 using namespace glm;
 
-extern Renderer *g_renderer;
+extern Graphics *g_graphics;
 
 
 ////////////////////
@@ -370,7 +370,7 @@ DepthContact Intersection::get_contact(Polygon* reference, Polygon* subject)
     // std::cout << "Alpha: " << max_manifold.edge_point.alpha << std::endl;
     vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
 
-    g_renderer->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
+    g_graphics->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
 
     return result;
 
@@ -448,7 +448,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
             intersect_x = intersect_horizontal(s_vec, s_vec_next - s_vec, r_vec.y, alpha);
             vec2 projected_point = s_vec + alpha * (s_vec_next - s_vec);
 
-            if (manifold_debug) g_renderer->extra_line_buffer.add_vector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
+            if (manifold_debug) g_graphics->extra_line_buffer.add_vector(align_inverse * r_vec, align_inverse * (projected_point - r_vec));
 
             float depth = glm::length(projected_point - r_vec_best);
             dout << "DEPTH " << depth << newl;
@@ -462,7 +462,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
             intersect_x = intersect_horizontal(r_vec, r_vec_next - r_vec, s_vec.y, alpha);
             vec2 projected_point = r_vec + alpha * (r_vec_next - r_vec);
 
-            if (manifold_debug) g_renderer->extra_line_buffer.add_vector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
+            if (manifold_debug) g_graphics->extra_line_buffer.add_vector(align_inverse * s_vec, align_inverse * (projected_point - s_vec));
 
             float depth = glm::length(projected_point - s_vec_best);
             dout << "DEPTH " << depth << newl;
@@ -520,7 +520,7 @@ DepthContact Intersection::get_contact(Polygon* reference, bool ref_outside, Pol
     // std::cout << "Alpha: " << max_manifold.edge_point.alpha << std::endl;
     vec2 intersection_dir = max_manifold.edge_point.point_t() - max_manifold.vertex_point.point_t();
 
-    g_renderer->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
+    g_graphics->extra_line_buffer.add_vector(max_manifold.vertex_point.point_t(), intersection_dir); 
 
     return result;
 #undef v

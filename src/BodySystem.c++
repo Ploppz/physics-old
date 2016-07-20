@@ -17,28 +17,30 @@ should BS work with Body or int?
 /* src */
 #include "BodySystem.h"
 #include "Body.h"
-#include "render/Renderer.h"
-#include "geometry/geometry.h"
+#include "render/Graphics.h"
 #include "glutils.h"
-#include "typewriter/FontRenderer.h"
+#include "geometry/geometry.h"
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
 #include "algorithm/SAP.h"
 #include "algorithm/PairManager.h"
+#include "algorithm/PairOrderer.h"
 #include "debug/debug.h"
+#include "debug/StatisticsCollection.h"
 
-extern FontRenderer *fontRenderer;
-extern Renderer *g_renderer;
+extern Graphics *g_graphics;
 extern StatisticsCollection *g_statistics;
 
 using namespace glm;
 
 BodySystem::BodySystem()
-	: body_count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
+	: resolution_alg {}, broadphase_alg{}, pair_orderer(broadphase_alg, *this),
+      body_count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
 }
 void BodySystem::timestep(float delta_time)
 {
+    g_graphics->set_active_buffers("extra");
     g_statistics->count("frames");
     DebugBegin();
     dout << Green << "FRAME" << newl;
@@ -51,7 +53,8 @@ void BodySystem::timestep(float delta_time)
 	if (alternator) {
 #endif
         /* Step forward */
-		g_renderer->extra_line_buffer.clear_buffer();
+
+        g_graphics->clear_buffers(); 
 		for (int i = 0; i < body_count; i ++)
 		{
             Body(i, this).save_placement();
@@ -69,15 +72,18 @@ void BodySystem::timestep(float delta_time)
             dout << "Iteration" << newl;
             resolution_alg.iteration_start();
             update_broadphase_alg();
+            pair_orderer.update();
+
 
             int active_pairs = 0;
             int used_pairs = 0;
-            for (Pair pair : broadphase_alg.pairs)
+            int counter = 0; // debugging
+            for (Pair pair : pair_orderer)
             {
                 ++ active_pairs;
                 // dout << "Active pair: " << pair.box1 << " , " << pair.box2 << newl;
-                Body b1(broadphase_alg.get_box_user_data(pair.box1), this);
-                Body b2(broadphase_alg.get_box_user_data(pair.box2), this);
+                Body b1(broadphase_alg.get_box_user_data(pair.first), this);
+                Body b2(broadphase_alg.get_box_user_data(pair.second), this);
                 // Treat only if they are siblings or have a parent-child relationship
                 if (b1.parent() == b2.parent() || b1.parent() == b2 || b2.parent() == b1)
                 {
@@ -92,6 +98,11 @@ void BodySystem::timestep(float delta_time)
                     resolution_alg.treat(b1, b2, delta_time);
                 }
             
+                { // DEBUG
+                    ++ counter;
+                    g_graphics->set_line_color(1,1,1);
+                    g_graphics->labelled_line(b1.position(), b2.position(), std::to_string(counter));
+                }
             }
             dout << "Active/used pairs: " << active_pairs << "/" << used_pairs << newl;
 		} while (!resolution_alg.done());
@@ -133,11 +144,13 @@ void BodySystem::treat_body_tree(Body root, float delta_time)
 }
 void BodySystem::update_broadphase_alg()
 {
+    DebugBegin();
+    dout << g_graphics->line_renderer.get_active_buffer_name() << newl;
     for (int i = 0; i < body_count; i ++)
     {
         AABB<2> aabb = shape[i].calc_bounding_box();
-        g_renderer->extra_line_buffer.set_color(0.8f, 0.8f, 0.8f);
-        g_renderer->extra_line_buffer.add_aabb(aabb.min[0], aabb.max[0], aabb.min[1], aabb.max[1]);
+        g_graphics->line_renderer.set_color(0.8f, 0.8f, 0.8f);
+        g_graphics->line_renderer.add_aabb(aabb.min[0], aabb.max[0], aabb.min[1], aabb.max[1]);
         broadphase_alg.update_box(broadphase_id[i], aabb);
     }
 }
@@ -168,7 +181,7 @@ void BodySystem::just_plot_movement(Body reference, Body subject, float total_ti
         {
             float time = total_time / samples * i;
             glm::vec2 rel_pos = ResolutionAlg::relative_pos(v.point, reference, subject, -time);
-            g_renderer->extra_line_buffer.add_dot(rel_pos);
+            g_graphics->line_renderer.add_dot(rel_pos);
         }
     }
 } 

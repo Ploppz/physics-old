@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cstdlib>
+#include <vector>
 
 #include <iostream>
 
@@ -89,6 +90,14 @@ public:
             return;
         *(ptr ++) = a; *(ptr ++) = b; *(ptr ++) = c;
         size += 3;
+    }
+    void write(std::vector<T>& array) {
+        assert(!unmapped);
+        if (size > max_size - array.size())
+            return;
+        for (T val : array)
+            *(ptr ++) = val;       
+        size += array.size();
     }
 
     T* get_ptr() {

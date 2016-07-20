@@ -9,7 +9,7 @@
 #include "../Body.h"
 #include "../render/Renderer.h"
 
-extern Renderer *g_renderer;
+extern Graphics *g_graphics;
 const double PI = 3.141592653589793;
 
 void DepthResolutionAlg::init()
@@ -53,7 +53,7 @@ void DepthResolutionAlg::treat(Body b1, Body b2, float delta_time)
         resolve(b1, b2, contact);
 
         if (VISUAL_DEBUG && contact.depth > 0)
-            g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), contact.ref_point.point_t() - contact.subj_point.point_t());
+            g_graphics->extra_line_buffer.add_vector(contact.subj_point.point_t(), contact.ref_point.point_t() - contact.subj_point.point_t());
 
 
 

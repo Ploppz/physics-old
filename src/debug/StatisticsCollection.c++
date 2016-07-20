@@ -21,11 +21,9 @@ void StatisticsCollection::count(const std::string& name)
     auto it = counters.find(name);
     if (it == counters.end()) {
         // add new Statistics object
-        dout << "Init counter " << name << newl;
         counters[name] = 1;
     } else {
         // use existing Statistics object
-        dout << "Add to counter " << name << newl;
         ++ it->second;
     }
 }

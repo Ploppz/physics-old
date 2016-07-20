@@ -261,7 +261,7 @@ void APIENTRY openglCallbackFunction(GLenum source,
                                            const void* userParam)
 {
 	using namespace std;
-    if (type == GL_DEBUG_TYPE_OTHER) return;
+    if (type == GL_DEBUG_TYPE_OTHER || type == GL_DEBUG_TYPE_PERFORMANCE) return;
  
     cout << "---------------------opengl-callback-start------------" << endl;
     cout << "message: "<< message << endl;

@@ -6,7 +6,7 @@
 #include "config.h"
 #include "Body.h"
 #include "geometry/geometry.h"
-#include "render/Renderer.h"
+#include "render/Graphics.h"
 #include "debug/debug.h"
 
 #define VISUAL_DEPTH_RESOLUTION true
@@ -26,7 +26,7 @@ struct SpeedBackup {
     float pre_rotation_b2 = b2.rotation();
 };
 
-extern Renderer *g_renderer;
+extern Graphics *g_graphics;
 extern StatisticsCollection *g_statistics;
 
 void ResolutionAlg::init()
@@ -46,7 +46,7 @@ int count = 0;
 void ResolutionAlg::treat(Body b1, Body b2, float delta_time)
 {
     count ++;
-    DebugBegin();
+    DebugBeginC(false);
     // dout << "Bodies " << b1.get_index() << " vs " << b2.get_index() << newl;
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
@@ -142,15 +142,15 @@ void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
             }
         }
         if (VISUAL_BODY_PROGRESSION) {
-            g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
-            g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
+            g_graphics->append_lines(b1.shape());
+            g_graphics->append_lines(b2.shape());
         }
         if (fabs(deepest_contact.depth) > INSIGNIFICANT_DEPTH) {
             resolve_by_depth(b1, b2, deepest_contact);
             contacts_resolved.push_back(deepest_contact); 
             if (VISUAL_BODY_PROGRESSION) {
-                g_renderer->extra_line_buffer.append_lines_to_vector(b1.shape());
-                g_renderer->extra_line_buffer.append_lines_to_vector(b2.shape());
+                g_graphics->append_lines(b1.shape());
+                g_graphics->append_lines(b2.shape());
             }
         } else {
             if (deepest_contact.depth == 0) {
@@ -382,13 +382,13 @@ void ResolutionAlg::resolve_by_depth(Body subject, Body reference, DepthContact 
 
     if (VISUAL_DEPTH_RESOLUTION)
     {
-        g_renderer->extra_line_buffer.set_color(glm::vec3(0.8f, 0, 0));
-        g_renderer->extra_line_buffer.add_vector(contact.subj_point.point_t(), - distribution * contact.normal * contact.depth); 
-        g_renderer->extra_line_buffer.add_dot(contact.subj_point.point_t(), distribution * contact.depth / 15.f); 
+        g_graphics->set_line_color(glm::vec3(0.8f, 0, 0));
+        g_graphics->line_renderer.add_vector(contact.subj_point.point_t(), - distribution * contact.normal * contact.depth); 
+        g_graphics->line_renderer.add_dot(contact.subj_point.point_t(), distribution * contact.depth / 15.f); 
 
-        g_renderer->extra_line_buffer.set_color(glm::vec3(0.8f, 0.8f, 0));
-        g_renderer->extra_line_buffer.add_vector(contact.ref_point.point_t(), (1 - distribution) * contact.normal * contact.depth); 
-        g_renderer->extra_line_buffer.add_dot(contact.ref_point.point_t(), (1 - distribution) * contact.depth / 15.f);
+        g_graphics->set_line_color(glm::vec3(0.8f, 0.8f, 0));
+        g_graphics->line_renderer.add_vector(contact.ref_point.point_t(), (1 - distribution) * contact.normal * contact.depth); 
+        g_graphics->line_renderer.add_dot(contact.ref_point.point_t(), (1 - distribution) * contact.depth / 15.f);
     }
 }
 
@@ -442,8 +442,8 @@ bool ResolutionAlg::rewindable(Body b1, Body b2, Intersection& intersection, flo
 TimeContact ResolutionAlg::calculate_contact_by_rewinding(Body b1, Body b2, Intersection& intersection, float delta_time)
 {
     DebugBegin();
-	assert(g_renderer);
-	/* g_renderer->extra_line_buffer.append_lines_to_vector(intersection); */
+	assert(g_graphics);
+	/* g_graphics->extra_line_buffer.append_lines_to_vector(intersection); */
 	/** Possibilities
 	 Send 'intersection' to rewind_out_of to only consider those edges?
 	**/
@@ -499,9 +499,9 @@ inline TimeContact ResolutionAlg::rewind_out_of(HybridVertex vertex, Body refere
 	if (VISUAL_DEBUG)
 	{
 		glm::vec2 point_now = relative_pos(vertex.point, reference, subject, 0);
-		g_renderer->extra_line_buffer.add_dot(point_now);
+		g_graphics->line_renderer.add_dot(point_now);
 		glm::vec2 point_then = relative_pos(vertex.point, reference, subject, - delta_time);
-		g_renderer->extra_line_buffer.add_dot(point_then);
+		g_graphics->line_renderer.add_dot(point_then);
 	}
 	int count = 0;
 	while (true)
@@ -510,7 +510,7 @@ inline TimeContact ResolutionAlg::rewind_out_of(HybridVertex vertex, Body refere
 		if (count > MAX_REWIND_ITER) break;
 		glm::vec2 point_at_time = relative_pos(vertex.point, reference, subject, - time_offset);
 		if (VISUAL_DEBUG)
-			g_renderer->extra_line_buffer.add_dot(point_at_time);
+			g_graphics->line_renderer.add_dot(point_at_time);
 
 		error = distance(point_at_time, reference.shape(), closest_edge, closest_edge_alpha);
 		/** PERFORMANCE? get velocity, create better estimate of new time offset **/
