@@ -87,15 +87,18 @@ int main()
 {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     
-    /* Polygon p = create_polygon(10, 50, 150);
+#if 0
+    // TODO this test never ends
+    Polygon p = create_polygon(10, 50, 150);
     int i = 0;
-    for (Edge e : p.edges()) {
-        std::cout << i << std::endl;
-        std::cout << e.start << std::endl << e.end << std::endl << std::endl;
+    for (Vertex e : p.vertices(6, 0.5, 5, 0.5)) {
+        std::cout << e.index << std::endl;
+
         ++ i;
     }
+    exit(0);  
+#endif
 
-    exit(0); */
     DebugBegin();
 	// Input::Init();
 
@@ -129,6 +132,7 @@ int main()
 	g_graphics = &graphics;
     graphics.set_render_flag(POLYGON_SHOW_VELOCITY);
     graphics.set_render_flag(POLYGON_SHOW_VERTEX_NUMBERS); 
+    graphics.set_render_flag(POLYGON_SHOW_NUMBER);
 	graphics.set_color_1(0.1f, 0.1f, 0);
 	graphics.set_color_2(0.34f, 0.3f, 0.3f);
 
@@ -242,6 +246,7 @@ void set_up_test1(World& world, Body& to_be_controlled)
 	big = world.bodies.add_body(bounding_box);
 	big.shape() = create_polygon(10, 100, 200);
 	big.position_type() = ABSOLUTE;
+    big.position() = glm::vec2(200, 200);
 	big.velocity() = glm::vec2(55, 0.02f);
 	big.rotation() = -0.05f;
 	big.rotation() = 0;
@@ -314,7 +319,7 @@ Polygon create_polygon(int num_edges, float inner_size, float outer_size)
 		vertices.push_back(glm::vec2(cos(-i*2.0f/num_edges * M_PI) * (inner_size + a), sin(-i*2.0f/num_edges * M_PI) * (inner_size + a)));
 	} 
     Polygon p(vertices);
-
+    
     return p;
 }
 

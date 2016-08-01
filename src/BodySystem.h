@@ -3,82 +3,97 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <iostream>
-#include <list>
 
-#include "glutils.h"
 #include "geometry/Polygon.h"
+#include "glutils.h"
 #include "geometry/geometry.h"
-#include "geometry/Intersection.h"
 
-#include "algorithm/ResolutionAlg.h"
-#include "algorithm/SAP.h"
-#include "algorithm/PairOrderer.h"
+
+enum PositionType { ABSOLUTE, RELATIVE };
 
 class Body;
-
-
-enum PositionType { FIXED, ABSOLUTE };
-enum PolygonMode { POLYGON_INSIDE = 0, POLYGON_OUTSIDE = 1 };
-
 
 class BodySystem
 {
 	friend class Body;
- public: /** Interface **/
+public:
 	BodySystem();
+
 	void timestep(float delta);
-
-
 	Body add_body(); // Returns index of new body
-	Body add_body(Body parent);
-	int num_bodies() const { return body_count; }
+    Body add_body(Body parent);
+    int num_bodies() const { return count; }
 	Body get_body(int index);
-	Polygon& get_polygon(int body_index);
-
- private: /** Algorithm **/
-	void treat_body_tree(Body root, float delta_time);
-    void update_broadphase_alg();
+	Polygon& get_polygon(int body);
 
 
- public: /** Tests/helpers **/
-	void visualize_shadows(Body, Body, std::vector<Intersection>&);
-	void just_plot_movement(Body b1, Body b2, float total_time, int samples);
-
- public: /** MEMBERS **/
-	float simulation_speed = 1;
-
- private:
-	ResolutionAlg resolution_alg;
-    SAP<int> broadphase_alg;
-    PairOrderer pair_orderer;
-	int body_count;
-	int flags = 0;
-    // For debug
-	bool alternator = false;
+    // 
+    glm::mat3 construct_matrix(int index);
 
 
-	// Body data
+    std::vector<Intersect> overlaps(Body a, Body b);
+private:
+	int count;
+
+    // Body data
 	std::vector<float> mass;
 
-	std::vector<PositionType> position_type;
+    std::vector<PositionType> position_type;
 
 	std::vector<glm::vec2> position;
-	std::vector<glm::vec2> past_position;
 	std::vector<glm::vec2> velocity;
 	std::vector<glm::vec2> force;
 
 	std::vector<float> orientation;
-    std::vector<float> past_orientation;
-	std::vector<float> rotation;
+	std::vector<float> angular_speed;
 	std::vector<float> torque;
 
 	// Temporary solution: only one polygon each Body
 	std::vector<Polygon> shape;
 
-    // For broadphase
-    std::vector<int> broadphase_id;
-	// Hierarchical tree of bodies
-	std::vector<Body> top_level_bodies;
-	std::vector<Body> parent;
-	std::vector<std::vector<Body>> children;
+    // Hierarchical tree of bodies
+    std::vector<Body> parent;
+    std::vector<std::vector<Body>> children;
+};
+
+// class BODY
+// Functions as an index
+// Flaws: Gets invalid if elements move within std::vector
+class Body
+{
+	friend class BodySystem;
+public:
+
+	// Should invalidate it.
+	Body() {}
+    // Operations
+        inline glm::mat3 get_matrix() { return system->construct_matrix(index); }
+
+	// Access to members
+		inline float& mass() { return system->mass[index]; }
+        inline PositionType& position_type() { return system->position_type[index]; }
+		inline glm::vec2& position() { return system->position[index]; }
+        glm::vec2 real_position();
+		inline glm::vec2& velocity() { return system->velocity[index]; }
+		inline glm::vec2& force() { return system->force[index]; }
+
+		inline float& orientation() { return system->orientation[index]; }
+		inline float& angular_speed() { return system->angular_speed[index]; }
+		inline float& torque() { return system->torque[index]; }
+
+		inline Polygon& shape() { return system->shape[index]; }
+
+        inline Body& parent() { return system->parent[index]; }
+
+	// Drawing
+        void add_to_buffer(BufferWriter<float> &buffer);
+		void add_to_buffer(std::vector<float> &buffer);
+		unsigned int add_to_buffer(float *buffer, int offset);
+	// Iterator TODO
+
+private:
+	Body(BodySystem *system, int index);
+
+	BodySystem *system;
+	int index;
 };

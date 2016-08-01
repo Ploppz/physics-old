@@ -22,14 +22,17 @@ extern Graphics *g_graphics;
 ////////////////////
 // Intersection
 ///////////////////
-Intersect::Intersect(Polygon::Edge edge1, Polygon::Edge edge2)
+Intersect::Intersect(Polygon::Edge edge_p, Polygon::Edge edge_q)
 {
-    this->edge1 = edge1; this->edge2 = edge2;
+    owner[P]  = edge_p.get_parent();
+    vertex[P] = edge_p.get_index();
+    owner[Q]  = edge_p.get_parent();
+    vertex[Q] = edge_q.get_index();
     // Find intersection point (last argument is output)
-    bool result = intersect(edge1.start_tr(), edge1.end_tr(),
-            edge2.start_tr(), edge2.end_tr(), point, alpha1, alpha2);
+    bool result = intersect(edge_p.start_tr(), edge_p.end_tr(),
+            edge_q.start_tr(), edge_q.end_tr(), point, alpha[P], alpha[Q]);
     if (!result) {
-        runtime_fatal(Formatter() << "Error: edges do not actually overlap (" << edge1.get_index() << ", " << edge2.get_index() << ")");
+        runtime_fatal(Formatter() << "Error: edges do not actually overlap (" << edge_p.get_index() << ", " << edge_q.get_index() << ")");
     }
     /* Fix alphas - shoudn't be too close to 0 (or 1). Because else, intersection_extraction may
      * get the wrong results */
@@ -44,34 +47,46 @@ Intersect::Intersect(Polygon::Edge edge1, Polygon::Edge edge2)
 /****************/
 HybridVertex::HybridVertex(Intersect& i)
 {
-    edge1_owner = i.edge1.get_parent();
-    edge1_index = i.edge1.get_index();
-    edge2_owner = i.edge2.get_parent();
-    edge2_index = i.edge2.get_index();
-    alpha1 = i.alpha1;
-    alpha2 = i.alpha2;
-    intersect = true;
-    //
+    owner[P] = i.owner[P];
+    owner[Q] = i.owner[Q];
+    vertex[P] = i.vertex[P];
+    vertex[Q] = i.vertex[Q];
+    alpha[P] = i.alpha[P];
+    alpha[Q] = i.alpha[Q];
+    is_active[P] = true;
+    is_active[Q] = true;
 
     point = i.point;
 }
-HybridVertex::HybridVertex(Polygon::Vertex v)
+HybridVertex::HybridVertex( Polygon::Vertex v, PolygonID pid )
 {
-    owner = v.get_parent();
-    vertex = v.get_index();
-    alpha = 0;
-    intersect = false;
+    owner[pid] = v.get_parent();
+    vertex[pid] = v.get_index();
+    alpha[pid] = 0;
+    is_active[pid] = true;
+
     point = v.transformed();
 }
+EdgePoint HybridVertex::get_edge_point(PolygonID pid)
+{
+    return EdgePoint(vertex[pid], alpha[pid], owner[pid]);
+}
+
+
+bool HybridVertex::is_intersect()
+{
+    return is_active[0] && is_active[1];
+}
+
 /****************/
 /* Intersection */
 /****************/
-Intersection::Intersection(Polygon& p)
+Intersection::Intersection(Polygon& p, PolygonID pid)
 {
     vertices.resize(p.num_vertices());
     for (int i = 0; i < p.num_vertices(); i ++)
     {
-        HybridVertex v( Polygon::Vertex(i, &p) );
+        HybridVertex v( Polygon::Vertex(i, &p), pid );
         vertices[i] = v;
     }
 }
@@ -113,7 +128,7 @@ int Intersection::num_intersects()
     int count = 0;
     for (auto it = vertices.begin(); it != vertices.end(); it ++)
     {
-        if (it->intersect)
+        if (it->is_intersect())
             ++ count;
     }
     return count;
@@ -127,7 +142,7 @@ glm::vec2 Intersection::find_normal_wrt(Polygon* p) {
 
     int start_vertex = -1, end_vertex;
     for (int i = 0; i < vertices.size(); i ++) {
-        if (vertices[i].intersect) {
+        if (vertices[i].is_intersect()) {
             if (start_vertex == -1) {
                 start_vertex = i;
             } else {
@@ -170,18 +185,18 @@ Polygon* Intersection::edge_owner(int edge_start_index)
     HybridVertex v1 = vertices[edge_start_index];
     HybridVertex v2 = vertices[clamp_index(edge_start_index + 1)];
 
-    if ( ! v1.intersect) {
-        return v1.owner;
-    } else if ( ! v2.intersect) {
-        return v2.owner;
+    if ( ! v1.is_intersect() ) {
+        return v1.owner[v1.get_active()];
+    } else if ( ! v2.is_intersect() ) {
+        return v2.owner[v2.get_active()];
     } else {
         /* Find the polygon whose _same single edge_ is present in the two intersections */
-        if (v1.edge1_index == v2.edge1_index || v1.edge1_index == v2.edge2_index) {
-            return v1.edge1_owner;
+       if (v1.vertex[P] == v2.vertex[P] || v1.vertex[P] == v2.vertex[Q]) {
+            return v1.owner[P];
         } else {
-            /* Fair assumption that now, v1.edge2_index must be the same as any of v2's edges */
-            assert (v1.edge2_index == v2.edge1_index || v1.edge2_index == v2.edge2_index);
-            return v1.edge2_owner;
+            /* Fair assumption that now, v1.vertex[Q] must be the same as any of v2's edges */
+            assert (v1.vertex[Q] == v2.vertex[P] || v1.vertex[Q] == v2.vertex[Q]);
+            return v1.owner[Q];
         }
     }
 }
@@ -532,69 +547,20 @@ bool index_is_next_given_range(int index, int next_index, int range)
     int anticipated_next_index = (index + 1) % range;
     return anticipated_next_index == next_index;
 }
-Polygon* Intersection::find_parent_of_intersection_edge(Vertex v1, Vertex v2)
+PolygonID Intersection::find_parent_of_edge(Vertex v1, Vertex v2) // TODO: Only need one Vertex.
 {
-    /* Assumption: Both vertices are intersects */
-    int v1_first_owner_index1 = v1->edge1_index;
-    int v1_first_owner_index2;
-    if (v1->edge1_owner == v2->edge1_owner) {
-        if (index_is_next_given_range(v1->edge1_index, v2->edge1_index, v1->edge1_owner->num_vertices()) )
-            return v1->edge1_owner;
-        else // condition must be true for the other polygon
-            return v1->edge2_owner;
-    } else {
-        if (index_is_next_given_range(v1->edge1_index, v2->edge2_index, v1->edge1_owner->num_vertices()) )
-            return v1->edge1_owner;
-        else // condition must be true for the other polygon
-            return v1->edge2_owner;
-    }
-}
-EdgePoint Intersection::interpolate(Vertex v1, Vertex v2, float alpha)
-{
-    EdgePoint e1, e2;
-    if (v1->intersect) {
-        if (v2->intersect) {
-            Polygon* edge_parent = find_parent_of_intersection_edge(v1, v2);
-            if (v1->edge1_owner == edge_parent) {
-                e1 = EdgePoint(v1->edge1_index, v1->alpha1, edge_parent);
-            } else {
-                e1 = EdgePoint(v1->edge2_index, v1->alpha2, edge_parent);
-            }
-            if (v2->edge1_owner == edge_parent) {
-                e2 = EdgePoint(v2->edge1_index, v2->alpha1, edge_parent);
-            } else {
-                e2 = EdgePoint(v2->edge2_index, v2->alpha2, edge_parent);
-            }
+    if ( !v1->is_intersect() )
+        return v1->get_active();
+    else if ( !v2->is_intersect() )
+        return v2->get_active();
+    else
+        if ( index_is_next_given_range(v1->vertex[P], v2->vertex[P], v1->owner[P]->num_vertices()) ) {
+            return P;
         } else {
-            e2 = EdgePoint(v2->vertex, v2->alpha, v2->owner);
-
-            if (v1->edge1_owner == v2->owner)
-                e1 = EdgePoint(v1->edge1_index, v1->alpha1, v2->owner);
-            else // v2->edge2_owner == v2->owner
-                e1 = EdgePoint(v1->edge2_index, v1->alpha2, v2->owner);
+            return Q;
         }
-    } else {
-        e1 = EdgePoint(v1->vertex, v1->alpha, v1->owner);
-        if (v2->intersect) {
-            if (v2->edge1_owner == v1->owner)
-                e2 = EdgePoint(v2->edge1_index, v2->alpha1, v1->owner);
-            else // v2->edge2_owner == v1->owner
-                e2 = EdgePoint(v2->edge2_index, v2->alpha2, v1->owner);
-        } else {
-            e2 = EdgePoint(v2->vertex, v2->alpha, v2->owner);
-        }
-    }
-    assert(e1.parent == e2.parent);
-    assert(e1.index == e2.index || e2.alpha == 0);
-
-    /* Now, actually interpolate the EdgePoints ... */
-    float alpha1 = e1.alpha;
-    float alpha2 = e2.alpha;
-    if (e2.index == e1.index) alpha2 = 1;
-    float new_alpha = alpha1 + alpha * (alpha2 - alpha1);
-    return EdgePoint(e1.index, new_alpha, e1.parent);
-    
 }
+
 //////////////////////////////////////////////
 //              Vertex pointer
 //////////////////////////////////////////////
@@ -654,9 +620,9 @@ std::ostream& operator<< (std::ostream& out, Intersection& I)
     {
         HybridVertex v = I.vertices[i];
         out << "\t" << i << ": ";
-        out << "(" << v.edge1_index << ", " << v.alpha1 << ")";
-        if (v.intersect) {
-            out << " intersects (" << v.edge2_index << ", " << v.alpha2 << ")";
+        out << "(" << v.vertex[P] << ", " << v.alpha[1] << ")";
+        if (v.is_intersect()) {
+            out << " intersects (" << v.vertex[Q] << ", " << v.alpha[2] << ")";
         }
         out << std::endl;
     }
@@ -682,8 +648,8 @@ void Intersection::append_lines_to_vector(std::vector<float>& buffer)
     }
 }
 glm::vec2 calculate_point(HybridVertex v) {
-    Polygon::Edge edge(v.vertex, v.owner);
-    return (1.f - v.alpha) * edge.start_tr() + v.alpha * edge.end_tr();
+    Polygon::Edge edge(v.vertex[P], v.owner[P]);
+    return (1.f - v.alpha[P]) * edge.start_tr() + v.alpha[P] * edge.end_tr();
 }
 void Intersection::append_lines_to_vector2(std::vector<float>& buffer)
 {

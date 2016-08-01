@@ -120,6 +120,15 @@ AABB<2> Polygon::calc_bounding_box()
     }
     return box;
 }
+
+bool Polygon::vertex_is_concave(int index)
+{
+    glm::vec2& prev = _vertices[(index - 1 + _vertices.size())   % _vertices.size()];
+    glm::vec2& next = _vertices[(index + 1)                      % _vertices.size()];
+    glm::vec2& vert = _vertices[index];
+    return leftof(next - prev, vert - prev) ^ CCW;
+}
+
 void Polygon::apply_center_of_mass(glm::vec2 center)
 {
     for (int i = 0; i < _vertices.size(); i ++) {
@@ -157,6 +166,18 @@ glm::vec2 Polygon::transform_center(glm::vec2 point, glm::vec2 center)
     point -= center;
     return transform(point);
 }
+
+glm::vec2 Polygon::edge_point(int index, float alpha)
+{
+    int new_index = (index + 1) % _vertices.size();
+    return (1 - alpha) * transformed(index) + alpha * transformed(new_index);
+}
+glm::vec2 Polygon::model_edge_point(int index, float alpha)
+{
+    int new_index = (index + 1) % _vertices.size();
+    return (1 - alpha) * _vertices[index] + alpha * _vertices[new_index];
+}
+
 /* 
 AABB<2> Polygon::calculate_bounding_box()
 {

@@ -20,6 +20,7 @@ struct TimeContact;
 enum RenderFlags {
     POLYGON_SHOW_VERTEX_NUMBERS = 1,
     POLYGON_SHOW_VELOCITY = 1 <<1,
+    POLYGON_SHOW_NUMBER = 1 <<2,
 };
 
 

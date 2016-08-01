@@ -26,6 +26,7 @@ class Debug
     ~Debug();
 
     void fatal(const std::string& message);
+    void not_implemented(const std::string& message); // For example a case you haven't though enough about yet //
 
     Debug& operator << (const manipulator);
 
@@ -50,6 +51,7 @@ class Debug
 
     static void set_color1(std_manipulator color);
     static void set_color2(std_manipulator color);
+
  private:
 
     static void prefix();

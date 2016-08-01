@@ -2,6 +2,7 @@
 
 #include "constants.h"
 #include "glutils.h"
+#include "EdgePoint.h"
 
 
 #include <glm/glm.hpp>
@@ -71,20 +72,51 @@ class Polygon
     class Diagonal;
     template <typename IteratorType>
     class Accessor;
+    template <typename IteratorType>
+    class RangeAccessor;
     template <bool transformed>
     class EdgeIterator;
     template <bool transformed>
+    class EdgeRangeIterator;
+    template <bool transformed>
     class VertexIterator;
+    template <bool transformed>
+    class VertexRangeIterator;
  /** METHODS **/
  public:
 	Polygon();
     Polygon(std::vector<glm::vec2> vertices);
 
     /* Iterating: */
-    Accessor<EdgeIterator<true>> edges() { return Accessor<EdgeIterator<true>>(*this); }
-    Accessor<EdgeIterator<false>> model_edges() { return Accessor<EdgeIterator<false>>(*this); }
-    Accessor<VertexIterator<true>> vertices() { return Accessor<VertexIterator<true>>(*this); }
-    Accessor<VertexIterator<false>> model_vertices() { return Accessor<VertexIterator<false>>(*this); }
+    // Bad code ahead, should probably be moved to c++ file (not in class)
+    Accessor<EdgeIterator<true>>
+        edges() { return Accessor<EdgeIterator<true>>(*this); }
+    RangeAccessor<EdgeRangeIterator<true>>
+        edges(EdgePoint& start, EdgePoint& end) { return edges(start.index, start.alpha, end.index, end.alpha); }
+    RangeAccessor<EdgeRangeIterator<true>>
+        edges(int start_index, float start_alpha, int end_index, float end_alpha) { return RangeAccessor<EdgeRangeIterator<true>>(*this, start_index, start_alpha, end_index, end_alpha); }
+
+    Accessor<EdgeIterator<false>>
+        model_edges() { return Accessor<EdgeIterator<false>>(*this); }
+    RangeAccessor<EdgeRangeIterator<false>>
+        model_edges(EdgePoint& start, EdgePoint& end) { return model_edges(start.index, start.alpha, end.index, end.alpha); }
+    RangeAccessor<EdgeRangeIterator<false>>
+        model_edges(int start_index, float start_alpha, int end_index, float end_alpha) { return RangeAccessor<EdgeRangeIterator<false>>(*this, start_index, start_alpha, end_index, end_alpha); }
+
+    Accessor<VertexIterator<true>>
+        vertices() { return Accessor<VertexIterator<true>>(*this); }
+    RangeAccessor<VertexRangeIterator<true>>
+        vertices(EdgePoint& start, EdgePoint& end) { return vertices(start.index, start.alpha, end.index, end.alpha); }
+    RangeAccessor<VertexRangeIterator<true>>
+        vertices(int start_index, float start_alpha, int end_index, float end_alpha) { return RangeAccessor<VertexRangeIterator<true>>(*this, start_index, start_alpha, end_index, end_alpha); }
+
+    Accessor<VertexIterator<false>>
+        model_vertices() { return Accessor<VertexIterator<false>>(*this); }
+    RangeAccessor<VertexRangeIterator<false>>
+        model_vertices(EdgePoint& start, EdgePoint& end) { return model_vertices(start.index, start.alpha, end.index, end.alpha); }
+    RangeAccessor<VertexRangeIterator<false>>
+        model_vertices(int start_index, float start_alpha, int end_index, float end_alpha) { return RangeAccessor<VertexRangeIterator<false>>(*this, start_index, start_alpha, end_index, end_alpha); }
+
     /* Old iterating */
     Edge first_edge();
     Edge last_edge();
@@ -96,8 +128,11 @@ class Polygon
     glm::vec2 transform(glm::vec2 point); // Transform from model to world coordinates
     glm::vec2 detransform(glm::vec2 point); // Transform from world to model coordinates
     glm::vec2 transformed(int vertex_index);
-    glm::vec2 model_vertex(int index) { return _vertices[index]; }
     glm::vec2 transform_center(glm::vec2 point, glm::vec2 center);
+
+    glm::vec2 model_vertex(int index) { return _vertices[index]; }
+    glm::vec2 edge_point(int index, float alpha);
+    glm::vec2 model_edge_point(int index, float alpha);
 
     /* Info */
     int num_vertices()              { return _vertices.size(); }
@@ -107,6 +142,8 @@ class Polygon
     bool is_CCW()                   { return CCW; }
     float get_radius()              { return radius; }
     AABB<2> calc_bounding_box();
+    /* Query */
+    bool vertex_is_concave(int index);
 
 
 
@@ -200,66 +237,6 @@ public: /** Helper classes **/
         Polygon *parent;
     };
 
-    template <bool transformed>
-    class EdgeIterator
-    {
-     public:
-        ::Edge operator* () { return ::Edge(edge, get_index()); }
-        EdgeIterator<transformed> & operator++ ();
-        bool operator== (EdgeIterator& other) { return index == other.index; }
-        bool operator!= (EdgeIterator& other) { return index != other.index; }
-        int get_index()
-        {
-            return (index - 1 + polygon._vertices.size()) % polygon._vertices.size();
-        }
-     private:
-        EdgeIterator(bool is_end, Polygon& polygon);
-        Polygon& polygon;
-        int index; // index refers to the _end_ of the edge
-        LineSegment edge;
-
-    template <typename IteratorType>
-     friend class Accessor;
-
-    };
-
-    template <bool transformed>
-    class VertexIterator
-    {
-     public:
-        ::Vertex operator* () { return ::Vertex(point, index); }
-        VertexIterator<transformed> & operator++ ();
-        bool operator== (VertexIterator& other) { return index == other.index; }
-        bool operator!= (VertexIterator& other) { return index != other.index; }
-     private:
-        VertexIterator(bool is_end, Polygon& polygon);
-        Polygon& polygon;
-        int index;
-        glm::vec2 point;
-
-    template <typename IteratorType>
-     friend class Accessor;
-
-    };
-
-    template <typename IteratorType>
-    class Accessor
-    {
-     public:
-        Accessor(Polygon& polygon) : polygon(polygon) {};
-        /* Init iteration */
-        IteratorType begin()
-        {
-            return IteratorType(false, polygon);
-        }
-        IteratorType end()
-        {
-            return IteratorType(true, polygon);
-        }
-     private:
-        Polygon& polygon;
-    };
-
     /////////////////////////
     // Diagonal smart-pointer
     /////////////////////////
@@ -277,74 +254,166 @@ public: /** Helper classes **/
         int start_index;
         int end_index;
     };
-};
 
 
-/*********************/
-/*    SubPolygon     */
-/*********************/
 
 
-class SubPolygon
-{
-public:
-    SubPolygon():mother(0) {};
-    SubPolygon(Polygon *mother):mother(mother) {};
-    std::vector<int> indices; // Indices in polygon vertex buffer
-    Polygon* mother;
 
-	float signed_area();
-    void fill(); // Let subpolygon be the full polygon
-    bool contains_diagonal(int a, int b); // Returns true if vertices a and b are contained
-    void split(int a, int b, SubPolygon& out1, SubPolygon& out2); // Split into two polygons at edge (a, b)
-    template <Axis axis>
-    void monotonize(std::vector<Polygon::Diagonal> &diagonals, Direction dir);
 
-    ///////////////////////
-    // Vertex smart-pointer
-    ///////////////////////
-    class Vertex
+
+
+
+
+
+
+
+    /////////////////////////
+    //
+    // Iteration
+    //
+    /////////////////////////
+    
+
+    template <bool transformed>
+    class EdgeIterator
     {
-    public:
-        // index: This is the index into the indices array of the subpolygon
-        Vertex() :index(0), parent(0) {}
-        Vertex(int index, SubPolygon *parent);
-        int get_index() { return parent->indices[index]; }
-        int get_index_index() { return index; }
-        void set_index(int val) { index = val; }
-        
-        glm::vec2 & operator* ();
-        glm::vec2 * operator-> ();
-        glm::vec2 & preceding();
-        glm::vec2 & successive();
-    private:
-        int index;
-        SubPolygon *parent;
+     public:
+        ::Edge operator* () { return ::Edge(edge, get_index()); }
+        EdgeIterator<transformed> & operator++ ();
+        // TODO don't know if the following should be added //
+        /* EdgeIterator<transformed> & operator-- (); */
+        /* void set_index(int index)               {  this->index = index; } */
+        bool operator== (EdgeIterator& other)   { return index == other.index; }
+        bool operator!= (EdgeIterator& other)   { return index != other.index; }
+        int get_index() {
+            return (index - 1 + polygon._vertices.size()) % polygon._vertices.size();
+        }
+     private:
+        EdgeIterator(bool is_end, Polygon& polygon);
+        Polygon& polygon;
+        int index; // index refers to the _end_ of the edge
+        LineSegment edge;
+
+     template <typename IteratorType>
+     friend class Accessor;
+    };
+    
+
+    template <bool transformed>
+    class EdgeRangeIterator
+    {
+     public:
+        ::Edge operator* () { return ::Edge(edge, get_index()); }
+        EdgeRangeIterator<transformed> & operator++ ();
+        // TODO don't know if the following should be added //
+        /* EdgeIterator<transformed> & operator-- (); */
+        /* void set_index(int index)               {  this->index = index; } */
+        bool operator== (EdgeRangeIterator& other)   { return index == other.index; }
+        bool operator!= (EdgeRangeIterator& other)   { return index != other.index; }
+        int get_index() {
+            return (index - 1 + polygon._vertices.size()) % polygon._vertices.size();
+        }
+     private:
+        EdgeRangeIterator(int index, float alpha, int end_index, float end_alpha, Polygon& polygon);
+        EdgeRangeIterator(Polygon& polygon) : polygon(polygon), index(polygon.num_vertices()) {}; // constructs the end
+        Polygon& polygon;
+        int   index; // index refers to the _end_ of the edge
+        float alpha;
+        int   end_index;
+        float end_alpha;
+        LineSegment edge;
+
+     template <typename IteratorType>
+     friend class RangeAccessor;
     };
 
-    ///////////////////////
-    // Edge smart-pointer
-    ///////////////////////
-    class Edge
+    template <bool transformed>
+    class VertexIterator
     {
-    public:
-        Edge() :index(0), parent(0) {}
-        Edge(int index, SubPolygon *parent);
-        // bool operator< (Edge other);
-        bool operator== (Edge other) const;
-        int y(int x) const;
-        int x(int y) const;
-        glm::vec2 & start() const;
-        glm::vec2 & end() const;
-        int get_index() const;
-        int get_index_index() const { return index; }
-        SubPolygon& get_parent() const { return *parent; }
-    private:
+     public:
+        ::Vertex operator* () { return ::Vertex(point, index); }
+        VertexIterator<transformed> & operator++ ();
+        bool operator== (VertexIterator& other) { return index == other.index; }
+        bool operator!= (VertexIterator& other) { return index != other.index; }
+     private:
+        VertexIterator(bool is_end, Polygon& polygon);
+        Polygon& polygon;
         int index;
-        SubPolygon *parent;
+        glm::vec2 point;
+
+     template <typename IteratorType>
+     friend class Accessor;
+    };
+
+
+    template <bool transformed>
+    class VertexRangeIterator
+    {
+     public:
+        ::Vertex operator* () { return ::Vertex(point, index); }
+        VertexRangeIterator<transformed> & operator++ ();
+        bool operator== (VertexRangeIterator& other) { return index == other.index; }
+        bool operator!= (VertexRangeIterator& other) { return index != other.index; }
+     private:
+        VertexRangeIterator(int index, float alpha, int end_index, float end_alpha, Polygon& polygon);
+        VertexRangeIterator(Polygon& polygon) : polygon(polygon), index(polygon.num_vertices()) {}; // constructs the end
+        Polygon& polygon;
+        int   index;
+        float alpha;
+        int   end_index;
+        float end_alpha;
+        glm::vec2 point;
+
+     template <typename IteratorType>
+     friend class RangeAccessor;
+    };
+
+
+    template <typename IteratorType>
+    class Accessor
+    {
+     public:
+        //// Note: end index doesn't matter for non-range-based iterators ////
+        Accessor(Polygon& polygon)
+            : polygon(polygon) {};
+        /* Init iteration */
+        IteratorType begin() {
+            return IteratorType(false, polygon);
+        }
+        IteratorType end() {
+            return IteratorType(true, polygon);
+        }
+     private:
+        Polygon& polygon;
+    };
+
+
+    template <typename IteratorType>
+    class RangeAccessor
+    {
+     public:
+        //// Note: end index doesn't matter for non-range-based iterators ////
+        RangeAccessor(Polygon& polygon, int start_index, float start_alpha, int end_index, float end_alpha)
+            : polygon(polygon), start_index(start_index), start_alpha(start_alpha), end_index(end_index), end_alpha(end_alpha) {};
+        RangeAccessor(Polygon& polygon, EdgePoint& start_point, EdgePoint& end_point)
+            : polygon(*start_point.parent), start_index(start_point.index), start_alpha(start_point.alpha), end_index(end_point.index), end_alpha(end_point.alpha) {};
+        /* Init iteration */
+        IteratorType begin()
+        {
+            return IteratorType(start_index, start_alpha, end_index, end_alpha, polygon);
+        }
+        IteratorType end()
+        {
+            return IteratorType(polygon);
+        }
+     private:
+        Polygon& polygon;
+        int     start_index = 0;
+        float   start_alpha = 0;
+        int     end_index = 0;
+        float   end_alpha = 0;
     };
 };
-std::ostream& operator<< (std::ostream& lhs, SubPolygon& p);
 
 
 
@@ -360,57 +429,85 @@ std::ostream& operator<< (std::ostream& lhs, SubPolygon& p);
 //
 /////////////////////////////////////////////////////
 
-template <>
-inline Polygon::EdgeIterator<false>::EdgeIterator(bool is_end, Polygon& polygon)
+    template <bool _transformed>
+inline Polygon::EdgeIterator<_transformed>::EdgeIterator(bool is_end, Polygon& polygon)
     : polygon(polygon)
 {
     if (is_end) { // end iterator
-        this->index = polygon._vertices.size();
+        this->index = polygon.num_vertices();
     } else {
         this->index = 0;
-        edge.start = polygon._vertices[polygon._vertices.size() - 1];
-        edge.end = polygon._vertices[0];
-    }
-}
-template <>
-inline Polygon::EdgeIterator<true>::EdgeIterator(bool is_end, Polygon& polygon)
-    : polygon(polygon)
-{
-    if (is_end) { // end iterator
-        this->index = polygon._vertices.size();
-    } else {
-        this->index = 0;
-        edge.start = polygon.transformed(polygon._vertices.size() - 1);
-        edge.end = polygon.transformed(0);
+        if ( !_transformed ) {
+            edge.start = polygon._vertices[polygon.num_vertices() - 1];
+            edge.end = polygon._vertices[0];
+        } else {
+            edge.start = polygon.transformed(polygon.num_vertices() - 1);
+            edge.end = polygon.transformed(0);
+        }
     }
 }
 
-
-template <>
-inline Polygon::EdgeIterator<false>& Polygon::EdgeIterator<false>::operator++ ()
+    template <bool _transformed>
+inline Polygon::EdgeIterator<_transformed>& Polygon::EdgeIterator<_transformed>::operator++ ()
 {
     assert(index >= 0);
     assert(index < polygon._vertices.size());
     ++ index;
     if (index < polygon._vertices.size()) {
         edge.start = edge.end;
-        edge.end = polygon._vertices[index];
-    }
-    return *this;
-}
-template <>
-inline Polygon::EdgeIterator<true>& Polygon::EdgeIterator<true>::operator++ ()
-{
-    assert(index >= 0);
-    assert(index < polygon._vertices.size());
-    ++ index;
-    if (index < polygon._vertices.size()) {
-        edge.start = edge.end;
-        edge.end = polygon.transformed(index);
+        if ( !_transformed )
+            edge.end = polygon._vertices[index];
+        else
+            edge.end = polygon.transformed(index);
     }
     return *this;
 }
 
+////////////////////////////////////////////////////
+//
+// Edge Range Iterator
+//
+/////////////////////////////////////////////////////
+
+    template <bool _transformed>
+inline Polygon::EdgeRangeIterator<_transformed>::EdgeRangeIterator(int index, float alpha, int end_index, float end_alpha, Polygon& polygon)
+    :polygon(polygon), index(index), alpha(alpha), end_index(end_index), end_alpha(end_alpha)
+{
+    if ( index != polygon.num_vertices() ) { // end iterator
+        if ( !_transformed )
+            edge.end = polygon.model_edge_point(index, alpha);
+        else
+            edge.end = polygon.edge_point(index, alpha);
+        operator++ ();
+    }
+}
+
+    template <bool _transformed>
+inline Polygon::EdgeRangeIterator<_transformed>& Polygon::EdgeRangeIterator<_transformed>::operator++ ()
+{
+    assert(index != polygon.num_vertices());
+    if (index == end_index) {
+        if (alpha == 0) {
+            alpha = end_alpha;
+        } else {
+            index = polygon.num_vertices(); // set to end if it went from the end vertex
+            return *this;
+        }
+    } else {
+        index = (index + 1) % polygon.num_vertices();
+    }
+
+    edge.start = edge.end;
+
+    if ( !_transformed )
+        edge.end = polygon.model_edge_point(index, alpha);
+    else
+        edge.end = polygon.edge_point(index, alpha);
+
+    if (index == end_index)
+        alpha = 0;
+    return *this;
+}
 
 ////////////////////////////////////////////////////
 //
@@ -418,43 +515,73 @@ inline Polygon::EdgeIterator<true>& Polygon::EdgeIterator<true>::operator++ ()
 //
 /////////////////////////////////////////////////////
 
-template<>
-inline Polygon::VertexIterator<false>::VertexIterator(bool is_end, Polygon& polygon)
+    template<bool _transformed>
+inline Polygon::VertexIterator<_transformed>::VertexIterator(bool is_end, Polygon& polygon)
     :polygon(polygon)
 {
     if (is_end)
-        this->index = polygon._vertices.size();
+        this->index = polygon.num_vertices();
     else {
         this->index = 0;
-        point = polygon._vertices[0];
+        if ( !_transformed )
+            point = polygon._vertices[0];
+        else
+            point = polygon.transformed(0);
     }
 }
-template<>
-inline Polygon::VertexIterator<true>::VertexIterator(bool is_end, Polygon& polygon)
-    :polygon(polygon)
-{
-    if (is_end)
-        this->index = polygon._vertices.size();
-    else {
-        this->index = 0;
-        point = polygon.transformed(0);
-    }
-}
-template<>
-inline Polygon::VertexIterator<false>& Polygon::VertexIterator<false>::operator++ ()
+    template<bool _transformed>
+inline Polygon::VertexIterator<_transformed>& Polygon::VertexIterator<_transformed>::operator++ ()
 {
     assert(index != polygon._vertices.size());
     ++ index;
-    if (index < polygon._vertices.size())
-        point = polygon._vertices[index];
+    if (index < polygon._vertices.size()) {
+        if ( !_transformed )
+            point = polygon._vertices[index];
+        else
+            point = polygon.transformed(index);
+    }
     return *this;
 }
-template<>
-inline Polygon::VertexIterator<true>& Polygon::VertexIterator<true>::operator++ ()
+
+////////////////////////////////////////////////////
+//
+// Vertex Range Iterator
+//
+/////////////////////////////////////////////////////
+
+template<bool _transformed>
+inline Polygon::VertexRangeIterator<_transformed>::VertexRangeIterator(int index, float alpha, int end_index, float end_alpha, Polygon& polygon)
+    :polygon(polygon), index(index), alpha(alpha), end_index(end_index), end_alpha(end_alpha)
 {
-    assert(index != polygon._vertices.size());
-    ++ index;
-    if (index < polygon._vertices.size())
-        point = polygon.transformed(index);
+    if ( index != polygon.num_vertices() ) {
+        if ( !_transformed )
+            point = polygon.model_edge_point(index, alpha);
+        else
+            point = polygon.edge_point(index, alpha);
+    }
+}
+template<bool _transformed>
+inline Polygon::VertexRangeIterator<_transformed>& Polygon::VertexRangeIterator<_transformed>::operator++ ()
+{
+    assert(index != polygon.num_vertices());
+    std::cout << "Alpha: " << alpha << std::endl;
+    if (index == end_index) {
+        if (alpha == 0) {
+            alpha = end_alpha;
+        } else {
+            index = polygon.num_vertices(); // set to end if it went from the end vertex
+            return *this;
+        }
+    } else {
+        index = (index + 1) % polygon.num_vertices();
+    }
+    if ( !_transformed )
+        point = polygon.model_edge_point(index, alpha);
+    else
+        point = polygon.edge_point(index, alpha);
+
+    if (index == end_index)
+        alpha = 0;
+
     return *this;
 }

@@ -15,8 +15,6 @@ class PairTree
     Pair get_node(int index) { return nodes[index]; }
     int num_nodes()         { return nodes.size(); }
 
-    void print();
-
     friend PairOrderer;
  private:
 

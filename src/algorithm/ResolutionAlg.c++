@@ -1,6 +1,7 @@
 #include <glm/glm.hpp>
 /* std */
 #include <list>
+#include <cfloat>
 /* src */
 #include "ResolutionAlg.h"
 #include "config.h"
@@ -11,6 +12,7 @@
 
 #define VISUAL_DEPTH_RESOLUTION true
 #define VISUAL_BODY_PROGRESSION false
+#define VISUAL_INTERSECTIONS    true
 
 struct SpeedBackup {
     SpeedBackup(Body& b1, Body& b2) : b1(b1), b2(b2) {}
@@ -46,7 +48,7 @@ int count = 0;
 void ResolutionAlg::treat(Body b1, Body b2, float delta_time)
 {
     count ++;
-    DebugBeginC(false);
+    DebugBegin();
     // dout << "Bodies " << b1.get_index() << " vs " << b2.get_index() << newl;
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
@@ -58,6 +60,7 @@ void ResolutionAlg::treat(Body b1, Body b2, float delta_time)
 
     SpeedBackup speed_backup(b1, b2);
 
+    // TODO extract method for time resolution
     int time_iterations = 0;
     while (true) {
         { /* count */ 
@@ -115,13 +118,18 @@ void ResolutionAlg::treat(Body b1, Body b2, float delta_time)
 
 void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 {
-    DebugBeginC(false);
+    DebugBegin();
 
     int i = 0;
 
     std::list<DepthContact> contacts_resolved;
     std::vector<Intersection> intersections;
     intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), bool(b1.mode), bool(b2.mode)); 
+    if (VISUAL_INTERSECTIONS) {
+        for (auto i : intersections) {
+            g_graphics->append_lines(i);
+        }
+    }
     while (intersections.size() > 0){
         dout << "Iteration. Intersections = " << intersections.size() << " between bodies "
             << b1.get_index() << ", " << b2.get_index() << newl;
@@ -131,14 +139,30 @@ void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
         deepest_contact.depth = 0;
         for (Intersection& i : intersections)
         {
+            int num_vertices = 0;
             for (HybridVertex& vertex : i.vertices)
-            {
-                if (!vertex.intersect) {
-                    DepthContact contact = linear_find_contact(b1, b2, vertex);
-                    if (contact.depth > deepest_contact.depth) {
-                        deepest_contact = contact;
+                num_vertices += vertex.is_intersect();
+
+            if (num_vertices == 2) {
+                // Simple 2-sided intersection. Find deepest contact //
+                for (HybridVertex& vertex : i.vertices)
+                {
+                    if ( !vertex.is_intersect() ) {
+                        if ( !vertex.owner->vertex_is_concave(vertex.vertex) ) {
+                            DepthContact contact = linear_find_contact(b1, b2, vertex);
+                            if (contact.depth > deepest_contact.depth)
+                                deepest_contact = contact;
+                        }
                     }
                 }
+
+            } else if (num_vertices == 4) {
+                // 4-sided intersection. 
+                /* DepthContact contact = approximate_contact(i);
+                if(contact.depth > deepest_contact.depth)
+                    deepest_contact = contact; */
+            } else {
+                dout.not_implemented("Intersection has > 4 sides");
             }
         }
         if (VISUAL_BODY_PROGRESSION) {
@@ -146,6 +170,8 @@ void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
             g_graphics->append_lines(b2.shape());
         }
         if (fabs(deepest_contact.depth) > INSIGNIFICANT_DEPTH) {
+            dout << green << "Resolve depth = " << deepest_contact.depth << newl;
+
             resolve_by_depth(b1, b2, deepest_contact);
             contacts_resolved.push_back(deepest_contact); 
             if (VISUAL_BODY_PROGRESSION) {
@@ -178,16 +204,19 @@ void ResolutionAlg::treat_by_depth(Body b1, Body b2, float delta_time)
 }
 DepthContact ResolutionAlg::linear_find_contact(Body subject, Body reference, HybridVertex& vertex)
 {
-    DebugBeginC(false);
+    DebugBegin();
+    // Assumption: vertex is not an intersect //
+    PolygonID pid = vertex.get_active();
+
     /* Ensure that subject is the owner of the vertex */
-    if (&subject.shape() != vertex.owner) {
+    if (&subject.shape() != vertex.owner[vertex.get_active()]) {
         std::swap(subject, reference);
     }
 
     /* Current point,          transformed to the coordinate system of _reference_ */
     glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
     /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
-    glm::vec2 past_point_detransformed = transform(subject.shape().model_vertex(vertex.vertex),
+    glm::vec2 past_point_detransformed = transform(subject.shape().model_vertex(vertex.vertex[pid]),
             subject.past_position(), subject.past_orientation());
     past_point_detransformed = detransform(past_point_detransformed,
             reference.past_position(), reference.past_orientation());
@@ -220,7 +249,7 @@ DepthContact ResolutionAlg::linear_find_contact(Body subject, Body reference, Hy
     /* Find normal and depth by looking only at what edge is involved */
     DepthContact result;
 
-    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    result.subj_point = EdgePoint(vertex.vertex[pid], 0, &subject.shape());
     result.ref_point = intersect;
 
     // old way to obtain depth:
@@ -255,39 +284,56 @@ DepthContact ResolutionAlg::linear_find_contact(Body subject, Body reference, Hy
 
 DepthContact ResolutionAlg::linear_find_contact_approx(Body subject, Body reference, HybridVertex& vertex)
 {
-    DebugBeginC(false);
-    /* Since this is called mostly in marginal situations..: */
-    /* Just find the edge that is the closest to the point in the past */
+    DebugBegin();
+    PolygonID pid = vertex.get_active();
+    dout << red << "Approx." << newl;
+    // Assumption: `vertex` is a vertex of subject //
+    // //
+    // Since this is called mostly in marginal situations..: //
+    // Just find the edge that is the closest to the point in the past //
 
-    /* Current point,          transformed to the coordinate system of _reference_ */
+    // Current point,          transformed to the coordinate system of _reference_ //
     glm::vec2 point_detransformed = reference.shape().detransform(vertex.point);
-    /* Find point in the past, transformed to the coordinate system of _reference_ in the past */
+    // Find point in the past, transformed to the coordinate system of _reference_ in the past //
     glm::vec2 past_point_detransformed =
-        transform(subject.shape().model_vertex(vertex.vertex), subject.past_position(), subject.past_orientation());
+        transform(subject.shape().model_vertex(vertex.vertex[pid]), subject.past_position(), subject.past_orientation());
     past_point_detransformed =
         detransform(past_point_detransformed, reference.past_position(), reference.past_orientation());
+
+    // Construct "out directions", used for `distance_model` //
+    glm::vec2 out_dir1, out_dir2;
+    {
+        Polygon::Edge edge(vertex.vertex[pid], &subject.shape());
+        out_dir1 = edge.end_tr() - edge.start_tr();
+        -- edge;
+        out_dir2 = edge.start_tr() - edge.end_tr();
+        if (reference.mode == POLYGON_OUTSIDE) {
+            out_dir1 = - out_dir1;
+            out_dir2 = - out_dir2;
+        }
+    }
 
     int closest_edge;
     float closest_edge_alpha;
     float dist;
     
-    const bool EXTRA_INFO = false;
-    { // test
-        dist = distance_model(point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
-        if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
-        if (EXTRA_INFO) dout << "Distance of current point: " << dist << newl;
-    }
     dist = distance_model(past_point_detransformed, reference.shape(), closest_edge, closest_edge_alpha);
-    if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
-    if (EXTRA_INFO) dout << "Distance of past point: " << dist << newl;
+    // dist = distance_model(past_point_detransformed, out_dir1, out_dir2, reference.shape(), closest_edge, closest_edge_alpha);
 
+    if (dist == FLT_MAX) { // TODO maybe we can use 0 rather than FLT_MAX.
+        DepthContact result;
+        result.depth = 0;
+        return result;
+    }
+
+    if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
 
     Polygon::Edge edge_of_intersect(closest_edge, &reference.shape());
     EdgePoint edgepoint_of_intersect(closest_edge, closest_edge_alpha, &reference.shape());
 
     /* Get depth depending on the _current point_ */
     DepthContact result;
-    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    result.subj_point = EdgePoint(vertex.vertex[pid], 0, &subject.shape());
     result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());
 
     { // DEBUG
@@ -303,9 +349,9 @@ DepthContact ResolutionAlg::linear_find_contact_approx(Body subject, Body refere
 
     /** Normal **/
     if (closest_edge_alpha == 0) {
-        dout << Magenta << "Vertex vs. Vertex" << newl;
         /* Vertex vs. Vertex ---> normal is in direction of distance between points */
-        result.normal = subject.shape().transformed(vertex.vertex) - edgepoint_of_intersect.point_t();
+        result.normal = subject.shape().transformed(vertex.vertex[pid]) - edgepoint_of_intersect.point_t();
+        dout << Magenta << "Vertex vs. Vertex" << newl;
     } else {
         /* Else ---> normal is just the normal of the edge */
         result.normal = edge_of_intersect.normal_tr();
@@ -319,22 +365,125 @@ DepthContact ResolutionAlg::linear_find_contact_approx(Body subject, Body refere
 
 
     result.ensure_normal_toward_subject();
-    /* Attempt: if subj_point is actually on the outside, flip the normal. */
+    /* If subj_point is actually on the outside, flip the normal. */
     dist = distance(result.subj_point.point_t(), reference.shape()); 
     if (reference.mode == POLYGON_OUTSIDE) dist = - dist;
     if (dist >= 0) {
-        // STATISTICS
-        dout << green << "Flipped normal." << newl;
+        g_statistics->count("flipped_normal");
         result.normal = - result.normal; 
-        // result.depth = 0;
-    } else {
-        dout << green << "Normal is ok." << newl;
     }
 
-    if (EXTRA_INFO) dout << "Depth: " << result.depth << newl;
-    if (EXTRA_INFO) dout << "Resulting point on reference: " << result.ref_point.point_t() << newl;
+    dout << "Depth: " << result.depth << newl;
     return result;
 }
+
+// WIP....
+#if 0
+DepthContact ResolutionAlg::approximate_contact(Intersection& intersection)
+{
+    DebugBegin();
+    // Assumption: vertices of intersection have the same parent1 and the same parent2 //
+
+    /*** Stage 1: find the side with the smallest extent ***/
+
+    // Find intersects (defining sides) //
+    int intersects[4];
+    int intersect = 0;
+    int index = 0;
+    for (HybridVertex& v : intersection.vertices)
+    {
+        if (v.intersect)
+            intersects[intersect] = index;
+        ++ intersect;
+        ++ index;
+    }
+
+    // Find side with minimum extent //
+    Polygon* min_ext_polygon;
+    int min_ext_vertex;
+    int min_ext_side;
+    float min_ext = FLT_MAX;
+    for (int intersect_index : intersects)
+    {
+        Intersection::Vertex curr(intersects[intersect_index], &intersection);
+        Intersection::Vertex prev = curr; -- prev;
+        Intersection::Vertex next_intersect(intersects[(intersect_index + 1) % 4], &intersection);
+
+        // Find owner //
+        Polygon* owner = intersection.find_parent_of_edge(prev, curr);
+
+        // Find direction of iteration //
+        bool direction_is_forth = curr->get_in_out(owner);
+
+        //// Iterate ////
+        EdgePoint start = curr->get_edge_point_of_polygon(owner);
+        EdgePoint end = next_intersect->get_edge_point_of_polygon(owner);
+        if ( !direction_is_forth )
+            std::swap(start, end);
+
+        // Find maximum extent vertex of that side //
+        int max_ext_vertex;
+        float max_ext = 0;
+        
+        for ( Vertex v : owner->model_vertices(start, end))
+        {
+            float dist = distance_line(v.point, start.point(), end.point());
+            // TODO assert the sign of distance
+            if (dist > max_ext) {
+                max_ext = dist;
+                max_ext_vertex = v.index;
+            }
+        }
+        if ( max_ext < min_ext ) {
+            min_ext_polygon = owner;
+            min_ext_vertex = max_ext_vertex;
+            min_ext_side = intersect_index;
+            min_ext = max_axt;
+        }
+    }
+
+    /*** Stage 2: find the intersection                             ***/
+    /*** Note...: it all happens in _model space_ / untransformed   ***/
+    /*** ... simple: just the midpoint of the opposite side         ***/
+
+    int opposite_side = (min_ext_side + 2) % 4;
+    int opposite_side_next = (opposite_side + 1) % 4;
+
+    HybridVertex& opposite_side_start_vert = intersection.vertices[ intersects[opposite_side] ];
+    HybridVertex& opposite_side_end_vert = intersection.vertices[ intersects[opposite_side_next]];
+
+    // Find EdgePoints of iteration //
+    EdgePoint opposite_side_start = opposite_side_start_vert.get_edge_point_of_polygon(min_ext_polygon);
+    EdgePoint opposite_side_end   = opposite_side_end_vert.get_edge_point_of_polygon(min_ext_polygon);
+    bool direction_is_forth = opposite_side_start_vert.get_in_out(min_ext_polygon);
+    if ( !direction_is_forth )
+        std::swap(opposite_side_start, opposite_side_end);
+
+    // Construct geometry for intersection testing //
+    glm::vec2 line_start = min_ext_polygon->model_vertex(min_ext_vertex);
+    glm::vec2 line_end  = (opposite_side_end.point() - opposite_side_start.point()) / 2.f;
+    glm::vec2 direction = line_end - line_start;
+
+    // Cast ray onto opposite side... //
+    //   - the ray that bisects the lines extended from the polygon vertex to either of the two endpoints of the opposite side
+    int hit_edge = -1;
+    float alpha;
+    for ( Edge edge : min_ext_polygon->model_edges( opposite_side_start, opposite_side_end ) )
+    {
+        // TODO should find the intersection maybe the furthest away...
+        if ( intersect_line_line_segment(line_start, direction, edge.start, edge.end, alpha) ) {
+            hit_edge = edge.index;
+            break;
+        }
+    }
+    assert(hit_edge != -1);
+    //// now... ////
+    // TODO: the loop loops in min_ext_polygon??? .. and also opposite_side start/end are of min_ext_polygon. These should both be the opposite I think. //
+    // Reference: index = hit_edge, alpha = alpha, owner = hmm??
+
+}
+// Intersection::vertex_goes_out_wrt_polygon
+#endif
 
 
 const double PI = 3.141592653589793;

@@ -122,6 +122,10 @@ void Graphics::upload_vertices()
         if (has_flag(POLYGON_SHOW_VELOCITY)) {
             append_velocity_lines(it); 
         }
+        if (has_flag(POLYGON_SHOW_NUMBER)) {
+            set_font_color(1,1, 1);
+            font_renderer.add_text(std::to_string(it.get_index()), it.position().x, it.position().y, 4, false);
+        }
         ++ it;
     }
     buffer.unmap();

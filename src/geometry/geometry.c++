@@ -337,9 +337,7 @@ float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& 
 {
     DebugBegin();
     assert( ! (isnan(point.x) || isnan(point.y)));
-    // PERFORMANCE incorporate the inside 
     
-    // Experimental way to iterate ( PERFORMANCE )
     float min_distance = FLT_MAX;
     for (Edge edge : p.model_edges())
     {
@@ -354,6 +352,39 @@ float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& 
         }
     }
     assert (min_distance != FLT_MAX);
+
+    bool is_inside = inside_model(point, p) ^ p.is_CCW();
+    if (is_inside)
+        min_distance = - min_distance;
+    return min_distance;
+}
+float distance_model(glm::vec2 point, glm::vec2 out_dir1, glm::vec2 out_dir2, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha)
+{
+    DebugBegin();
+    assert( ! (isnan(point.x) || isnan(point.y)));
+    
+    float min_distance = FLT_MAX;
+    for (Edge edge : p.model_edges())
+    {
+        dout << "Testing " << edge.index << newl;
+        // Test whether out_dir1,2 point in or out of the polygon //
+        bool viable = (leftof( out_dir1, edge.end - edge.start ) ^ p.is_CCW()) && (leftof( out_dir2, edge.end - edge.start ) ^ p.is_CCW());
+        if (!viable) continue;
+        dout << " --> viable" << newl;
+        // See if it's the closest edge //
+        float alpha_on_edge;
+        float distance_from_edge = distance_line_segment(point, edge.start, edge.end, alpha_on_edge);
+        dout << "alpha = " << alpha_on_edge << newl;
+        if (alpha_on_edge != 1) { // Disregard, and let the same happen for the next edge, with alpha=0
+            dout << "alpha ok" << newl;
+            if (distance_from_edge < min_distance) {
+                min_distance = distance_from_edge;
+                out_closest_edge = edge.index;
+                out_closest_edge_alpha = alpha_on_edge;
+            }
+        }
+    }
+    // assert (min_distance != FLT_MAX);
 
     bool is_inside = inside_model(point, p) ^ p.is_CCW();
     if (is_inside)

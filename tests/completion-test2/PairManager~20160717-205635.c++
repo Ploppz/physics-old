@@ -33,6 +33,14 @@ void PairManager::print()
 {
     for (auto it = pairs.begin(); it != pairs.end(); ++ it)
     {
-        std::cout << "Pair: " << it->first.box1 << ", " << it->second.box2 << std::endl;
+        std::cout << "Pair: " << it->first.first << ", " << it->first.second << std::endl;
     }
+}
+std::unordered_map<Pair, Pair>::iterator PairManager::begin()
+{
+    return pairs.begin();
+}
+std::unordered_map<Pair, Pair>::iterator PairManager::end()
+{
+    return pairs.end();
 }

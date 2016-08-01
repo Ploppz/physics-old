@@ -16,6 +16,7 @@ float angle(glm::vec2 a, glm::vec2 b, glm::vec2 c);
 
 float length_squared(glm::vec2 v);
 bool zero_length(glm::vec2 v);
+
 inline glm::vec2 unit_vector(float angle) {
     return glm::vec2(cos(angle), sin(angle));
 }
@@ -31,12 +32,18 @@ bool leftof(glm::vec2 a, glm::vec2 b);
 float distance(glm::vec2 a, glm::vec2 b);
 float distance_line(glm::vec2 p, glm::vec2 line_a, glm::vec2 line_b);
 
-/* Distance from polygon */
+/** Distance from polygon **/
 float distance(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
 float distance(glm::vec2 point, Polygon& p);
 bool distance_along_line(glm::vec2 point, glm::vec2 line_direction, Polygon& p, float& out_distance);
-// Without polygon transformation
+/* Without polygon transformation */
+
 float distance_model(glm::vec2 point, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
+
+// This version only accepts edges of the polygon where out_dir1,2 point out of the polygon
+float distance_model(glm::vec2 point, glm::vec2 out_dir1, glm::vec2 out_dir2, Polygon& p, int& out_closest_edge, float& out_closest_edge_alpha);
+
+/****/
 
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end, float &out_alpha);
 float distance_line_segment(glm::vec2 p, glm::vec2 line_start, glm::vec2 line_end);

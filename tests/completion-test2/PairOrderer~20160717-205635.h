@@ -16,20 +16,12 @@ class PairOrderer
  public:
     PairOrderer(SAP<int>& broadphase_alg, BodySystem& body_system);
     void update();
-    void visualize();
     std::vector<Pair>::iterator begin();
     std::vector<Pair>::iterator end();
  private:
-    // Order algorithms //
-    void do_not_order();
-    void simple_order_by_mass();
-    void order_by_mass_and_tree();
-
-    // Helpers //
+    void order();
     void traverse();
-    void traverse( int node, bool* visited ); 
-    void traverse_neighbors( int node, bool* visited );
-    void traverse_neighbors_of_box( int node, int box_id, bool* visited );
+    void add_neighbors_to_open_set(int node, bool* visited, std::deque<int>& open_set);
  private:
     // Persistent:
     SAP<int>& broadphase_alg;

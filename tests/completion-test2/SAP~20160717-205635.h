@@ -17,6 +17,7 @@ struct AABB<2> {
         min[0] = min_x; min[1] = min_y;
         max[0] = max_x; max[1] = max_y;
     }
+    AABB() : min{}, max{} {};
     float min[2];
     float max[2];
 };
@@ -28,7 +29,7 @@ class SAP
     struct Box {
         int min_index[dimentions];
         int max_index[dimentions];
-        UserType* user_data;
+        UserType user_data;
     };
     struct EndPoint {
         EndPoint(int owner_index, float value, bool is_min) : owner_index(owner_index), value(value), is_min(is_min) {}
@@ -39,8 +40,12 @@ class SAP
  public: /* Interface */
     SAP() : pairs {}, boxes {}, endpoints {} {};
     SAP(const std::vector<std::pair<AABB<dimentions>, UserType>>& boxes);
+    UserType get_box_user_data(int box_index)
+    {
+        return boxes[box_index].user_data;
+    }
 
-    int add_box(AABB<dimentions> box, UserType* user_data)
+    int add_box(AABB<dimentions> box, UserType user_data)
     {
         int new_box_index = boxes.size();
         for (int d = 0; d < dimentions; d ++) {
@@ -126,7 +131,7 @@ class SAP
     }
     void update_box_endpoint(int d, int endpoint_index, float new_value)
     {
-        DebugBegin()
+        DebugBeginC(false);
         EndPoint endpoint_copy = endpoints[d][endpoint_index]; // for insertion in the end
         float old_value = endpoint_copy.value;
         dout << "old value: " << old_value << newl;
@@ -177,7 +182,7 @@ class SAP
     /* Checks all _other_ dimentions for overlap*/
     void overlap_starts_in_dimention(int dimention, int box1_index, int box2_index)
     {
-        DebugBegin();
+        DebugBeginC(false);
         bool overlap = true;
         for (int d = 0; d < dimentions; d ++)
         {

@@ -1,7 +1,4 @@
-/** Thoughts
-update_body could be a member function of Body?
-should BS work with Body or int?
-**/
+#include "Renderer.h"
 #include <cmath>
 #include <glm/glm.hpp>
 #include <vector>
@@ -10,244 +7,271 @@ should BS work with Body or int?
 #include <cstdlib>
 #include <sstream>
 #include <glm/gtx/matrix_transform_2d.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <algorithm>
-#include <list>
 
-/* src */
 #include "BodySystem.h"
-#include "Body.h"
-#include "render/Graphics.h"
 #include "glutils.h"
-#include "geometry/geometry.h"
+#include "typewriter/FontRenderer.h"
 #include "geometry/geometry.h"
 #include "geometry/Intersection.h"
-#include "algorithm/SAP.h"
-#include "algorithm/PairManager.h"
-#include "algorithm/PairOrderer.h"
-#include "debug/debug.h"
-#include "debug/StatisticsCollection.h"
 
-extern Graphics *g_graphics;
-extern StatisticsCollection *g_statistics;
+extern FontRenderer *fontRenderer;
 
 using namespace glm;
 
 BodySystem::BodySystem()
-	: resolution_alg {}, broadphase_alg{}, pair_orderer(broadphase_alg, *this),
-      body_count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
+	: count {}, mass {}, position {}, velocity {}, force {}, orientation {}, rotation {}, torque {}, shape {}
 {
 }
+
 void BodySystem::timestep(float delta_time)
 {
-    g_graphics->set_active_buffers("extra");
-    g_statistics->count("frames");
-    DebugBegin();
-    dout << Green << "FRAME" << newl;
-    
-    delta_time *= simulation_speed;
-
-	alternator = ! alternator;
-#define alternate 0
-#if alternate
-	if (alternator) {
-#endif
-        /* Step forward */
-
-        g_graphics->clear_buffers(); 
-		for (int i = 0; i < body_count; i ++)
-		{
-            Body(i, this).save_placement();
-			Body(i, this).update(delta_time);
-		}
-#if alternate
-	} else {
-#endif
-        /* Detect, resolve, react */
-		resolution_alg.init();
-
-        int i = 0;
-		do {
-            i ++;
-            dout << "Iteration" << newl;
-            resolution_alg.iteration_start();
-            update_broadphase_alg();
-            pair_orderer.update();
-
-
-            int active_pairs = 0;
-            int used_pairs = 0;
-            int counter = 0; // debugging
-            for (Pair pair : pair_orderer)
-            {
-                ++ active_pairs;
-                // dout << "Active pair: " << pair.box1 << " , " << pair.box2 << newl;
-                Body b1(broadphase_alg.get_box_user_data(pair.first), this);
-                Body b2(broadphase_alg.get_box_user_data(pair.second), this);
-                // Treat only if they are siblings or have a parent-child relationship
-                if (b1.parent() == b2.parent() || b1.parent() == b2 || b2.parent() == b1)
-                {
-                    if (b1.parent() == b2)
-                        b2.mode = POLYGON_OUTSIDE;
-                    else if (b2.parent() == b1)
-                        b1.mode = POLYGON_OUTSIDE;
-
-
-                    ++ used_pairs;
-                    // dout << "TREATING " << b1.get_index() << ", " << b2.get_index() << newl;
-                    resolution_alg.treat(b1, b2, delta_time);
-                }
-            
-                { // DEBUG
-                    ++ counter;
-                    g_graphics->set_line_color(1,1,1);
-                    g_graphics->labelled_line(b1.position(), b2.position(), std::to_string(counter));
-                }
-            }
-            dout << "Active/used pairs: " << active_pairs << "/" << used_pairs << newl;
-		} while (!resolution_alg.done());
-        g_statistics->add_value("global iterations", i);
-#if alternate
-	}
-#endif
-    /* just_plot_movement(Body(0, this), Body(1, this), delta_time * 15, 15); */
-
-}
-
-
-/** Treating bodies: penetration and physical **/
-
-void BodySystem::treat_body_tree(Body root, float delta_time)
-{
-    DebugBegin();
-	// Children can't go outside of parent polygon:
-	root.mode = POLYGON_OUTSIDE;
-	for (int i = 0; i < children[root.index].size(); i ++)
+	for (int i = 0; i < count; i ++)
 	{
-		Body child = children[root.index][i];
-		child.mode = POLYGON_INSIDE;
+		/* position[i] += delta_time * velocity[i];
+        orientation[i] += delta_time * rotation[i]; */
 
-		/* Test against parent */
-		resolution_alg.treat(child, root, delta_time);
-
-		/* Test against siblings */
-		for (int j = i+1; j < children[root.index].size(); j ++)
-		{
-			Body second_child = children[root.index][j];
-			second_child.mode = POLYGON_INSIDE;
-
-			resolution_alg.treat(child, second_child, delta_time);
-		}
-		/* Recurse the tree */
-		treat_body_tree(child, delta_time);
+        shape[i].position = position[i];
+        shape[i].orientation = orientation[i];
 	}
-}
-void BodySystem::update_broadphase_alg()
-{
-    DebugBegin();
-    dout << g_graphics->line_renderer.get_active_buffer_name() << newl;
-    for (int i = 0; i < body_count; i ++)
+    for (Body p : top_level_bodies)
     {
-        AABB<2> aabb = shape[i].calc_bounding_box();
-        g_graphics->line_renderer.set_color(0.8f, 0.8f, 0.8f);
-        g_graphics->line_renderer.add_aabb(aabb.min[0], aabb.max[0], aabb.min[1], aabb.max[1]);
-        broadphase_alg.update_box(broadphase_id[i], aabb);
-    }
-}
-
-/* void BodySystem::visualize_shadows(Body b1, Body b2, std::vector<Intersection>& intersections)
-{
-	for (auto it = intersections.begin(); it != intersections.end(); it ++)
-	{
-		std::cout << *it << std::endl;
-		// it->append_lines_to_vector(auxilliary_lines);
-		glm::vec2 normal = it->find_normal_wrt(&b1.shape());
-		add_vector(glm::vec2(0), normal * 15.f);
-		std::cout << "*** Cast shadow on b1 ***" << std::endl;
-		LineStrip ls1 = it->cast_shadow_on(&b1.shape(), normal);
-		std::cout << "*** Cast shadow on b2 ***" << std::endl;
-		LineStrip ls2 = it->cast_shadow_on(&b2.shape(), - normal);
-		ls1.append_lines_to_vector(auxilliary_lines, 1, 1, 1);
-		ls2.append_lines_to_vector(auxilliary_lines, 1, 1, 1); 
-	}
-} */
-
-void BodySystem::just_plot_movement(Body reference, Body subject, float total_time, int samples)
-{
-    Polygon& p = subject.shape();
-    for (Vertex v : p.vertices())
-    {
-        for (int i = 0; i < samples; i ++)
+        for (int i = 0; i < children[p.index].size(); i ++)
         {
-            float time = total_time / samples * i;
-            glm::vec2 rel_pos = ResolutionAlg::relative_pos(v.point, reference, subject, -time);
-            g_graphics->line_renderer.add_dot(rel_pos);
+            /* Test against parent */
+            /* Test against siblings */
+            for (int j = i; j < children[p.index].size(); j ++)
+            {
+            }
         }
     }
-} 
+}
+/* glm::mat3 BodySystem::construct_matrix(int index)
+{
+// TODO rotate
+    return glm::translate(glm::mat3 {}, position[index]);
+} */
 
-/** BodySystem: Body management **/
 Body BodySystem::add_body()
 {
-    DebugBegin();
-	++ body_count;
-
-	position_type.push_back(ABSOLUTE);
+    position_type.push_back(ABSOLUTE);
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
-    past_position.push_back( vec2(0, 0) );
 	velocity.push_back( vec2(0, 0) );
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-    past_orientation.push_back( 0 );
 	rotation.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon() );
 
+    children.push_back(std::vector<Body> {});
+    parent.push_back(Body(this, -1)); // Invalid body
 
-	children.push_back(std::vector<Body> {});
-	parent.push_back(Body(-1, this)); // Invalid body
-	Body new_body = Body(body_count - 1, this);
-	top_level_bodies.push_back(new_body);
-
-    broadphase_id.push_back(broadphase_alg.add_box(AABB<2>(0, 0, 0, 0), new_body.get_index()));
-    dout << "ADD BODY " << new_body.get_index() << newl;
-
+	++ count;
+    Body new_body = Body(this,count - 1);
+    top_level_bodies.push_back(new_body);
 	return new_body;
 }
 Body BodySystem::add_body(Body parent)
 {
-    DebugBegin();
-	++ body_count;
 
-	position_type.push_back(FIXED);
+    position_type.push_back(RELATIVE);
 	mass.push_back( 0 );
 
 	position.push_back( vec2(0, 0) );
-    past_position.push_back( vec2(0, 0) );
 	velocity.push_back( vec2(0, 0) );
 	force.push_back( vec2(0, 0) );
 
 	orientation.push_back( 0 );
-    past_orientation.push_back( 0 );
 	rotation.push_back( 0 );
 	torque.push_back( 0 );
 	shape.push_back( Polygon () );
 
-	children[parent.index].push_back(Body(body_count, this));
-	children.push_back(std::vector<Body> {});
-	this->parent.push_back(parent);
+    children[parent.index].push_back(Body(this, count));
+    children.push_back(std::vector<Body> {});
+    this->parent.push_back(parent);
 
-    Body new_body = Body(body_count - 1, this);
-    broadphase_id.push_back(broadphase_alg.add_box(AABB<2>(0, 0, 0, 0), new_body.get_index()));
-
-    dout << "ADD CHILD BODY " << new_body.get_index() << newl;
-	return new_body;
+	++ count;
+	return Body(this, count - 1);
 }
 
 Body BodySystem::get_body(int index)
 {
-	return Body(index, this);
+	return Body(this, index);
+}
+
+// Collision
+
+typedef std::pair<glm::vec2, glm::vec2> LineSegment;
+
+bool inside(vec2 point, Polygon polygon);
+
+
+
+// For now this is copy-pasta code from Polygon: we just have to add the Body's pos.
+
+
+// class BODY
+
+Body::Body(BodySystem *system, int index)
+	: system(system), index(index)
+{
+	// std::cout << "Body .. " << index << std::endl;
+}
+
+vec2 Body::real_position()
+{
+    if (position_type() == ABSOLUTE || parent().index == -1) {
+        return position();
+    } else { // RELATIVE
+        return position() + parent().real_position();
+    }
+}
+
+Body& Body::operator++ ()
+{
+    index ++;
+    return *this;
+}
+bool Body::is_valid()
+{
+    return index >= 0 && index < system->count;
+}
+
+
+Contact BodySystem::calculate_earliest_contact(Body b1, Body b2, float time_since_last_update)
+{
+    std::vector<Intersection> intersections = Polygon::extract_intersections(b1.shape(), b2.shape(), false, false);
+    Contact earliest_contact;
+
+    if (intersections.size() == 0) {
+        earliest_contact.rewind_time = 0;
+        return earliest_contact;
+    }
+
+    for (auto it = intersections.begin(); it != intersections.end(); it ++)
+    {
+        Contact c = calculate_contact(b1, b2, *it, time_since_last_update);
+        if (c.rewind_time > earliest_contact.rewind_time)
+            earliest_contact = c;
+    }
+    return earliest_contact;
+}
+
+Contact BodySystem::calculate_contact(Body b1, Body b2, Intersection& intersection, float time_since_last_update)
+{
+    /** Possibilities
+     Send 'intersection' to rewind_out_of to only consider those edges?
+    **/
+
+    /* Find the Contact with the highest rewind time */
+    Contact best_contact;
+    best_contact.rewind_time = 0;
+    for (auto it = intersection.vertices.begin(); it != intersection.vertices.end(); it ++)
+    {
+        if ( ! (it->intersect)) {
+            if (it->owner == &b1.shape()) {
+                std::cout << "b1" << std::endl;
+                Contact current_contact = rewind_out_of(*it, b2, b1, time_since_last_update);
+                if (current_contact.rewind_time > best_contact.rewind_time) {
+                    best_contact = current_contact;
+                }
+            } else if (it->owner == &b2.shape()) {
+                std::cout << "b2" << std::endl;
+                Contact current_contact = rewind_out_of(*it, b1, b2, time_since_last_update);
+                if (current_contact.rewind_time > best_contact.rewind_time) {
+                    best_contact = current_contact;
+                }
+            }
+        }
+    }
+    return best_contact;
+}
+
+
+/**
+Numerically appoximate
+at what time `point`, belonging to `subject`, no longer is inside `reference`
+The Intersection is used as a guide of which edges of the reference to pick.
+ -> In the future, we may want to check all edges or find a smarter way to select edges.
+**/
+inline Contact BodySystem::rewind_out_of(HybridVertex vertex, Body reference, Body subject, float time_since_last_update)
+{
+    assert(vertex.intersect == false);
+    const float error_threshold = 1;
+    float error;
+    float time_offset = time_since_last_update / 2.f;
+    float time_step_size =  time_since_last_update / 2.f;
+    int closest_edge = -1;
+    float closest_edge_alpha = 0;
+
+    int count = 0;
+    while (true)
+    {
+        count ++;
+        if (count > 20) break;
+        glm::vec2 point_at_time = relative_pos(vertex.point, reference, subject, - time_offset);
+        renderer->add_dot(point_at_time);
+
+        int closest_edge;
+        error = distance(point_at_time, reference.shape(), closest_edge, closest_edge_alpha);
+        // TODO get velocity, create better estimate of new time offset
+        
+        time_step_size *= 0.5f;
+        if (abs(error) <= error_threshold)
+            break;
+        /* std::cout << count << ": " << error << std::endl; */
+
+        if (error > 0)  time_offset -= time_step_size;
+        else            time_offset += time_step_size;
+    }
+    Contact result;
+    result.rewind_time = time_offset;
+    result.normal = Polygon::Edge(closest_edge, &reference.shape()).normal_tr();
+    result.ref_point = EdgePoint(closest_edge, closest_edge_alpha, &reference.shape());
+    result.subj_point = EdgePoint(vertex.vertex, 0, &subject.shape());
+    return result;
+}
+void BodySystem::just_plot_movement(Body reference, Body subject, float total_time, int samples)
+{
+    Polygon& p = subject.shape();
+    for (int vertex = 0; vertex < p.vertices.size(); vertex ++ )
+    {
+        for (int i = 0; i < samples; i ++)
+        {
+            float time = total_time / samples * i;
+            glm::vec2 rel_pos = relative_pos(p.transformed(vertex), reference, subject, time);
+            renderer->add_dot(rel_pos);
+        }
+    }
+}
+
+inline glm::vec2 center(Body body, float time_offset)
+{
+    return body.position() + time_offset * body.velocity();
+}
+inline glm::vec2 BodySystem::relative_pos(glm::vec2 point, Body reference, Body subject, float time_offset)
+{
+    // PERFORMANCE There is a way to greatly optimize this.. a lot only has to be calculated once
+    float angle_wrt_subject = angle_of_vector(point - subject.position());
+    float angle_wrt_reference = angle_of_vector(point - reference.position());
+    float distance_from_subject = glm::length(point - subject.position());
+    float distance_from_reference = glm::length(point - reference.position());
+
+    // First, absolute position:
+    glm::vec2 translated_pos = subject.position() + subject.velocity() * time_offset
+        + unit_vector(angle_wrt_subject + time_offset * subject.rotation()) * distance_from_subject;
+    // Add translational velocity of reference
+    // Translate:
+    translated_pos -= time_offset * reference.velocity();
+    // Add rotational velocity of reference
+    // Rotate:
+    glm::vec2 relative_pos = translated_pos.x * unit_vector(reference.rotation() * time_offset)
+        + translated_pos.y * unit_vector_wrt_y(reference.rotation() * time_offset)
+        // constant (translation affiliated with rotation about a point):
+        + reference.position() - unit_vector(reference.rotation() * time_offset) * reference.position().x
+        - unit_vector_wrt_y(reference.rotation() * time_offset) * reference.position().y;
+    // PERFORMANCE notice the repeated use of the angle ref.rotation() * time... ^
+    return relative_pos;
 }

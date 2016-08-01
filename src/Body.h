@@ -44,9 +44,8 @@ class Body
 		inline Body& parent() { ensure_valid(); return system->parent[index]; }
         inline std::vector<Body> children() {ensure_valid(); return system->children[index];};
 
-		Body& operator++ (); // move to next 
-        bool operator==(Body& other) {return index == other.index; }
-        bool operator!=(Body& other) {return index != other.index; }
+	// Iterator?
+		Body& operator++ ();
 		bool is_valid();
 		int get_index() {return index; }
 

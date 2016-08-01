@@ -39,6 +39,7 @@ void Body::update_polygon_state()
 }
 void Body::save_placement()
 {
+    std::cout << index << " vs " << system->past_position.size() << " vs " << system->past_orientation.size() << std::endl;
     ensure_valid();
     past_position() = position();
     past_orientation() = orientation();
@@ -48,19 +49,19 @@ vec2 Body::real_position()
 {
 	if (position_type() == ABSOLUTE || parent().index == -1) {
 		return position();
-	} else { // FIXED (relative to parent)
+	} else { // RELATIVE
 		return position() + parent().real_position();
 	}
 }
 
 Body& Body::operator++ ()
 {
-    ++ index;
+	index ++;
 	return *this;
 }
 bool Body::is_valid()
 {
-	return index >= 0 && index < system->body_count;
+	return index >= 0 && index < system->count;
 }
 void Body::ensure_valid()
 {

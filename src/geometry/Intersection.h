@@ -10,20 +10,24 @@ struct Intersect;
 
 struct HybridVertex;
 struct Intersection;
+enum PolygonID { P=0, Q=1 };
 
 // External:
 class Renderer;
 
 struct Intersect
 {
-    Intersect(Polygon::Edge edge1, Polygon::Edge edge2);
+    Intersect(Polygon::Edge edge_p, Polygon::Edge edge_q);
+    Polygon* owner[2];
+    int vertex[2];
+    float alpha[2];
+#if 0 // old
     Polygon::Edge edge1, edge2;
-    float alpha1, alpha2; // How far along the edges the point resides
+    float alpha1, alpha2;
+#endif
     glm::vec2 point;
 
-    // Lessthan function -- choose which to compare, edge1 or edge2
-    enum Which { FIRST, SECOND};
-    template <Which which>
+    template <PolygonID which>
     static bool lt(Intersect& i, Intersect& j);
 };
 
@@ -31,16 +35,30 @@ struct Intersect
 // INTERSECTION //
 //////////////////
 
-/* HybridVertex takes two forms:
-    (owner, vertex, alpha) for regular vertices, and (edge1_owner, edge1_index, alpha1, edge2_owner, edge2_index, alpha2) for intersects
-    (coor is for all vertices but of course not necessary for a regular vertex)
-*/
+// HybridVertex can be an intersect, or can have info about only one edge point
+// It may contain information about polygon `P` and/or polygon `Q`.
+
 struct HybridVertex
 {
     HybridVertex(){} 
-    HybridVertex(Intersect& i);
-    HybridVertex(Polygon::Vertex v);
+    HybridVertex( Intersect& i );
+    HybridVertex( Polygon::Vertex v, PolygonID pid );
+    // queries for ease //
+    EdgePoint get_edge_point(PolygonID pid);
+    bool is_intersect();
+    PolygonID get_active(); // TODO implement
+    PolygonID get_polygon_id(Polygon* ptr);
+    // data //
+    Polygon* owner[2];
+    int vertex[2];
+    float alpha[2];
+    bool in_out[2];
+
+    bool is_active[2];
+
     glm::vec2 point; // only a sort of cache - can be calculated any time
+#if 0
+    //// old:
     union {
         Polygon* owner,
                * edge1_owner;
@@ -55,19 +73,27 @@ struct HybridVertex
     };
 
     // For intersects only:
-    bool intersect;
+    bool intersect:1;
+    bool edge1_in_out:1;
+    bool edge2_in_out:1;
     Polygon* edge2_owner;
     int edge2_index;
     float alpha2;
+#endif
 };
 
 
 struct Intersection
 {
+    class Vertex;
+
     std::vector<HybridVertex> vertices;
 
     Intersection() {};
-    Intersection(Polygon& p); // 'copy' p
+    Intersection(Polygon& p, PolygonID pid); // 'copy' p
+
+    // Query //
+    PolygonID find_parent_of_edge(Vertex v1, Vertex v2);
 
     float signed_area();
     glm::vec2 centroid();
@@ -131,7 +157,6 @@ struct Intersection
     float find_depth(int start_vertex, int end_vertex);
 
     EdgePoint interpolate(Vertex v1, Vertex v2, float alpha);
-    Polygon * find_parent_of_intersection_edge(Vertex v1, Vertex v2);
 
 };
 std::ostream& operator<< (std::ostream&, Intersection&);
@@ -141,24 +166,14 @@ std::ostream& operator<< (std::ostream&, Intersection&);
 
 /*** Templates ***/
 
-template <Intersect::Which which> // TODO separate functions for FIRST and SECOND
+template <PolygonID which> // TODO separate functions for FIRST and SECOND
 bool Intersect::lt(Intersect& i, Intersect& j)
 {
-    if (which == FIRST) {
-        if (i.edge1.get_index() < j.edge1.get_index()) {
-            return true;
-        } else if (i.edge1.get_index() == j.edge1.get_index()) {
-            return (i.alpha1 < j.alpha1);
-        } else {
-            return false;
-        }
+    if (i.vertex[which] < j.vertex[which]) {
+        return true;
+    } else if (i.vertex[which] == j.vertex[which]) {
+        return (i.alpha[which] < j.alpha[which]);
     } else {
-        if (i.edge2.get_index() < j.edge2.get_index()) {
-            return true;
-        } else if (i.edge2.get_index() == j.edge2.get_index()) {
-            return (i.alpha2 < j.alpha2);
-        } else {
-            return false;
-        }
+        return false;
     }
 }

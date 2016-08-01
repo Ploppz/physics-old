@@ -195,8 +195,14 @@ void Debug::fatal(const std::string& message)
     *this << Red << "Fatal error: " << nocolor << message;
     if (!next_is_newline)
         *this << newl;
-    *this << Red << "Exiting." << nocolor << newl;
-    exit(1);
+    abort();
+}
+void Debug::not_implemented(const std::string& message)
+{
+    *this << Red << "Not implemented / unexpected branch: " << nocolor << message;
+    if (!next_is_newline)
+        *this << newl;
+    abort();
 }
 
 void newl(Debug& stream)
